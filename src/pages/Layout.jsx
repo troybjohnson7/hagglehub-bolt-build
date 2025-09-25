@@ -5,7 +5,6 @@ import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { User } from "@/api/entities";
 import { Message } from "@/api/entities";
-import { getAccessToken } from "@base44/sdk/utils/auth-utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -29,6 +28,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import NotificationCenter from "./components/notifications/NotificationCenter";
+
+// Mock function to replace getAccessToken
+const getAccessToken = () => {
+  return localStorage.getItem('mock_access_token');
+};
 
 const navigationItems = [
   { title: 'Dashboard', icon: LayoutDashboard, url: createPageUrl('Dashboard') },
