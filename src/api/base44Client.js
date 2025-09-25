@@ -298,7 +298,7 @@ class AdminIntegrations {
       const urlMatch = prompt.match(/https?:\/\/[^\s]+/);
       if (urlMatch) {
         const url = urlMatch[0];
-        return await this.parseVehicleListingURL(url, response_json_schema);
+        return await AdminIntegrations.parseVehicleListingURL(url, response_json_schema);
       }
     }
 
