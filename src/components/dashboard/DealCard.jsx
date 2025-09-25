@@ -11,6 +11,12 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
+// Debug function to log navigation
+const handleCardClick = (dealId) => {
+  const url = createPageUrl(`DealDetails?deal_id=${dealId}`);
+  console.log('Navigating to:', url);
+};
+
 const statusColors = {
   quote_requested: "bg-yellow-100 text-yellow-800 border-yellow-200",
   negotiating: "bg-brand-lime bg-opacity-20 text-brand-teal border-brand-lime",
@@ -42,7 +48,11 @@ export default function DealCard({ deal, vehicle, dealer }) {
       transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
       className="w-full"
     >
-      <Link to={createPageUrl(`DealDetails?deal_id=${deal.id}`)} className="block">
+      <Link 
+        to={createPageUrl(`DealDetails?deal_id=${deal.id}`)} 
+        className="block"
+        onClick={() => handleCardClick(deal.id)}
+      >
         <Card className="shadow-sm border-slate-200 hover:shadow-lg hover:border-brand-lime transition-all duration-200 overflow-hidden">
           <CardHeader className="p-3 md:p-4">
             <div className="flex items-start justify-between">
