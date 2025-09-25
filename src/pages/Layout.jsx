@@ -5,6 +5,7 @@ import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { User } from "@/api/entities";
 import { Message } from "@/api/entities";
+import { getAccessToken } from "@base44/sdk/utils/auth-utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -46,6 +47,13 @@ export default function Layout({ children, currentPageName }) {
 
     const checkUserAndMessages = async (isInitial = false) => {
       try {
+        // Skip API calls on public pages when no access token is present
+        if (isPublicPage && !getAccessToken()) {
+          setUser(null);
+          setUnreadCount(0);
+          return;
+        }
+
         const currentUser = await User.me();
         setUser(currentUser);
         setRetryCount(0);
