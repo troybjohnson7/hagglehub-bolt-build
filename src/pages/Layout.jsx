@@ -27,7 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import NotificationCenter from "./components/notifications/NotificationCenter";
+import NotificationCenter from "@/components/notifications/NotificationCenter";
 
 // Mock function to replace getAccessToken
 const getAccessToken = () => {
