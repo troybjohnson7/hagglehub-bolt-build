@@ -31,7 +31,7 @@ import NotificationCenter from "@/components/notifications/NotificationCenter";
 
 // Mock function to replace getAccessToken
 const getAccessToken = () => {
-  return localStorage.getItem('mock_access_token');
+  return localStorage.getItem('admin_access_token');
 };
 
 const navigationItems = [
