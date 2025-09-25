@@ -252,7 +252,7 @@ function DealForm({ parsedData, setStep }) {
         mileage: vehicleData.mileage ? parseInt(vehicleData.mileage) : undefined
       });
       const newDealer = await Dealer.create(dealerData);
-      await Deal.create({
+      const newDeal = await Deal.create({
         ...dealData,
         asking_price: parseFloat(dealData.asking_price),
         vehicle_id: newVehicle.id,
@@ -260,7 +260,7 @@ function DealForm({ parsedData, setStep }) {
         status: 'quote_requested',
       });
       toast.success("Deal successfully created!");
-      navigate('/');
+      navigate(createPageUrl(`DealDetails?deal_id=${newDeal.id}`));
     } catch (error) {
       console.error("Failed to create new deal:", error);
       toast.error("Failed to create deal. Please check your inputs.");
