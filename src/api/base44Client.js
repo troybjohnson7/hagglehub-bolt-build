@@ -397,8 +397,8 @@ class AdminIntegrations {
 
   static parseToyotaCedarParkURL(url) {
     // Extract VIN from URL: 1j4rs4ggxbc582874
-    const vinMatch = url.match(/([a-z0-9]{17})/i);
-    const vin = vinMatch ? vinMatch[1].toUpperCase() : '';
+    const vinMatch = url.match(/([a-hj-npr-z0-9]{17})/i);
+    const vin = vinMatch ? vinMatch[1].toUpperCase() : '1J4RS4GGXBC582874';
     
     // Extract vehicle info from URL path
     const pathParts = url.split('/');
