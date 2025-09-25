@@ -33,7 +33,6 @@ function App() {
         <Route path="/edit-dealer" element={<Layout currentPageName="EditDealer"><EditDealerPage /></Layout>} />
         <Route path="/onboarding" element={<Layout currentPageName="Onboarding"><OnboardingPage /></Layout>} />
       </Routes>
-      <Toaster />
     </Router>
   )
 }
