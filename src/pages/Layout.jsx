@@ -60,6 +60,7 @@ export default function Layout({ children, currentPageName }) {
           setUser(null);
           setUnreadCount(0);
           return;
+          return;
         }
 
         const currentUser = await User.me();
