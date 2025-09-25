@@ -67,7 +67,8 @@ class MockAuth {
     };
     localStorage.setItem('mock_user', JSON.stringify(mockUser));
     localStorage.setItem('mock_access_token', 'mock-token-123');
-    window.location.reload();
+    // Instead of reloading, redirect to dashboard
+    window.location.href = '/dashboard';
   }
 
   async logout() {

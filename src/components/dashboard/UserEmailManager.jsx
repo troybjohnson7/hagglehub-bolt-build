@@ -40,6 +40,13 @@ export default function UserEmailManager() {
 
       } catch (e) {
         console.error("Could not fetch user", e);
+        // For demo purposes, create a fallback user
+        const fallbackUser = {
+          email_identifier: generateShortId(),
+          full_name: 'Demo User'
+        };
+        setUser(fallbackUser);
+        setUserEmail(`deals-${fallbackUser.email_identifier}@hagglehub.app`);
       } finally {
         setIsLoading(false);
       }

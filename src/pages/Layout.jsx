@@ -122,7 +122,11 @@ export default function Layout({ children, currentPageName }) {
   }, [location.pathname, retryCount]);
 
   const handleLogin = async () => {
-    await User.login();
+    try {
+      await User.login();
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
   };
 
   const handleLogout = async () => {
