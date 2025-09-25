@@ -293,6 +293,15 @@ class AdminIntegrations {
     // Simulate processing delay
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
 
+    // Check if this is a URL parsing request
+    if (add_context_from_internet && prompt.includes('Extract structured vehicle, dealer, and pricing information')) {
+      const urlMatch = prompt.match(/https?:\/\/[^\s]+/);
+      if (urlMatch) {
+        const url = urlMatch[0];
+        return await this.parseVehicleListingURL(url, response_json_schema);
+      }
+    }
+
     // Generate responses based on schema and prompt content
     if (response_json_schema?.properties?.suggestions) {
       const strategies = [
@@ -373,6 +382,262 @@ class AdminIntegrations {
       status: 'success', 
       details: 'Your inquiry has been submitted successfully. The dealer should respond within 24 hours.',
       next_steps: 'Check your HaggleHub inbox for responses and be prepared to negotiate.'
+    };
+  }
+
+  static async parseVehicleListingURL(url, schema) {
+    try {
+      // Fetch the webpage content
+      const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+      const data = await response.json();
+      const htmlContent = data.contents;
+      
+      // Create a temporary DOM parser
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlContent, 'text/html');
+      
+      // Extract vehicle information from various common selectors
+      const extractedData = this.extractVehicleData(doc, url);
+      
+      return {
+        vehicle: extractedData.vehicle,
+        dealer: extractedData.dealer,
+        pricing: extractedData.pricing
+      };
+    } catch (error) {
+      console.error('Failed to parse URL:', error);
+      // Fallback to analyzing URL structure if fetch fails
+      return this.parseFromURLStructure(url);
+    }
+  }
+
+  static extractVehicleData(doc, url) {
+    // Common selectors for vehicle information
+    const titleSelectors = [
+      'h1', '.vehicle-title', '.inventory-title', '.vehicle-name',
+      '[data-test="vehicle-title"]', '.listing-title'
+    ];
+    
+    const priceSelectors = [
+      '.price', '.vehicle-price', '.listing-price', '.our-price',
+      '[data-test="price"]', '.price-value', '.current-price'
+    ];
+
+    // Extract title/vehicle info
+    let vehicleTitle = '';
+    for (const selector of titleSelectors) {
+      const element = doc.querySelector(selector);
+      if (element && element.textContent.trim()) {
+        vehicleTitle = element.textContent.trim();
+        break;
+      }
+    }
+
+    // Extract price
+    let price = null;
+    for (const selector of priceSelectors) {
+      const element = doc.querySelector(selector);
+      if (element) {
+        const priceText = element.textContent.replace(/[^\d]/g, '');
+        if (priceText && parseInt(priceText) > 1000) {
+          price = parseInt(priceText);
+          break;
+        }
+      }
+    }
+
+    // Parse vehicle title for year, make, model
+    const vehicleInfo = this.parseVehicleTitle(vehicleTitle);
+    
+    // Extract dealer info from URL and page
+    const dealerInfo = this.extractDealerInfo(doc, url);
+
+    return {
+      vehicle: {
+        year: vehicleInfo.year,
+        make: vehicleInfo.make,
+        model: vehicleInfo.model,
+        trim: vehicleInfo.trim,
+        vin: this.extractVIN(doc),
+        mileage: this.extractMileage(doc),
+        condition: 'used',
+        exterior_color: this.extractColor(doc, 'exterior'),
+        interior_color: this.extractColor(doc, 'interior'),
+        listing_url: url
+      },
+      dealer: dealerInfo,
+      pricing: {
+        asking_price: price
+      }
+    };
+  }
+
+  static parseVehicleTitle(title) {
+    // Common patterns for vehicle titles
+    const patterns = [
+      /(\d{4})\s+(\w+)\s+([^,\-\s]+(?:\s+[^,\-\s]+)*?)(?:\s+([^,\-]+))?/i,
+      /(\w+)\s+([^,\-\s]+(?:\s+[^,\-\s]+)*?)\s+(\d{4})/i
+    ];
+
+    for (const pattern of patterns) {
+      const match = title.match(pattern);
+      if (match) {
+        return {
+          year: parseInt(match[1]) || new Date().getFullYear(),
+          make: match[2] || 'Unknown',
+          model: match[3] || 'Unknown',
+          trim: match[4] || ''
+        };
+      }
+    }
+
+    // Fallback parsing
+    const words = title.split(/\s+/);
+    const yearMatch = words.find(word => /^\d{4}$/.test(word));
+    const year = yearMatch ? parseInt(yearMatch) : new Date().getFullYear();
+    
+    return {
+      year,
+      make: words[1] || 'Unknown',
+      model: words[2] || 'Unknown',
+      trim: words.slice(3).join(' ') || ''
+    };
+  }
+
+  static extractDealerInfo(doc, url) {
+    const hostname = new URL(url).hostname;
+    const dealerName = hostname.replace(/^www\./, '').split('.')[0];
+    
+    // Try to find dealer name on page
+    const dealerSelectors = [
+      '.dealer-name', '.dealership-name', '.dealer-info h1', '.dealer-info h2',
+      '[data-test="dealer-name"]', '.dealer-title'
+    ];
+    
+    let foundDealerName = '';
+    for (const selector of dealerSelectors) {
+      const element = doc.querySelector(selector);
+      if (element && element.textContent.trim()) {
+        foundDealerName = element.textContent.trim();
+        break;
+      }
+    }
+
+    // Extract contact info
+    const phoneRegex = /\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
+    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+    
+    const pageText = doc.body ? doc.body.textContent : '';
+    const phoneMatch = pageText.match(phoneRegex);
+    const emailMatch = pageText.match(emailRegex);
+
+    return {
+      name: foundDealerName || this.formatDealerName(dealerName),
+      contact_email: emailMatch ? emailMatch[0] : `sales@${hostname}`,
+      phone: phoneMatch ? phoneMatch[0] : '',
+      address: this.extractAddress(doc),
+      website: url
+    };
+  }
+
+  static formatDealerName(hostname) {
+    return hostname
+      .split(/[-_]/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
+  static extractVIN(doc) {
+    const vinSelectors = ['.vin', '[data-test="vin"]', '.vehicle-vin'];
+    for (const selector of vinSelectors) {
+      const element = doc.querySelector(selector);
+      if (element) {
+        const vinMatch = element.textContent.match(/[A-HJ-NPR-Z0-9]{17}/);
+        if (vinMatch) return vinMatch[0];
+      }
+    }
+    return '';
+  }
+
+  static extractMileage(doc) {
+    const mileageSelectors = ['.mileage', '[data-test="mileage"]', '.vehicle-mileage'];
+    for (const selector of mileageSelectors) {
+      const element = doc.querySelector(selector);
+      if (element) {
+        const mileageMatch = element.textContent.match(/[\d,]+/);
+        if (mileageMatch) {
+          return parseInt(mileageMatch[0].replace(/,/g, ''));
+        }
+      }
+    }
+    return null;
+  }
+
+  static extractColor(doc, type) {
+    const colorSelectors = [
+      `.${type}-color`, `[data-test="${type}-color"]`, `.vehicle-${type}-color`
+    ];
+    for (const selector of colorSelectors) {
+      const element = doc.querySelector(selector);
+      if (element && element.textContent.trim()) {
+        return element.textContent.trim();
+      }
+    }
+    return '';
+  }
+
+  static extractAddress(doc) {
+    const addressSelectors = [
+      '.dealer-address', '.dealership-address', '[data-test="address"]'
+    ];
+    for (const selector of addressSelectors) {
+      const element = doc.querySelector(selector);
+      if (element && element.textContent.trim()) {
+        return element.textContent.trim();
+      }
+    }
+    return '';
+  }
+
+  static parseFromURLStructure(url) {
+    // Fallback: try to extract info from URL structure
+    const urlParts = url.toLowerCase().split(/[-_/]/);
+    
+    // Look for year in URL
+    const yearMatch = urlParts.find(part => /^\d{4}$/.test(part));
+    const year = yearMatch ? parseInt(yearMatch) : 2020;
+    
+    // Look for common car makes
+    const commonMakes = ['toyota', 'honda', 'ford', 'chevrolet', 'nissan', 'jeep', 'bmw', 'mercedes'];
+    const make = urlParts.find(part => commonMakes.includes(part)) || 'Unknown';
+    
+    // Extract dealer name from hostname
+    const hostname = new URL(url).hostname.replace(/^www\./, '');
+    const dealerName = hostname.split('.')[0];
+    
+    return {
+      vehicle: {
+        year,
+        make: make.charAt(0).toUpperCase() + make.slice(1),
+        model: 'Unknown Model',
+        trim: '',
+        vin: '',
+        mileage: null,
+        condition: 'used',
+        exterior_color: '',
+        interior_color: '',
+        listing_url: url
+      },
+      dealer: {
+        name: this.formatDealerName(dealerName),
+        contact_email: `sales@${hostname}`,
+        phone: '',
+        address: '',
+        website: url
+      },
+      pricing: {
+        asking_price: null
+      }
     };
   }
 }
