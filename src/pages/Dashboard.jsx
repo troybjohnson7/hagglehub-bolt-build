@@ -34,37 +34,46 @@ export default function Dashboard() {
 
   const fetchData = async () => {
     setIsLoading(true);
+    console.log('Dashboard: Fetching data...');
     try {
       const currentUser = await User.me();
       if (!currentUser) {
+        console.log('Dashboard: No user found, redirecting to home');
         navigate('/');
         return;
       }
       
       setUser(currentUser);
+      console.log('Dashboard: User found:', currentUser.email);
 
       // Check if user needs onboarding
       if (!currentUser.has_completed_onboarding) {
+        console.log('Dashboard: User needs onboarding, redirecting');
         navigate('/onboarding');
         return;
       }
 
       // Add delays between API calls to prevent rate limiting
       const dealData = await Deal.list('-created_date');
+      console.log('Dashboard: Fetched deals:', dealData.length);
       await new Promise(resolve => setTimeout(resolve, 400));
       
       const vehicleData = await Vehicle.list();
+      console.log('Dashboard: Fetched vehicles:', vehicleData.length);
       await new Promise(resolve => setTimeout(resolve, 400));
       
       const dealerData = await Dealer.list();
+      console.log('Dashboard: Fetched dealers:', dealerData.length);
       await new Promise(resolve => setTimeout(resolve, 400));
       
       const messageData = await Message.list('-created_date');
+      console.log('Dashboard: Fetched messages:', messageData.length);
       
       setDeals(dealData);
       setVehicles(vehicleData);
       setDealers(dealerData);
       setMessages(messageData);
+      console.log('Dashboard: All data set successfully');
 
     } catch (error) {
       console.error("Dashboard data fetch error:", error);
@@ -73,10 +82,12 @@ export default function Dashboard() {
       navigate('/');
     } finally {
       setIsLoading(false);
+      console.log('Dashboard: Loading complete');
     }
   };
 
   useEffect(() => {
+    console.log('Dashboard: useEffect triggered, pathname:', location.pathname);
     fetchData();
   }, [navigate, location.pathname]);
 
