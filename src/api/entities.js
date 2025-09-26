@@ -4,29 +4,18 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-let supabase = null;
-let isSupabaseAvailable = false;
-
-// Try to initialize Supabase, fall back to mock if unavailable
-if (supabaseUrl && supabaseKey) {
-  try {
-    supabase = createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
-        flowType: 'pkce'
-      }
-    });
-    isSupabaseAvailable = true;
-  } catch (error) {
-    console.warn('Supabase initialization failed, using mock mode:', error);
-    isSupabaseAvailable = false;
-  }
-} else {
-  console.warn('Supabase environment variables not found, using mock mode');
-  isSupabaseAvailable = false;
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Missing Supabase environment variables. Please check your .env file.');
 }
+
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce'
+  }
+});
 
 // Real Supabase entity implementation
 class SupabaseEntity {
@@ -35,218 +24,92 @@ class SupabaseEntity {
   }
 
   async list(orderBy = '') {
-    if (!isSupabaseAvailable) {
-      return this.getMockData();
-    }
-    
     let query = supabase.from(this.tableName).select('*');
     if (orderBy) {
       const isDesc = orderBy.startsWith('-');
       const field = isDesc ? orderBy.substring(1) : orderBy;
       query = query.order(field, { ascending: !isDesc });
     }
-    try {
-      const { data, error } = await query;
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.warn(`Supabase ${this.tableName} list failed, using mock data:`, error);
-      return this.getMockData();
-    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
   }
 
   async filter(criteria) {
-    if (!isSupabaseAvailable) {
-      return this.getMockData().filter(item => 
-        Object.entries(criteria).every(([key, value]) => item[key] === value)
-      );
-    }
-    
     let query = supabase.from(this.tableName).select('*');
     Object.entries(criteria).forEach(([key, value]) => {
       query = query.eq(key, value);
     });
-    try {
-      const { data, error } = await query;
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.warn(`Supabase ${this.tableName} filter failed, using mock data:`, error);
-      return this.getMockData().filter(item => 
-        Object.entries(criteria).every(([key, value]) => item[key] === value)
-      );
-    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
   }
 
   async create(itemData) {
-    if (!isSupabaseAvailable) {
-      const mockItem = {
-        id: this.generateUUID(),
-        ...itemData,
-        created_by: this.getCurrentMockUserId(),
-        created_date: new Date().toISOString()
-      };
-      this.addToMockData(mockItem);
-      // Trigger a storage event to notify other components
-      console.log('Entity: Triggering storage event for', this.tableName);
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: `mock_${this.tableName}`,
-        newValue: JSON.stringify(this.getMockData())
-      }));
-      return mockItem;
-    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const dataWithUser = {
+      ...itemData,
+      created_by: user.id
+    };
+
+    const { data, error } = await supabase
+      .from(this.tableName)
+      .insert(dataWithUser)
+      .select()
+      .single();
     
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const dataWithUser = {
-        ...itemData,
-        created_by: user.id
-      };
-
-      const { data, error } = await supabase
-        .from(this.tableName)
-        .insert(dataWithUser)
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.warn(`Supabase ${this.tableName} create failed, using mock:`, error);
-      const mockItem = {
-        id: this.generateUUID(),
-        ...itemData,
-        created_by: this.getCurrentMockUserId(),
-        created_date: new Date().toISOString()
-      };
-      this.addToMockData(mockItem);
-      return mockItem;
-    }
+    if (error) throw error;
+    return data;
   }
 
   async update(id, updates) {
-    if (!isSupabaseAvailable) {
-      const mockData = this.getMockData();
-      const index = mockData.findIndex(item => item.id === id);
-      if (index !== -1) {
-        mockData[index] = { ...mockData[index], ...updates };
-        this.saveMockData(mockData);
-        return mockData[index];
-      }
-      throw new Error('Item not found');
-    }
+    const { data, error } = await supabase
+      .from(this.tableName)
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
     
-    try {
-      const { data, error } = await supabase
-        .from(this.tableName)
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.warn(`Supabase ${this.tableName} update failed:`, error);
-      throw error;
-    }
+    if (error) throw error;
+    return data;
   }
 
   async delete(id) {
-    if (!isSupabaseAvailable) {
-      const mockData = this.getMockData();
-      const filteredData = mockData.filter(item => item.id !== id);
-      this.saveMockData(filteredData);
-      return true;
-    }
+    const { error } = await supabase
+      .from(this.tableName)
+      .delete()
+      .eq('id', id);
     
-    try {
-      const { error } = await supabase
-        .from(this.tableName)
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.warn(`Supabase ${this.tableName} delete failed:`, error);
-      throw error;
-    }
-  }
-
-  // Mock data methods
-  getMockData() {
-    const stored = localStorage.getItem(`mock_${this.tableName}`);
-    return stored ? JSON.parse(stored) : [];
-  }
-
-  saveMockData(data) {
-    localStorage.setItem(`mock_${this.tableName}`, JSON.stringify(data));
-  }
-
-  addToMockData(item) {
-    const mockData = this.getMockData();
-    console.log('Entity: Adding to mock data for', this.tableName, 'Current count:', mockData.length);
-    mockData.push(item);
-    this.saveMockData(mockData);
-    console.log('Entity: After adding, count:', mockData.length);
-  }
-
-  getCurrentMockUserId() {
-    const mockUser = JSON.parse(localStorage.getItem('mock_user') || '{}');
-    return mockUser.id || this.generateUUID();
-  }
-
-  generateUUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c == 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
+    if (error) throw error;
+    return true;
   }
 }
 
 // Real Supabase auth implementation
 class SupabaseAuth {
   async login() {
-    // Create mock user with proper UUID format
-    const mockUser = {
-      id: this.generateUUID(),
-      email: 'admin@hagglehub.app',
-      full_name: 'Admin User',
-      email_identifier: this.generateEmailIdentifier(),
-      subscription_tier: 'closer_annual',
-      has_completed_onboarding: false,
-      created_date: new Date().toISOString()
-    };
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`
+      }
+    });
     
-    localStorage.setItem('mock_user', JSON.stringify(mockUser));
-    localStorage.setItem('mock_session', 'true');
-    
-    // Redirect to dashboard
-    window.location.href = '/dashboard';
-    return { user: mockUser };
+    if (error) throw error;
+    return data;
   }
 
   async logout() {
-    localStorage.removeItem('mock_user');
-    localStorage.removeItem('mock_session');
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
     window.location.href = '/';
   }
 
   async me() {
-    // Check for mock session first
-    const mockSession = localStorage.getItem('mock_session');
-    if (mockSession) {
-      const mockUser = JSON.parse(localStorage.getItem('mock_user') || '{}');
-      if (mockUser.id) {
-        return mockUser;
-      }
-    }
-    
-    if (!isSupabaseAvailable) {
-      return null;
-    }
-    
     try {
       // Get current user from Supabase auth
       const { data: { user: supabaseUser }, error } = await supabase.auth.getUser();
@@ -284,54 +147,29 @@ class SupabaseAuth {
           if (createError) return { ...currentUser, ...newProfile };
           return { ...currentUser, ...createdProfile };
         }
+        throw profileError;
       }
 
       return { ...currentUser, ...profile };
     } catch (error) {
-      console.warn('Supabase user fetch failed:', error);
+      console.error('Auth error:', error);
       return null;
     }
   }
 
   async updateMyUserData(updates) {
-    // Handle mock user updates
-    const mockSession = localStorage.getItem('mock_session');
-    if (mockSession) {
-      const mockUser = JSON.parse(localStorage.getItem('mock_user') || '{}');
-      const updatedUser = { ...mockUser, ...updates };
-      localStorage.setItem('mock_user', JSON.stringify(updatedUser));
-      return updatedUser;
-    }
-    
-    if (!isSupabaseAvailable) {
-      throw new Error('Not authenticated');
-    }
-    
-    try {
-      const currentUser = await this.me();
-      if (!currentUser) throw new Error('Not authenticated');
+    const currentUser = await this.me();
+    if (!currentUser) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
-        .from('users')
-        .update(updates)
-        .eq('id', currentUser.id)
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('id', currentUser.id)
+      .select()
+      .single();
 
-      if (error) throw error;
-      return { ...currentUser, ...data };
-    } catch (error) {
-      console.warn('Supabase user update failed:', error);
-      throw error;
-    }
-  }
-
-  generateUUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c == 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
+    if (error) throw error;
+    return { ...currentUser, ...data };
   }
 
   generateEmailIdentifier(length = 7) {
@@ -413,71 +251,6 @@ class SupabaseIntegrations {
       status: 'success', 
       details: 'Request processed successfully.',
       next_steps: 'Continue with your planned actions.'
-    };
-  }
-
-  static parseUrlAdvanced(url) {
-    const domain = new URL(url).hostname;
-    
-    // Enhanced parsing for Toyota of Cedar Park URLs
-    if (domain.includes('toyotaofcedarpark.com')) {
-      // Parse the URL structure: /inventory/used-2022-toyota-tundra-4wd-sr5-four-wheel-drive-truck-5tfla5db1nx006746/
-      const pathMatch = url.match(/\/inventory\/used-(\d{4})-([^-]+)-([^-]+)(?:-[^-]*)*-([^-]+)-[^-]+-[^-]+-([^\/]+)\//);
-      
-      if (pathMatch) {
-        const [, year, make, model, trim, vin] = pathMatch;
-        
-        return {
-          vehicle: {
-            year: parseInt(year),
-            make: make.charAt(0).toUpperCase() + make.slice(1),
-            model: model.charAt(0).toUpperCase() + model.slice(1),
-            trim: trim.toUpperCase(),
-            vin: vin.toUpperCase(),
-            stock_number: vin.slice(-6), // Last 6 characters of VIN as stock number
-            mileage: null,
-            condition: "Used",
-            exterior_color: null,
-            interior_color: null,
-            image_url: url
-          },
-          dealer: {
-            name: "Toyota of Cedar Park",
-            contact_email: null,
-            phone: "512-778-0711",
-            address: "5600 183A, Cedar Park, TX 78641",
-            website: "https://www.toyotaofcedarpark.com"
-          },
-          pricing: {
-            asking_price: null
-          }
-        };
-      }
-    }
-    
-    return {
-      vehicle: {
-        year: 2022,
-        make: 'Toyota',
-        model: 'Tundra',
-        trim: 'SR5',
-        vin: '5TFLA5DB1NX006746',
-        mileage: 45000,
-        condition: 'used',
-        exterior_color: 'Army Green',
-        interior_color: null,
-        image_url: url
-      },
-      dealer: {
-        name: 'Toyota of Cedar Park',
-        contact_email: null,
-        phone: '512-778-0711',
-        address: '5600 183A, Cedar Park, TX 78641',
-        website: 'https://www.toyotaofcedarpark.com'
-      },
-      pricing: {
-        asking_price: null
-      }
     };
   }
 
