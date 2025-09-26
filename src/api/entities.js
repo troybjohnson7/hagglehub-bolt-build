@@ -339,100 +339,35 @@ class SupabaseAuth {
 // Real integrations using Supabase Edge Functions
 class SupabaseIntegrations {
   static async InvokeLLM({ prompt, response_json_schema, add_context_from_internet = false }) {
-    // For URL parsing with internet context, use a more sophisticated approach
+    // For URL parsing with internet context, use the real web scraping backend
     if (add_context_from_internet && prompt.includes('Extract structured vehicle, dealer, and pricing information')) {
       const urlMatch = prompt.match(/https?:\/\/[^\s]+/);
       if (urlMatch) {
         const url = urlMatch[0];
         
-        // Parse Toyota of Cedar Park URLs
-        if (url.includes('toyotaofcedarpark.com')) {
-          // Extract vehicle info from URL path
-          const pathMatch = url.match(/\/inventory\/used-(\d{4})-([^-]+)-([^-]+)-([^-]+)-([^-]+)-([^-]+)-([^-]+)-([^\/]+)\//);
-          
-          if (pathMatch) {
-            const [, year, make, model, drivetrain, trim, bodyType, vehicleType, vinFromUrl] = pathMatch;
-            
-            return {
-              vehicle: {
-                year: parseInt(year),
-                make: make.charAt(0).toUpperCase() + make.slice(1),
-                model: model.charAt(0).toUpperCase() + model.slice(1),
-                trim: trim.toUpperCase(),
-                vin: vinFromUrl.toUpperCase(),
-                stock_number: vinFromUrl.slice(-6).toUpperCase(),
-                mileage: null,
-                condition: 'Used',
-                exterior_color: null,
-                interior_color: null,
-                listing_url: url
-              },
-              dealer: {
-                name: 'Toyota of Cedar Park',
-                contact_email: 'sales@toyotaofcedarpark.com',
-                phone: '(512) 778-0711',
-                address: '5600 183A Toll Rd, Cedar Park, TX 78641',
-                website: 'https://www.toyotaofcedarpark.com'
-              },
-              pricing: {
-                asking_price: this.extractPriceFromToyotaUrl(url)
-              }
-            };
+        try {
+          // Call the real web scraping Edge Function
+          const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-vehicle-url`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url })
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            return result;
+          } else {
+            console.error('Web scraping failed:', await response.text());
+            throw new Error('Failed to parse URL');
           }
-          
-          // Fallback for Toyota of Cedar Park if URL doesn't match expected pattern
-          return {
-            vehicle: {
-              year: 2022,
-              make: 'Toyota',
-              model: 'Unknown',
-              trim: '',
-              vin: '',
-              stock_number: '',
-              mileage: null,
-              condition: 'Used',
-              exterior_color: null,
-              interior_color: null,
-              listing_url: url
-            },
-            dealer: {
-              name: 'Toyota of Cedar Park',
-              contact_email: 'sales@toyotaofcedarpark.com',
-              phone: '(512) 778-0711',
-              address: '5600 183A Toll Rd, Cedar Park, TX 78641',
-              website: 'https://www.toyotaofcedarpark.com'
-            },
-            pricing: {
-              asking_price: null
-            }
-          };
+        } catch (error) {
+          console.error('URL parsing error:', error);
+          // Fallback to basic URL analysis
+          return this.parseUrlFallback(url);
         }
-        
-        // For other URLs, return a generic response
-        return {
-          vehicle: {
-            year: 2020,
-            make: 'Unknown',
-            model: 'Unknown',
-            trim: '',
-            vin: '',
-            mileage: null,
-            condition: 'used',
-            exterior_color: '',
-            interior_color: '',
-            listing_url: url
-          },
-          dealer: {
-            name: 'Auto Dealer',
-            contact_email: 'sales@dealer.com',
-            phone: '',
-            address: '',
-            website: url
-          },
-          pricing: {
-            asking_price: null
-          }
-        };
       }
     }
 
@@ -475,42 +410,34 @@ class SupabaseIntegrations {
     };
   }
 
-  static extractPriceFromToyotaUrl(url) {
-    // For Toyota of Cedar Park, we can make educated guesses based on vehicle type and year
-    // This is a simplified approach - in a real app you'd scrape the actual page
+  static parseUrlFallback(url) {
+    // Basic URL analysis when web scraping fails
+    const domain = new URL(url).hostname;
     
-    if (url.includes('tundra')) {
-      if (url.includes('2022') || url.includes('2023')) return 45000;
-      if (url.includes('2021')) return 42000;
-      if (url.includes('2020')) return 38000;
-      return 40000; // Default for Tundra
-    }
-    
-    if (url.includes('camry')) {
-      if (url.includes('2022') || url.includes('2023')) return 28000;
-      if (url.includes('2021')) return 26000;
-      return 25000; // Default for Camry
-    }
-    
-    if (url.includes('rav4')) {
-      if (url.includes('2022') || url.includes('2023')) return 32000;
-      if (url.includes('2021')) return 30000;
-      return 28000; // Default for RAV4
-    }
-    
-    if (url.includes('highlander')) {
-      if (url.includes('2022') || url.includes('2023')) return 38000;
-      if (url.includes('2021')) return 36000;
-      return 34000; // Default for Highlander
-    }
-    
-    // Default fallback based on year
-    if (url.includes('2023')) return 35000;
-    if (url.includes('2022')) return 33000;
-    if (url.includes('2021')) return 30000;
-    if (url.includes('2020')) return 28000;
-    
-    return null; // No price estimate available
+    return {
+      vehicle: {
+        year: null,
+        make: 'Unknown',
+        model: 'Unknown',
+        trim: '',
+        vin: '',
+        mileage: null,
+        condition: 'used',
+        exterior_color: '',
+        interior_color: '',
+        listing_url: url
+      },
+      dealer: {
+        name: domain.replace(/^www\./, '').split('.')[0],
+        contact_email: '',
+        phone: '',
+        address: '',
+        website: url
+      },
+      pricing: {
+        asking_price: null
+      }
+    };
   }
 }
 
