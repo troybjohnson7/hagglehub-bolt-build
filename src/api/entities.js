@@ -88,6 +88,7 @@ class SupabaseEntity {
       };
       this.addToMockData(mockItem);
       // Trigger a storage event to notify other components
+      console.log('Entity: Triggering storage event for', this.tableName);
       window.dispatchEvent(new StorageEvent('storage', {
         key: `mock_${this.tableName}`,
         newValue: JSON.stringify(this.getMockData())
@@ -184,8 +185,10 @@ class SupabaseEntity {
 
   addToMockData(item) {
     const mockData = this.getMockData();
+    console.log('Entity: Adding to mock data for', this.tableName, 'Current count:', mockData.length);
     mockData.push(item);
     this.saveMockData(mockData);
+    console.log('Entity: After adding, count:', mockData.length);
   }
 
   getCurrentMockUserId() {

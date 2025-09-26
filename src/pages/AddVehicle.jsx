@@ -277,6 +277,16 @@ function DealForm({ parsedData, setStep, currentUser }) {
       });
       toast.success("Deal successfully created!");
       console.log('AddVehicle: Deal created successfully, navigating to dashboard');
+      console.log('AddVehicle: Created deal:', newDeal);
+      console.log('AddVehicle: Created vehicle:', newVehicle);
+      console.log('AddVehicle: Created dealer:', newDealer);
+      
+      // Force trigger storage event for Dashboard refresh
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'mock_deals',
+        newValue: JSON.stringify([])
+      }));
+      
       // Navigate back to dashboard
       navigate('/dashboard');
     } catch (error) {

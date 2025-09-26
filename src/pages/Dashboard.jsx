@@ -35,6 +35,7 @@ export default function Dashboard() {
   const fetchData = async () => {
     setIsLoading(true);
     console.log('Dashboard: Fetching data...');
+    console.log('Dashboard: Current pathname:', location.pathname);
     try {
       const currentUser = await User.me();
       if (!currentUser) {
@@ -56,6 +57,7 @@ export default function Dashboard() {
       // Add delays between API calls to prevent rate limiting
       const dealData = await Deal.list('-created_date');
       console.log('Dashboard: Fetched deals:', dealData.length);
+      console.log('Dashboard: Deal data:', dealData);
       await new Promise(resolve => setTimeout(resolve, 400));
       
       const vehicleData = await Vehicle.list();
@@ -92,6 +94,7 @@ export default function Dashboard() {
     
     // Listen for localStorage changes (when new deals are created)
     const handleStorageChange = (e) => {
+      console.log('Dashboard: Storage change event:', e.key, e.newValue);
       if (e.key && e.key.startsWith('mock_')) {
         console.log('Dashboard: Storage change detected, refreshing data');
         fetchData();
