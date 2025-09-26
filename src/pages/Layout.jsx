@@ -29,11 +29,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
 
-// Mock function to replace getAccessToken
-const getAccessToken = () => {
-  return localStorage.getItem('admin_access_token');
-};
-
 const navigationItems = [
   { title: 'Dashboard', icon: LayoutDashboard, url: createPageUrl('Dashboard') },
   { title: 'New Deal', icon: Plus, url: createPageUrl('AddVehicle') },
@@ -51,22 +46,6 @@ export default function Layout({ children, currentPageName }) {
 
     const checkUserAndMessages = async (isInitial = false) => {
       try {
-        // Skip API calls on public pages when no access token is present
-        const accessToken = getAccessToken();
-        if (isPublicPage && !accessToken) {
-          setUser(null);
-          setUnreadCount(0);
-          return;
-        }
-
-        // Also skip if no access token is present regardless of page type
-        if (!accessToken) {
-          setUser(null);
-          setUnreadCount(0);
-          return;
-          return;
-        }
-
         const currentUser = await User.me();
         setUser(currentUser);
         setRetryCount(0);
