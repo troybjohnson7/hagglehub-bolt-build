@@ -139,6 +139,38 @@ serve(async (req) => {
     // Log the sent message to database
     if (deal_id && dealer_id) {
       console.log('Logging sent message to database...')
+      
+      // Validate UUIDs before database insertion
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(deal_id) || !uuidRegex.test(dealer_id)) {
+        console.error('Invalid UUID format:', { deal_id, dealer_id });
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message_id: mailgunResult.id,
+            message: 'Email sent successfully but not logged due to invalid UUID format',
+            warning: 'Invalid UUID format for deal_id or dealer_id'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
+      
+      // Validate UUIDs before database insertion
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(deal_id) || !uuidRegex.test(dealer_id)) {
+        console.error('Invalid UUID format:', { deal_id, dealer_id });
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Invalid UUID format for deal_id or dealer_id',
+            message_id: `mock-${Date.now()}`,
+            message: 'Mock email sent but not logged due to invalid UUID format'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
       const { error: dbError } = await supabase
         .from('messages')
         .insert({
