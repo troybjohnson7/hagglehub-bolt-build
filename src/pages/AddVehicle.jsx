@@ -276,7 +276,7 @@ function DealForm({ parsedData, setStep, currentUser }) {
         status: 'quote_requested'
       });
       toast.success("Deal successfully created!");
-      navigate(createPageUrl(`DealDetails?deal_id=${newDeal.id}`));
+      navigate(createPageUrl("Dashboard"));
     } catch (error) {
       console.error("Failed to create new deal:", error);
       toast.error("Failed to create deal. Please check your inputs.");
