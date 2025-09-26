@@ -86,93 +86,38 @@ class SupabaseEntity {
 
 // Real Supabase auth implementation
 class SupabaseAuth {
-  generateUUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c == 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  }
-
   async login() {
     try {
-      // For development/testing, create a mock user session
-      const mockUser = {
-        id: this.generateUUID(),
-        email: 'test@example.com',
-        full_name: 'Test User',
-        user_metadata: {
-          full_name: 'Test User'
+      // Use real Supabase OAuth login
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
         }
-      };
+      });
       
-      // Store mock session in localStorage for persistence
-      localStorage.setItem('mock_user_session', JSON.stringify(mockUser));
-      
-      // Redirect to dashboard
-      window.location.href = '/dashboard';
-      
-      return { user: mockUser };
+      if (error) throw error;
+      return data;
     } catch (error) {
-      console.error('Mock login error:', error);
+      console.error('Login error:', error);
       throw error;
     }
   }
 
   async logout() {
-    // Clear mock session
-    localStorage.removeItem('mock_user_session');
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
     window.location.href = '/';
   }
 
   async me() {
-    let currentUser = null;
-    
-    // Check for mock session first
-    const mockSession = localStorage.getItem('mock_user_session');
-    if (mockSession) {
-      currentUser = JSON.parse(mockSession);
-      // Check if user profile exists in database
-      const { data: profile, error: profileError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', currentUser.id)
-        .single();
-
-      if (profileError && profileError.code === 'PGRST116') {
-        // Create profile if it doesn't exist
-        const newProfile = {
-          id: currentUser.id,
-          email: currentUser.email,
-          full_name: currentUser.full_name,
-          email_identifier: this.generateEmailIdentifier(),
-          subscription_tier: 'free',
-          has_completed_onboarding: false
-        };
-
-        const { data: createdProfile, error: createError } = await supabase
-          .from('users')
-          .insert(newProfile)
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('Failed to create user profile:', createError);
-          return { ...currentUser, ...newProfile };
-        }
-        return { ...currentUser, ...createdProfile };
-      }
-
-      return profile ? { ...currentUser, ...profile } : currentUser;
-    }
-    
-    // Try real Supabase auth as fallback
+    // Get current user from Supabase auth
     const { data: { user: supabaseUser }, error } = await supabase.auth.getUser();
     if (error || !supabaseUser) {
       return null;
     }
 
-    currentUser = supabaseUser;
+    const currentUser = supabaseUser;
 
     // Get user profile from users table
     const { data: profile, error: profileError } = await supabase
@@ -188,7 +133,7 @@ class SupabaseAuth {
           id: currentUser.id,
           email: currentUser.email,
           full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0],
-          email_identifier: null, // Will be generated in onboarding
+          email_identifier: this.generateEmailIdentifier(),
           subscription_tier: 'free',
           has_completed_onboarding: false
         };
@@ -199,10 +144,9 @@ class SupabaseAuth {
           .select()
           .single();
 
-        if (createError) throw createError;
+        if (createError) return { ...currentUser, ...newProfile };
         return { ...currentUser, ...createdProfile };
       }
-      return { ...currentUser, ...profile };
     }
 
     return { ...currentUser, ...profile };
