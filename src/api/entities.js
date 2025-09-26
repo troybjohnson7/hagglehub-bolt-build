@@ -10,12 +10,18 @@ if (supabaseUrl && supabaseKey) {
   supabase = createClient(supabaseUrl, supabaseKey, {
     global: {
       fetch: (url, options = {}) => {
+        // Initialize headers if not present
+        if (!options.headers) {
+          options.headers = {};
+        }
+        
+        // Always include the API key
+        options.headers['apikey'] = supabaseKey;
+        
+        // Include auth token if available
         const token = localStorage.getItem('admin_access_token');
         if (token) {
-          options.headers = {
-            ...options.headers,
-            'Authorization': `Bearer ${token}`
-          };
+          options.headers['Authorization'] = `Bearer ${token}`;
         }
         return fetch(url, options);
       }
