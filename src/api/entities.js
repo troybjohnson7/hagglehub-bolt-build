@@ -345,16 +345,50 @@ class SupabaseIntegrations {
       if (urlMatch) {
         const url = urlMatch[0];
         
-        // For Toyota of Cedar Park, extract the correct information
+        // Parse Toyota of Cedar Park URLs
         if (url.includes('toyotaofcedarpark.com')) {
+          // Extract vehicle info from URL path
+          const pathMatch = url.match(/\/inventory\/used-(\d{4})-([^-]+)-([^-]+)-([^-]+)-([^-]+)-([^-]+)-([^\/]+)\//);
+          
+          if (pathMatch) {
+            const [, year, make, model, drivetrain, trim, bodyType, vin] = pathMatch;
+            
+            return {
+              vehicle: {
+                year: parseInt(year),
+                make: make.charAt(0).toUpperCase() + make.slice(1),
+                model: model.charAt(0).toUpperCase() + model.slice(1),
+                trim: trim.toUpperCase(),
+                vin: vin.toUpperCase(),
+                stock_number: vin.slice(-6),
+                mileage: null,
+                condition: 'Used',
+                exterior_color: null,
+                interior_color: null,
+                listing_url: url
+              },
+              dealer: {
+                name: 'Toyota of Cedar Park',
+                contact_email: 'sales@toyotaofcedarpark.com',
+                phone: '(512) 778-0711',
+                address: '5600 183A Toll Rd, Cedar Park, TX 78641',
+                website: 'https://www.toyotaofcedarpark.com'
+              },
+              pricing: {
+                asking_price: null // Would need to scrape the actual page for pricing
+              }
+            };
+          }
+          
+          // Fallback for Toyota of Cedar Park if URL doesn't match expected pattern
           return {
             vehicle: {
-              year: 2019,
-              make: 'Buick',
-              model: 'Encore',
-              trim: 'Preferred',
-              vin: 'KL4CJASB2KB928795',
-              stock_number: '928795',
+              year: 2022,
+              make: 'Toyota',
+              model: 'Unknown',
+              trim: '',
+              vin: '',
+              stock_number: '',
               mileage: null,
               condition: 'Used',
               exterior_color: null,
@@ -369,7 +403,7 @@ class SupabaseIntegrations {
               website: 'https://www.toyotaofcedarpark.com'
             },
             pricing: {
-              asking_price: 14881
+              asking_price: null
             }
           };
         }
