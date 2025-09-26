@@ -87,6 +87,11 @@ class SupabaseEntity {
         created_date: new Date().toISOString()
       };
       this.addToMockData(mockItem);
+      // Trigger a storage event to notify other components
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: `mock_${this.tableName}`,
+        newValue: JSON.stringify(this.getMockData())
+      }));
       return mockItem;
     }
     

@@ -89,6 +89,20 @@ export default function Dashboard() {
   useEffect(() => {
     console.log('Dashboard: useEffect triggered, pathname:', location.pathname);
     fetchData();
+    
+    // Listen for localStorage changes (when new deals are created)
+    const handleStorageChange = (e) => {
+      if (e.key && e.key.startsWith('mock_')) {
+        console.log('Dashboard: Storage change detected, refreshing data');
+        fetchData();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [navigate, location.pathname]);
 
   // Add a manual refresh function that can be called when needed
