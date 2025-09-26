@@ -262,19 +262,18 @@ function DealForm({ parsedData, setStep, currentUser }) {
       const newVehicle = await Vehicle.create({
         ...vehicleData,
         year: vehicleData.year ? parseInt(vehicleData.year) : undefined,
-        mileage: vehicleData.mileage ? parseInt(vehicleData.mileage) : undefined
+        mileage: vehicleData.mileage ? parseInt(vehicleData.mileage) : undefined,
+        listing_url: url || vehicleData.listing_url
       });
       const newDealer = await Dealer.create({
-        ...dealerData,
-        created_by: currentUser?.id
+        ...dealerData
       });
       const newDeal = await Deal.create({
         ...dealData,
         asking_price: parseFloat(dealData.asking_price),
         vehicle_id: newVehicle.id,
         dealer_id: newDealer.id,
-        status: 'quote_requested',
-        created_by: currentUser?.id
+        status: 'quote_requested'
       });
       toast.success("Deal successfully created!");
       navigate(createPageUrl(`DealDetails?deal_id=${newDeal.id}`));

@@ -28,11 +28,15 @@ export default function UserEmailManager() {
       try {
         let currentUser = await User.me();
         
+        if (!currentUser) {
+          setIsLoading(false);
+          return;
+        }
+        
         if (!currentUser.email_identifier) {
           const newIdentifier = generateShortId();
-          await User.updateMyUserData({ email_identifier: newIdentifier });
+          currentUser = await User.updateMyUserData({ email_identifier: newIdentifier });
           // Re-fetch the user to ensure we have the latest data
-          currentUser = await User.me();
         }
         
         setUser(currentUser);
@@ -40,14 +44,8 @@ export default function UserEmailManager() {
 
       } catch (e) {
         console.error("Could not fetch user", e);
-        // For admin purposes, create a fallback user with full access
-        const fallbackUser = {
-          email_identifier: 'admin123',
-          full_name: 'Admin User',
-          subscription_tier: 'closer_annual'
-        };
-        setUser(fallbackUser);
-        setUserEmail(`admin-${fallbackUser.email_identifier}@hagglehub.app`);
+        setUser(null);
+        setUserEmail('');
       } finally {
         setIsLoading(false);
       }
@@ -83,6 +81,10 @@ export default function UserEmailManager() {
             </CardContent>
         </Card>
     )
+  }
+  
+  if (!user) {
+    return null; // Don't show the component if user is not authenticated
   }
 
   return (

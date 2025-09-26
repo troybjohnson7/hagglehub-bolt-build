@@ -110,12 +110,13 @@ class SupabaseAuth {
       }
       throw error;
     }
-      if (error.message && error.message.includes('Auth session missing')) {
-        return null;
-      }
-      throw error;
+      console.log('Auth error:', error.message);
+      return null;
     }
-    if (!user) return null;
+    if (!user) {
+      console.log('No authenticated user found');
+      return null;
+    }
 
     // Get user profile from users table
     const { data: profile, error: profileError } = await supabase
@@ -131,7 +132,7 @@ class SupabaseAuth {
           id: user.id,
           email: user.email,
           full_name: user.user_metadata?.full_name || user.email?.split('@')[0],
-          email_identifier: this.generateEmailIdentifier(),
+          email_identifier: null, // Will be generated in onboarding
           subscription_tier: 'free',
           has_completed_onboarding: false
         };

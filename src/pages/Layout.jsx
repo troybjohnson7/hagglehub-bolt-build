@@ -47,32 +47,29 @@ export default function Layout({ children, currentPageName }) {
     const checkUserAndMessages = async (isInitial = false) => {
       try {
         const currentUser = await User.me();
-        setUser(currentUser);
-        setRetryCount(0);
-
         if (currentUser) {
+          setUser(currentUser);
+          setRetryCount(0);
+
           // This delay ensures messages are fetched after user is definitely set and available
           // in case of any async race conditions with downstream components using user.
           await new Promise(resolve => setTimeout(resolve, 200)); 
-          const unreadMessages = await Message.filter({ is_read: false });
-          setUnreadCount(unreadMessages.length);
+          try {
+            const unreadMessages = await Message.filter({ is_read: false });
+            setUnreadCount(unreadMessages.length);
+          } catch (msgError) {
+            console.log('Could not fetch messages:', msgError.message);
+            setUnreadCount(0);
+          }
         } else {
+          setUser(null);
           setUnreadCount(0);
         }
       } catch (error) {
-        if (isInitial || retryCount === 0) {
-          console.error('Error checking user/messages:', error);
-        }
-
+        console.log('Auth check failed:', error.message);
+        setUser(null);
+        setUnreadCount(0);
         setRetryCount(prev => Math.min(prev + 1, 5));
-
-        if (error.message?.includes('Rate limit') || (error instanceof Error && error.message.includes('Network Error'))) {
-          setUser(null);
-          setUnreadCount(0);
-        } else {
-          setUser(null);
-          setUnreadCount(0);
-        }
       }
     };
 

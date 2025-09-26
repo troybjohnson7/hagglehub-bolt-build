@@ -34,7 +34,7 @@ import MessageBubble from '../components/messages/MessageBubble';
 import QuickActions from '../components/messages/QuickActions';
 import MessageTemplates from '../components/messages/MessageTemplates';
 import PriceExtractNotification from '../components/messages/PriceExtractNotification';
-import { sendReply } from "@/api/functions.jsx"; // New import
+import { sendReply } from "@/api/functions"; // Fixed import extension
 
 export default function MessagesPage() {
   const [searchParams, setSearchParams] = useSearchParams();

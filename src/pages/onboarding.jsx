@@ -14,16 +14,28 @@ export default function OnboardingPage() {
         async function runOnboarding() {
             try {
                 const currentUser = await User.me();
+                
+                if (!currentUser) {
+                    navigate('/');
+                    return;
+                }
 
                 if (currentUser.has_completed_onboarding) {
                     navigate('/');
                     return;
                 }
 
+                // Generate email identifier if not present
+                let userWithEmail = currentUser;
+                if (!currentUser.email_identifier) {
+                    const newIdentifier = generateShortId();
+                    userWithEmail = await User.updateMyUserData({ email_identifier: newIdentifier });
+                }
+
                 // Step 1: Create a fallback "Uncategorized" dealer for the user
                 setStatus('Creating fallback records...');
                 const fallbackDealer = await Dealer.create({
-                    name: `Uncategorized (${currentUser.email_identifier})`,
+                    name: `Uncategorized (${userWithEmail.email_identifier})`,
                     notes: "This is a system-generated dealer for uncategorized messages."
                 });
                 
@@ -50,6 +62,15 @@ export default function OnboardingPage() {
                 setStatus('An error occurred during setup. Please try refreshing the page.');
             }
         }
+        
+        const generateShortId = (length = 7) => {
+            const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+            return result;
+        };
 
         runOnboarding();
     }, [navigate]);

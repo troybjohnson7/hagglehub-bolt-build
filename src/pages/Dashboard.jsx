@@ -36,9 +36,15 @@ export default function Dashboard() {
       setIsLoading(true);
       try {
         const currentUser = await User.me();
+        if (!currentUser) {
+          navigate('/');
+          return;
+        }
+        
         setUser(currentUser);
 
-        if (currentUser && !currentUser.has_completed_onboarding) {
+        // Check if user needs onboarding
+        if (!currentUser.has_completed_onboarding) {
           navigate('/onboarding');
           return;
         }
@@ -63,18 +69,8 @@ export default function Dashboard() {
       } catch (error) {
         console.error("Dashboard data fetch error:", error);
         
-        // Handle rate limiting more gracefully
-        if (error.message?.includes('Rate limit') || error.response?.status === 429) {
-          // Don't navigate away on rate limit, just show loading state
-          setIsLoading(false);
-          return;
-        }
-        
-        // Only redirect on authentication errors
-        if (error.response?.status === 401 || error.message?.includes('Unauthorized')) {
-          navigate('/');
-          return;
-        }
+        // Redirect to home on any error
+        navigate('/');
       } finally {
         setIsLoading(false);
       }
