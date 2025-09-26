@@ -22,6 +22,14 @@ export function createPageUrl(pageName: string) {
         return result;
     }
     
+    // Handle query parameters for EditDealer
+    if (pageName.startsWith('EditDealer?')) {
+        const queryPart = pageName.substring('EditDealer'.length);
+        const result = '/edit-dealer' + queryPart;
+        console.log('EditDealer URL result:', result);
+        return result;
+    }
+    
     if (pageMap[pageName]) {
         console.log('Found in pageMap:', pageMap[pageName]);
         return pageMap[pageName];

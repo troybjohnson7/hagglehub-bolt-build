@@ -1,7 +1,7 @@
 
 import { toast } from 'sonner';
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import { Dealer } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,8 +12,9 @@ import { ArrowLeft, Save } from 'lucide-react';
 
 export default function EditDealerPage() {
   const [searchParams] = useSearchParams();
+  const { dealerId: paramDealerId } = useParams();
   const navigate = useNavigate();
-  const dealerId = searchParams.get('dealer_id');
+  const dealerId = paramDealerId || searchParams.get('dealer_id');
 
   const [dealer, setDealer] = useState(null);
   const [isLoading, setIsLoading] = useState(true);

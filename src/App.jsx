@@ -31,6 +31,7 @@ function App() {
         <Route path="/deal-details" element={<Layout currentPageName="DealDetails"><DealDetailsPage /></Layout>} />
         <Route path="/edit-deal" element={<Layout currentPageName="EditDeal"><EditDealPage /></Layout>} />
         <Route path="/edit-dealer" element={<Layout currentPageName="EditDealer"><EditDealerPage /></Layout>} />
+        <Route path="/edit-dealer/:dealerId" element={<Layout currentPageName="EditDealer"><EditDealerPage /></Layout>} />
         <Route path="/onboarding" element={<Layout currentPageName="Onboarding"><OnboardingPage /></Layout>} />
       </Routes>
     </Router>
