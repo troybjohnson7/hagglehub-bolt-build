@@ -238,7 +238,6 @@ class SupabaseAuth {
     if (!isSupabaseAvailable) {
       return null;
     }
-    }
     
     try {
       // Get current user from Supabase auth
@@ -278,14 +277,12 @@ class SupabaseAuth {
           return { ...currentUser, ...createdProfile };
         }
       }
-
-    return { ...currentUser, ...profile };
-  } catch (error) {
-    console.warn('Supabase user fetch failed:', error);
-    return null;
-  }
+    } catch (error) {
+      console.warn('Supabase user fetch failed:', error);
+      return null;
     }
   }
+  
   async updateMyUserData(updates) {
     // Handle mock user updates
     const mockSession = localStorage.getItem('mock_session');
@@ -317,6 +314,14 @@ class SupabaseAuth {
       console.warn('Supabase user update failed:', error);
       throw error;
     }
+  }
+
+  generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c == 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
   }
 
   generateEmailIdentifier(length = 7) {
