@@ -7,7 +7,20 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 let supabase = null;
 if (supabaseUrl && supabaseKey) {
-  supabase = createClient(supabaseUrl, supabaseKey);
+  supabase = createClient(supabaseUrl, supabaseKey, {
+    global: {
+      fetch: (url, options = {}) => {
+        const token = localStorage.getItem('admin_access_token');
+        if (token) {
+          options.headers = {
+            ...options.headers,
+            'Authorization': `Bearer ${token}`
+          };
+        }
+        return fetch(url, options);
+      }
+    }
+  });
 }
 
 // Enhanced entities that can work with both mock data and real Supabase
