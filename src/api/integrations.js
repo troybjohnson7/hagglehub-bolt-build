@@ -1,7 +1,6 @@
-import { base44 } from './base44Client';
+import { InvokeLLM } from './entities.js';
 
-export const Core = base44.integrations.Core;
-export const InvokeLLM = base44.integrations.Core.InvokeLLM;
+export { InvokeLLM };
 
 // Mock implementations for other integrations
 export const SendEmail = async (data) => ({ success: true, message: 'Mock email sent' });
