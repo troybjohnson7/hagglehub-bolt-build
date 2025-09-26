@@ -110,9 +110,6 @@ class SupabaseAuth {
       }
       throw error;
     }
-      console.log('Auth error:', error.message);
-      return null;
-    }
     if (!user) {
       console.log('No authenticated user found');
       return null;
