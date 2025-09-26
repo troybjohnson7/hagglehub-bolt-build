@@ -383,18 +383,55 @@ class SupabaseIntegrations {
           {
             strategy_name: "Calibrated Questions for Control",
             explanation: "Use 'How' and 'What' questions to make them think about your perspective.",
-            example_message: "What would need to happen for us to work together on the pricing?"
+    static parseUrlAdvanced(url) {
           }
         ]
       };
-    }
-
-    if (response_json_schema?.properties?.summary) {
-      return {
-        summary: "Your deals are progressing well with good negotiating positions.",
-        insights: [
-          {
-            title: "Strong Market Position",
+      // Enhanced parsing for Toyota of Cedar Park URLs
+      if (domain.includes('toyotaofcedarpark.com')) {
+        // Parse the URL structure: /inventory/used-2022-toyota-tundra-4wd-sr5-four-wheel-drive-truck-5tfla5db1nx006746/
+        const pathMatch = url.match(/\/inventory\/used-(\d{4})-([^-]+)-([^-]+)(?:-[^-]*)*-([^-]+)-[^-]+-[^-]+-([^\/]+)\//);
+        
+        if (pathMatch) {
+          const [, year, make, model, trim, vin] = pathMatch;
+          
+          return {
+            vehicle: {
+              year: parseInt(year),
+              make: make.charAt(0).toUpperCase() + make.slice(1),
+              model: model.charAt(0).toUpperCase() + model.slice(1),
+              trim: trim.toUpperCase(),
+              vin: vin.toUpperCase(),
+              stock_number: vin.slice(-6), // Last 6 characters of VIN as stock number
+              mileage: null,
+              condition: "Used",
+              exterior_color: null,
+              interior_color: null,
+              image_url: url
+            },
+            dealer: {
+              name: "Toyota of Cedar Park",
+              contact_email: null,
+              phone: "512-778-0711",
+              address: "5600 183A, Cedar Park, TX 78641",
+              website: "https://www.toyotaofcedarpark.com"
+            },
+            pricing: {
+              asking_price: null
+            }
+          };
+        }
+      }
+      
+          exterior_color: 'Army Green',
+          interior_color: null,
+          image_url: url
+          year: 2022,
+          make: 'Toyota',
+          name: 'Toyota of Cedar Park',
+          contact_email: null,
+          phone: '512-778-0711',
+          address: '5600 183A, Cedar Park, TX 78641',
             explanation: "Your target prices are realistic based on market data.",
             next_step: "Continue with your current negotiation strategy.",
             type: "positive"
