@@ -3,6 +3,9 @@
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Email service for HaggleHub using Supabase Edge Functions with Mailgun
+// Domain: hagglehub.app
+
 export class EmailService {
   static async sendEmail({ to, subject, html, text, from, deal_id, dealer_id }) {
     try {
