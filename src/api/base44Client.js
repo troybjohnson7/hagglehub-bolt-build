@@ -21,7 +21,7 @@ class AdminEntity {
       case 'vehicles':
         return [
           {
-            id: 'vehicle_1',
+            id: '550e8400-e29b-41d4-a716-446655440001',
             year: 2023,
             make: 'Toyota',
             model: 'Camry',
@@ -35,7 +35,7 @@ class AdminEntity {
             created_date: new Date().toISOString()
           },
           {
-            id: 'vehicle_2',
+            id: '550e8400-e29b-41d4-a716-446655440002',
             year: 2022,
             make: 'Honda',
             model: 'Civic',
@@ -51,7 +51,7 @@ class AdminEntity {
       case 'dealers':
         return [
           {
-            id: 'dealer_1',
+            id: '550e8400-e29b-41d4-a716-446655440011',
             name: 'Premium Auto Sales',
             contact_email: 'sales@premiumauto.com',
             phone: '(555) 123-4567',
@@ -63,7 +63,7 @@ class AdminEntity {
             created_date: new Date().toISOString()
           },
           {
-            id: 'dealer_2',
+            id: '550e8400-e29b-41d4-a716-446655440012',
             name: 'City Motors',
             contact_email: 'info@citymotors.com',
             phone: '(555) 987-6543',
@@ -76,9 +76,9 @@ class AdminEntity {
       case 'deals':
         return [
           {
-            id: 'deal_1',
-            vehicle_id: 'vehicle_1',
-            dealer_id: 'dealer_1',
+            id: '550e8400-e29b-41d4-a716-446655440021',
+            vehicle_id: '550e8400-e29b-41d4-a716-446655440001',
+            dealer_id: '550e8400-e29b-41d4-a716-446655440011',
             asking_price: 28000,
             current_offer: 26500,
             target_price: 25000,
@@ -99,9 +99,9 @@ class AdminEntity {
             created_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
           },
           {
-            id: 'deal_2',
-            vehicle_id: 'vehicle_2',
-            dealer_id: 'dealer_2',
+            id: '550e8400-e29b-41d4-a716-446655440022',
+            vehicle_id: '550e8400-e29b-41d4-a716-446655440002',
+            dealer_id: '550e8400-e29b-41d4-a716-446655440012',
             asking_price: 24000,
             current_offer: null,
             target_price: 22000,
@@ -116,9 +116,9 @@ class AdminEntity {
       case 'messages':
         return [
           {
-            id: 'msg_1',
-            deal_id: 'deal_1',
-            dealer_id: 'dealer_1',
+            id: '550e8400-e29b-41d4-a716-446655440031',
+            deal_id: '550e8400-e29b-41d4-a716-446655440021',
+            dealer_id: '550e8400-e29b-41d4-a716-446655440011',
             content: 'Thank you for your interest in the 2023 Toyota Camry. Our best price is $26,500.',
             direction: 'inbound',
             channel: 'email',
@@ -128,9 +128,9 @@ class AdminEntity {
             created_date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
           },
           {
-            id: 'msg_2',
-            deal_id: 'deal_1',
-            dealer_id: 'dealer_1',
+            id: '550e8400-e29b-41d4-a716-446655440032',
+            deal_id: '550e8400-e29b-41d4-a716-446655440021',
+            dealer_id: '550e8400-e29b-41d4-a716-446655440011',
             content: 'I appreciate the offer. I was hoping we could get closer to $25,000. Would that work?',
             direction: 'outbound',
             channel: 'email',
@@ -142,7 +142,7 @@ class AdminEntity {
       case 'market_data':
         return [
           {
-            id: 'market_1',
+            id: '550e8400-e29b-41d4-a716-446655440041',
             vehicle_year: 2023,
             vehicle_make: 'Toyota',
             vehicle_model: 'Camry',
