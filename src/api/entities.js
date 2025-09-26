@@ -366,7 +366,7 @@ class SupabaseIntegrations {
         } catch (error) {
           console.error('URL parsing error:', error);
           // Fallback to basic URL analysis
-          return this.parseUrlFallback(url);
+          return SupabaseIntegrations.parseUrlFallback(url);
         }
       }
     }
