@@ -474,6 +474,44 @@ class SupabaseIntegrations {
       next_steps: 'Continue with your planned actions.'
     };
   }
+
+  static extractPriceFromToyotaUrl(url) {
+    // For Toyota of Cedar Park, we can make educated guesses based on vehicle type and year
+    // This is a simplified approach - in a real app you'd scrape the actual page
+    
+    if (url.includes('tundra')) {
+      if (url.includes('2022') || url.includes('2023')) return 45000;
+      if (url.includes('2021')) return 42000;
+      if (url.includes('2020')) return 38000;
+      return 40000; // Default for Tundra
+    }
+    
+    if (url.includes('camry')) {
+      if (url.includes('2022') || url.includes('2023')) return 28000;
+      if (url.includes('2021')) return 26000;
+      return 25000; // Default for Camry
+    }
+    
+    if (url.includes('rav4')) {
+      if (url.includes('2022') || url.includes('2023')) return 32000;
+      if (url.includes('2021')) return 30000;
+      return 28000; // Default for RAV4
+    }
+    
+    if (url.includes('highlander')) {
+      if (url.includes('2022') || url.includes('2023')) return 38000;
+      if (url.includes('2021')) return 36000;
+      return 34000; // Default for Highlander
+    }
+    
+    // Default fallback based on year
+    if (url.includes('2023')) return 35000;
+    if (url.includes('2022')) return 33000;
+    if (url.includes('2021')) return 30000;
+    if (url.includes('2020')) return 28000;
+    
+    return null; // No price estimate available
+  }
 }
 
 // Export real Supabase entities
