@@ -278,6 +278,12 @@ class SupabaseAuth {
           return { ...currentUser, ...createdProfile };
         }
       }
+
+    return { ...currentUser, ...profile };
+  } catch (error) {
+    console.warn('Supabase user fetch failed:', error);
+    return null;
+  }
     }
   }
   async updateMyUserData(updates) {
