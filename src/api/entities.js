@@ -86,11 +86,19 @@ class SupabaseEntity {
 
 // Real Supabase auth implementation
 class SupabaseAuth {
+  generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c == 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
   async login() {
     try {
       // For development/testing, create a mock user session
       const mockUser = {
-        id: 'mock-user-' + Date.now(),
+        id: this.generateUUID(),
         email: 'test@example.com',
         full_name: 'Test User',
         user_metadata: {
