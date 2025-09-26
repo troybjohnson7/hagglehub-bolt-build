@@ -277,6 +277,8 @@ class SupabaseAuth {
           return { ...currentUser, ...createdProfile };
         }
       }
+    }
+  }
   async updateMyUserData(updates) {
     // Handle mock user updates
     const mockSession = localStorage.getItem('mock_session');
