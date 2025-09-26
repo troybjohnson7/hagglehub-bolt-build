@@ -278,11 +278,11 @@ class SupabaseAuth {
         }
       }
 
-    return { ...currentUser, ...profile };
-  } catch (error) {
-    console.warn('Supabase user fetch failed:', error);
-    return null;
-  }
+      return { ...currentUser, ...profile };
+    } catch (error) {
+      console.warn('Supabase user fetch failed:', error);
+      return null;
+    }
   }
 
   async updateMyUserData(updates) {
@@ -383,55 +383,16 @@ class SupabaseIntegrations {
           {
             strategy_name: "Calibrated Questions for Control",
             explanation: "Use 'How' and 'What' questions to make them think about your perspective.",
-    static parseUrlAdvanced(url) {
+            example_message: "What would need to happen for us to find a price that works for both of us?"
           }
         ]
       };
-      // Enhanced parsing for Toyota of Cedar Park URLs
-      if (domain.includes('toyotaofcedarpark.com')) {
-        // Parse the URL structure: /inventory/used-2022-toyota-tundra-4wd-sr5-four-wheel-drive-truck-5tfla5db1nx006746/
-        const pathMatch = url.match(/\/inventory\/used-(\d{4})-([^-]+)-([^-]+)(?:-[^-]*)*-([^-]+)-[^-]+-[^-]+-([^\/]+)\//);
-        
-        if (pathMatch) {
-          const [, year, make, model, trim, vin] = pathMatch;
-          
-          return {
-            vehicle: {
-              year: parseInt(year),
-              make: make.charAt(0).toUpperCase() + make.slice(1),
-              model: model.charAt(0).toUpperCase() + model.slice(1),
-              trim: trim.toUpperCase(),
-              vin: vin.toUpperCase(),
-              stock_number: vin.slice(-6), // Last 6 characters of VIN as stock number
-              mileage: null,
-              condition: "Used",
-              exterior_color: null,
-              interior_color: null,
-              image_url: url
-            },
-            dealer: {
-              name: "Toyota of Cedar Park",
-              contact_email: null,
-              phone: "512-778-0711",
-              address: "5600 183A, Cedar Park, TX 78641",
-              website: "https://www.toyotaofcedarpark.com"
-            },
-            pricing: {
-              asking_price: null
-            }
-          };
-        }
-      }
-      
-          exterior_color: 'Army Green',
-          interior_color: null,
-          image_url: url
-          year: 2022,
-          make: 'Toyota',
-          name: 'Toyota of Cedar Park',
-          contact_email: null,
-          phone: '512-778-0711',
-          address: '5600 183A, Cedar Park, TX 78641',
+    }
+
+    if (response_json_schema?.properties?.analysis) {
+      return {
+        analysis: [
+          {
             explanation: "Your target prices are realistic based on market data.",
             next_step: "Continue with your current negotiation strategy.",
             type: "positive"
@@ -444,6 +405,71 @@ class SupabaseIntegrations {
       status: 'success', 
       details: 'Request processed successfully.',
       next_steps: 'Continue with your planned actions.'
+    };
+  }
+
+  static parseUrlAdvanced(url) {
+    const domain = new URL(url).hostname;
+    
+    // Enhanced parsing for Toyota of Cedar Park URLs
+    if (domain.includes('toyotaofcedarpark.com')) {
+      // Parse the URL structure: /inventory/used-2022-toyota-tundra-4wd-sr5-four-wheel-drive-truck-5tfla5db1nx006746/
+      const pathMatch = url.match(/\/inventory\/used-(\d{4})-([^-]+)-([^-]+)(?:-[^-]*)*-([^-]+)-[^-]+-[^-]+-([^\/]+)\//);
+      
+      if (pathMatch) {
+        const [, year, make, model, trim, vin] = pathMatch;
+        
+        return {
+          vehicle: {
+            year: parseInt(year),
+            make: make.charAt(0).toUpperCase() + make.slice(1),
+            model: model.charAt(0).toUpperCase() + model.slice(1),
+            trim: trim.toUpperCase(),
+            vin: vin.toUpperCase(),
+            stock_number: vin.slice(-6), // Last 6 characters of VIN as stock number
+            mileage: null,
+            condition: "Used",
+            exterior_color: null,
+            interior_color: null,
+            image_url: url
+          },
+          dealer: {
+            name: "Toyota of Cedar Park",
+            contact_email: null,
+            phone: "512-778-0711",
+            address: "5600 183A, Cedar Park, TX 78641",
+            website: "https://www.toyotaofcedarpark.com"
+          },
+          pricing: {
+            asking_price: null
+          }
+        };
+      }
+    }
+    
+    return {
+      vehicle: {
+        year: 2022,
+        make: 'Toyota',
+        model: 'Tundra',
+        trim: 'SR5',
+        vin: '5TFLA5DB1NX006746',
+        mileage: 45000,
+        condition: 'used',
+        exterior_color: 'Army Green',
+        interior_color: null,
+        image_url: url
+      },
+      dealer: {
+        name: 'Toyota of Cedar Park',
+        contact_email: null,
+        phone: '512-778-0711',
+        address: '5600 183A, Cedar Park, TX 78641',
+        website: 'https://www.toyotaofcedarpark.com'
+      },
+      pricing: {
+        asking_price: null
+      }
     };
   }
 
