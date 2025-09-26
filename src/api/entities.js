@@ -238,6 +238,7 @@ class SupabaseAuth {
     if (!isSupabaseAvailable) {
       return null;
     }
+    }
     
     try {
       // Get current user from Supabase auth
