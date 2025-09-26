@@ -104,7 +104,17 @@ class SupabaseAuth {
 
   async me() {
     const { data: { user }, error } = await supabase.auth.getUser();
-    if (error) throw error;
+    if (error) {
+      if (error.message && error.message.includes('Auth session missing')) {
+        return null;
+      }
+      throw error;
+    }
+      if (error.message && error.message.includes('Auth session missing')) {
+        return null;
+      }
+      throw error;
+    }
     if (!user) return null;
 
     // Get user profile from users table
