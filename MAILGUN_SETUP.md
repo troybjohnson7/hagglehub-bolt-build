@@ -49,24 +49,30 @@ TTL: 1 Hour
 
 In your Mailgun dashboard, set up these webhooks:
 
+### **Your Exact Webhook URLs:**
+- **Email Status**: `https://sodjajtwzboyeuqvztwk.supabase.co/functions/v1/email-status`
+- **Inbound Email Route**: `https://sodjajtwzboyeuqvztwk.supabase.co/functions/v1/receive-email`
+
 ### **Setting Up Webhooks in Mailgun Dashboard:**
 
 1. **Go to Mailgun Dashboard** → Select your `hagglehub.app` domain
-2. **Navigate to Webhooks** (usually under "Sending" or "Settings")
-3. **Add webhooks for these events:**
+2. **Navigate to Webhooks** in the left sidebar
+3. **Add separate webhooks for each event:**
 
 #### **For Email Status Tracking:**
-- **Event**: `delivered` → **URL**: `https://[your-supabase-project].supabase.co/functions/v1/email-status`
-- **Event**: `opened` → **URL**: `https://[your-supabase-project].supabase.co/functions/v1/email-status`
-- **Event**: `clicked` → **URL**: `https://[your-supabase-project].supabase.co/functions/v1/email-status`
-- **Event**: `bounced` → **URL**: `https://[your-supabase-project].supabase.co/functions/v1/email-status`
-- **Event**: `dropped` → **URL**: `https://[your-supabase-project].supabase.co/functions/v1/email-status`
+- **Event**: `delivered` → **URL**: `https://sodjajtwzboyeuqvztwk.supabase.co/functions/v1/email-status`
+- **Event**: `opened` → **URL**: `https://sodjajtwzboyeuqvztwk.supabase.co/functions/v1/email-status`
+- **Event**: `clicked` → **URL**: `https://sodjajtwzboyeuqvztwk.supabase.co/functions/v1/email-status`
+- **Event**: `bounced` → **URL**: `https://sodjajtwzboyeuqvztwk.supabase.co/functions/v1/email-status`
+- **Event**: `dropped` → **URL**: `https://sodjajtwzboyeuqvztwk.supabase.co/functions/v1/email-status`
 
-#### **For Inbound Email Processing:**
-- Look for **"Routes"** or **"Receiving"** section in Mailgun
-- Create a route that forwards emails to: `https://[your-supabase-project].supabase.co/functions/v1/receive-email`
+#### **For Inbound Email Processing (Routes Section):**
+1. Go to **Routes** in the left sidebar (separate from Webhooks)
+2. Click **Create Route**
 - Pattern: `match_recipient("deals-.*@hagglehub.app")`
-- Action: `forward("https://[your-supabase-project].supabase.co/functions/v1/receive-email")`
+- Action: `forward("https://sodjajtwzboyeuqvztwk.supabase.co/functions/v1/receive-email")`
+3. **Priority**: 0 (highest)
+4. **Description**: "Forward HaggleHub deal emails"
 
 ## 🧪 Testing
 
