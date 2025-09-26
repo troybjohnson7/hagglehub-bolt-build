@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Deal } from "@/api/entities";
 import { Vehicle } from "@/api/entities";
@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [deals, setDeals] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [dealers, setDealers] = useState([]);
@@ -31,52 +32,58 @@ export default function Dashboard() {
   const [sortBy, setSortBy] = useState('recent');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  useEffect(() => {
-    async function fetchData() {
-      setIsLoading(true);
-      try {
-        const currentUser = await User.me();
-        if (!currentUser) {
-          navigate('/');
-          return;
-        }
-        
-        setUser(currentUser);
-
-        // Check if user needs onboarding
-        if (!currentUser.has_completed_onboarding) {
-          navigate('/onboarding');
-          return;
-        }
-
-        // Add delays between API calls to prevent rate limiting
-        const dealData = await Deal.list('-created_date');
-        await new Promise(resolve => setTimeout(resolve, 400));
-        
-        const vehicleData = await Vehicle.list();
-        await new Promise(resolve => setTimeout(resolve, 400));
-        
-        const dealerData = await Dealer.list();
-        await new Promise(resolve => setTimeout(resolve, 400));
-        
-        const messageData = await Message.list('-created_date');
-        
-        setDeals(dealData);
-        setVehicles(vehicleData);
-        setDealers(dealerData);
-        setMessages(messageData);
-
-      } catch (error) {
-        console.error("Dashboard data fetch error:", error);
-        
-        // Redirect to home on any error
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const currentUser = await User.me();
+      if (!currentUser) {
         navigate('/');
-      } finally {
-        setIsLoading(false);
+        return;
       }
+      
+      setUser(currentUser);
+
+      // Check if user needs onboarding
+      if (!currentUser.has_completed_onboarding) {
+        navigate('/onboarding');
+        return;
+      }
+
+      // Add delays between API calls to prevent rate limiting
+      const dealData = await Deal.list('-created_date');
+      await new Promise(resolve => setTimeout(resolve, 400));
+      
+      const vehicleData = await Vehicle.list();
+      await new Promise(resolve => setTimeout(resolve, 400));
+      
+      const dealerData = await Dealer.list();
+      await new Promise(resolve => setTimeout(resolve, 400));
+      
+      const messageData = await Message.list('-created_date');
+      
+      setDeals(dealData);
+      setVehicles(vehicleData);
+      setDealers(dealerData);
+      setMessages(messageData);
+
+    } catch (error) {
+      console.error("Dashboard data fetch error:", error);
+      
+      // Redirect to home on any error
+      navigate('/');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
     fetchData();
-  }, [navigate]);
+  }, [navigate, location.pathname]);
+
+  // Add a manual refresh function that can be called when needed
+  const refreshData = () => {
+    fetchData();
+  };
 
   const getVehicleById = (id) => vehicles.find(v => v.id === id);
   const getDealerById = (id) => dealers.find(d => d.id === d);
