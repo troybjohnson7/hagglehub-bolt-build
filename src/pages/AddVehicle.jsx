@@ -34,6 +34,19 @@ export default function AddVehiclePage() {
   const [parsedData, setParsedData] = useState(null);
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [limitMessage, setLimitMessage] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const user = await User.me();
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      }
+    }
+    fetchUser();
+  }, []);
 
   const resetState = () => {
     setStep('initial');
@@ -80,10 +93,9 @@ export default function AddVehiclePage() {
     }
   };
 
-  const checkDealLimit = async () => {
+  const checkDealLimit = async (user) => {
     const plans = { free: 1, haggler: 3, negotiator: 10, closer_annual: Infinity };
     try {
-      const user = await User.me();
       const userTier = user.subscription_tier || 'free';
       const limit = plans[userTier];
 
@@ -130,7 +142,7 @@ export default function AddVehiclePage() {
       <div className="max-w-md mx-auto">
         {step === 'initial' && <InitialStep setStep={setStep} urlInput={urlInput} setUrlInput={setUrlInput} handleUrlParse={handleUrlParse} isLoading={isLoading} />}
         {step === 'parsed' && <ParsedStep parsedData={parsedData} setStep={setStep} checkDealLimit={checkDealLimit} />}
-        {step === 'trackingForm' && <DealForm parsedData={parsedData} setStep={setStep} />}
+        {step === 'trackingForm' && <DealForm parsedData={parsedData} setStep={setStep} currentUser={currentUser} />}
         {step === 'leadForm' && <LeadForm parsedData={parsedData} setStep={setStep} url={urlInput} />}
         {step === 'leadResult' && <LeadResultStep resetState={resetState} />}
       </div>
@@ -174,7 +186,8 @@ function InitialStep({ setStep, urlInput, setUrlInput, handleUrlParse, isLoading
 // Step 2: Show parsed data and ask user what to do next
 function ParsedStep({ parsedData, setStep, checkDealLimit }) {
   const handleTrackDeal = async () => {
-    const canAdd = await checkDealLimit();
+    const user = await User.me();
+    const canAdd = await checkDealLimit(user);
     if (canAdd) setStep('trackingForm');
   };
 
@@ -220,7 +233,7 @@ function ParsedStep({ parsedData, setStep, checkDealLimit }) {
 }
 
 // Step 3a: The form for tracking a deal
-function DealForm({ parsedData, setStep }) {
+function DealForm({ parsedData, setStep, currentUser }) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [vehicleData, setVehicleData] = useState({
@@ -251,13 +264,17 @@ function DealForm({ parsedData, setStep }) {
         year: vehicleData.year ? parseInt(vehicleData.year) : undefined,
         mileage: vehicleData.mileage ? parseInt(vehicleData.mileage) : undefined
       });
-      const newDealer = await Dealer.create(dealerData);
+      const newDealer = await Dealer.create({
+        ...dealerData,
+        created_by: currentUser?.id
+      });
       const newDeal = await Deal.create({
         ...dealData,
         asking_price: parseFloat(dealData.asking_price),
         vehicle_id: newVehicle.id,
         dealer_id: newDealer.id,
         status: 'quote_requested',
+        created_by: currentUser?.id
       });
       toast.success("Deal successfully created!");
       navigate(createPageUrl(`DealDetails?deal_id=${newDeal.id}`));

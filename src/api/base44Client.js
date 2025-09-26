@@ -1,6 +1,15 @@
 // Admin-level client implementation to replace Base44 SDK
 // This provides full access to all features without external dependencies
 
+// UUID generation helper function
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 class AdminEntity {
   constructor(name) {
     this.name = name;
@@ -21,7 +30,7 @@ class AdminEntity {
       case 'vehicles':
         return [
           {
-            id: '550e8400-e29b-41d4-a716-446655440001',
+            id: generateUUID(),
             year: 2023,
             make: 'Toyota',
             model: 'Camry',
@@ -35,7 +44,7 @@ class AdminEntity {
             created_date: new Date().toISOString()
           },
           {
-            id: '550e8400-e29b-41d4-a716-446655440002',
+            id: generateUUID(),
             year: 2022,
             make: 'Honda',
             model: 'Civic',
@@ -51,7 +60,7 @@ class AdminEntity {
       case 'dealers':
         return [
           {
-            id: '550e8400-e29b-41d4-a716-446655440011',
+            id: generateUUID(),
             name: 'Premium Auto Sales',
             contact_email: 'sales@premiumauto.com',
             phone: '(555) 123-4567',
@@ -63,7 +72,7 @@ class AdminEntity {
             created_date: new Date().toISOString()
           },
           {
-            id: '550e8400-e29b-41d4-a716-446655440012',
+            id: generateUUID(),
             name: 'City Motors',
             contact_email: 'info@citymotors.com',
             phone: '(555) 987-6543',
@@ -76,9 +85,9 @@ class AdminEntity {
       case 'deals':
         return [
           {
-            id: '550e8400-e29b-41d4-a716-446655440021',
-            vehicle_id: '550e8400-e29b-41d4-a716-446655440001',
-            dealer_id: '550e8400-e29b-41d4-a716-446655440011',
+            id: generateUUID(),
+            vehicle_id: generateUUID(),
+            dealer_id: generateUUID(),
             asking_price: 28000,
             current_offer: 26500,
             target_price: 25000,
@@ -99,9 +108,9 @@ class AdminEntity {
             created_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
           },
           {
-            id: '550e8400-e29b-41d4-a716-446655440022',
-            vehicle_id: '550e8400-e29b-41d4-a716-446655440002',
-            dealer_id: '550e8400-e29b-41d4-a716-446655440012',
+            id: generateUUID(),
+            vehicle_id: generateUUID(),
+            dealer_id: generateUUID(),
             asking_price: 24000,
             current_offer: null,
             target_price: 22000,
@@ -116,9 +125,9 @@ class AdminEntity {
       case 'messages':
         return [
           {
-            id: '550e8400-e29b-41d4-a716-446655440031',
-            deal_id: '550e8400-e29b-41d4-a716-446655440021',
-            dealer_id: '550e8400-e29b-41d4-a716-446655440011',
+            id: generateUUID(),
+            deal_id: generateUUID(),
+            dealer_id: generateUUID(),
             content: 'Thank you for your interest in the 2023 Toyota Camry. Our best price is $26,500.',
             direction: 'inbound',
             channel: 'email',
@@ -128,9 +137,9 @@ class AdminEntity {
             created_date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
           },
           {
-            id: '550e8400-e29b-41d4-a716-446655440032',
-            deal_id: '550e8400-e29b-41d4-a716-446655440021',
-            dealer_id: '550e8400-e29b-41d4-a716-446655440011',
+            id: generateUUID(),
+            deal_id: generateUUID(),
+            dealer_id: generateUUID(),
             content: 'I appreciate the offer. I was hoping we could get closer to $25,000. Would that work?',
             direction: 'outbound',
             channel: 'email',
@@ -142,7 +151,7 @@ class AdminEntity {
       case 'market_data':
         return [
           {
-            id: '550e8400-e29b-41d4-a716-446655440041',
+            id: generateUUID(),
             vehicle_year: 2023,
             vehicle_make: 'Toyota',
             vehicle_model: 'Camry',
@@ -183,7 +192,7 @@ class AdminEntity {
   async create(itemData) {
     const data = JSON.parse(localStorage.getItem(`admin_${this.name}`) || '[]');
     const newItem = {
-      id: `${this.name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: generateUUID(),
       created_date: new Date().toISOString(),
       ...itemData
     };
