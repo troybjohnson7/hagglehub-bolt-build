@@ -76,7 +76,7 @@ export default function DealCard({ deal, vehicle, dealer }) {
                 <div>
                   <p className="text-xs text-slate-500">Offer</p>
                   <p className="text-sm font-bold text-slate-900">
-                    {deal.current_offer ? `$${deal.current_offer.toLocaleString()}` : 'Pending'}
+                    {deal.current_offer ? `$${Number(deal.current_offer).toLocaleString()}` : 'Pending'}
                   </p>
                 </div>
                 {savings > 0 && (

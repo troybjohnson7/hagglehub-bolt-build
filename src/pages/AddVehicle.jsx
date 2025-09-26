@@ -277,7 +277,8 @@ function DealForm({ parsedData, setStep, currentUser }) {
       });
       toast.success("Deal successfully created!");
       console.log('AddVehicle: Deal created successfully, navigating to dashboard');
-      navigate(createPageUrl("Dashboard"));
+      // Force a page reload to ensure fresh data
+      window.location.href = '/dashboard';
     } catch (error) {
       console.error("Failed to create new deal:", error);
       toast.error("Failed to create deal. Please check your inputs.");

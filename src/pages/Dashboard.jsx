@@ -97,7 +97,7 @@ export default function Dashboard() {
   };
 
   const getVehicleById = (id) => vehicles.find(v => v.id === id);
-  const getDealerById = (id) => dealers.find(d => d.id === d);
+  const getDealerById = (id) => dealers.find(d => d.id === id);
 
   // The 'stats' useMemo has been removed as SmartInsights will handle its own data processing.
 
