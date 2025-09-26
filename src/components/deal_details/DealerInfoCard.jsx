@@ -17,7 +17,7 @@ export default function DealerInfoCard({ dealer }) {
           </div>
           <motion.div whileTap={{ scale: 0.95 }}>
             <Link to={createPageUrl(`EditDealer?dealer_id=${dealer.id}`)}>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="hover:bg-slate-100">
                 <Edit className="w-4 h-4 text-slate-500" />
               </Button>
             </Link>

@@ -1,4 +1,5 @@
 
+import { toast } from 'sonner';
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Dealer } from '@/api/entities';
@@ -82,9 +83,11 @@ export default function EditDealerPage() {
       };
 
       await Dealer.update(dealerId, updateData);
-      navigate('/');
+      navigate(-1); // Go back to previous page instead of dashboard
+      toast.success('Dealer information updated successfully!');
     } catch (error) {
       console.error('Failed to update dealer:', error);
+      toast.error('Failed to update dealer information');
     } finally {
       setIsSaving(false);
     }
