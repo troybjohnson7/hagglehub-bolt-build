@@ -50,4 +50,5 @@ export const sendReply = async ({ message_content, dealer_id, deal_id }) => {
     console.error('sendReply error:', error);
     throw error;
   }
+}
 export const emailHandler = async (data) => ({ success: true, message: 'Mock email handled' });
