@@ -263,14 +263,14 @@ function DealForm({ parsedData, setStep, currentUser }) {
         ...vehicleData,
         year: vehicleData.year ? parseInt(vehicleData.year) : undefined,
         mileage: vehicleData.mileage ? parseInt(vehicleData.mileage) : undefined,
-        listing_url: url || vehicleData.listing_url
+        listing_url: vehicleData.listing_url
       });
       const newDealer = await Dealer.create({
         ...dealerData
       });
       const newDeal = await Deal.create({
         ...dealData,
-        asking_price: parseFloat(dealData.asking_price),
+        asking_price: dealData.asking_price ? parseFloat(dealData.asking_price) : undefined,
         vehicle_id: newVehicle.id,
         dealer_id: newDealer.id,
         status: 'quote_requested'
@@ -280,6 +280,7 @@ function DealForm({ parsedData, setStep, currentUser }) {
     } catch (error) {
       console.error("Failed to create new deal:", error);
       toast.error("Failed to create deal. Please check your inputs.");
+    } finally {
       setIsLoading(false);
     }
   };
