@@ -678,33 +678,9 @@ class AdminIntegrations {
 // Enhanced functions with full admin capabilities
 class AdminFunctions {
   static async sendReply({ message_content, dealer_id, deal_id }) {
-    // Simulate email sending delay
-    await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
-    
-    // Create the outbound message in storage
-    const messages = JSON.parse(localStorage.getItem('admin_messages') || '[]');
-    const newMessage = {
-      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      deal_id,
-      dealer_id,
-      content: message_content,
-      direction: 'outbound',
-      channel: 'email',
-      is_read: true,
-      contains_offer: false,
-      created_date: new Date().toISOString()
-    };
-    
-    messages.push(newMessage);
-    localStorage.setItem('admin_messages', JSON.stringify(messages));
-    
-    return {
-      data: {
-        success: true,
-        message: 'Email sent successfully via HaggleHub',
-        message_id: newMessage.id
-      }
-    };
+    // This will now call the real sendReply function from functions.js
+    const { sendReply } = await import('../api/functions.js');
+    return await sendReply({ message_content, dealer_id, deal_id });
   }
 }
 
