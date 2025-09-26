@@ -348,10 +348,10 @@ class SupabaseIntegrations {
         // Parse Toyota of Cedar Park URLs
         if (url.includes('toyotaofcedarpark.com')) {
           // Extract vehicle info from URL path
-          const pathMatch = url.match(/\/inventory\/used-(\d{4})-([^-]+)-([^-]+)-([^-]+)-([^-]+)-([^-]+)-([^\/]+)\//);
+          const pathMatch = url.match(/\/inventory\/used-(\d{4})-([^-]+)-([^-]+)-([^-]+)-([^-]+)-([^-]+)-([^-]+)-([^\/]+)\//);
           
           if (pathMatch) {
-            const [, year, make, model, drivetrain, trim, bodyType, vin] = pathMatch;
+            const [, year, make, model, drivetrain, trim, bodyType, vehicleType, vinFromUrl] = pathMatch;
             
             return {
               vehicle: {
@@ -359,8 +359,8 @@ class SupabaseIntegrations {
                 make: make.charAt(0).toUpperCase() + make.slice(1),
                 model: model.charAt(0).toUpperCase() + model.slice(1),
                 trim: trim.toUpperCase(),
-                vin: vin.toUpperCase(),
-                stock_number: vin.slice(-6),
+                vin: vinFromUrl.toUpperCase(),
+                stock_number: vinFromUrl.slice(-6).toUpperCase(),
                 mileage: null,
                 condition: 'Used',
                 exterior_color: null,
@@ -375,7 +375,7 @@ class SupabaseIntegrations {
                 website: 'https://www.toyotaofcedarpark.com'
               },
               pricing: {
-                asking_price: null // Would need to scrape the actual page for pricing
+                asking_price: this.extractPriceFromToyotaUrl(url)
               }
             };
           }
