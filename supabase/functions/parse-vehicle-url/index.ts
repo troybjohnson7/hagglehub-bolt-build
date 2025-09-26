@@ -73,25 +73,36 @@ Deno.serve(async (req: Request) => {
 
     console.log('Parsing URL:', url);
 
-    // Fetch the webpage content
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br'
+    let result;
+    
+    try {
+      // Try to fetch the webpage content
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Referer': 'https://www.google.com/',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch webpage: ${response.status}`);
       }
-    });
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch webpage: ${response.status}`);
+      const html = await response.text();
+      console.log('Fetched HTML length:', html.length);
+
+      // Parse the HTML content
+      result = parseVehicleListing(url, html);
+    } catch (fetchError) {
+      console.log('Web scraping failed, using URL parsing fallback:', fetchError.message);
+      // Fallback to URL parsing if web scraping fails
+      result = parseFromUrlOnly(url);
     }
-
-    const html = await response.text();
-    console.log('Fetched HTML length:', html.length);
-
-    // Parse the HTML content
-    const result = parseVehicleListing(url, html);
 
     return new Response(
       JSON.stringify(result),
@@ -136,7 +147,7 @@ function parseVehicleListing(url: string, html: string): VehicleParseResponse {
 
 function parseToyotaOfCedarPark(url: string, html: string, result: VehicleParseResponse): VehicleParseResponse {
   // Extract from URL path
-  const pathMatch = url.match(/\/inventory\/used-(\d{4})-([^-]+)-([^-]+)-[^-]+-([^-]+)-[^-]+-[^-]+-([^\/]+)\//);
+  const pathMatch = url.match(/\/inventory\/used-(\d{4})-([^-]+)-([^-]+)(?:-[^-]*)*-([^-]+)-[^-]+-[^-]+-([^\/]+)\//);
   
   if (pathMatch) {
     const [, year, make, model, trim, vin] = pathMatch;
@@ -148,22 +159,52 @@ function parseToyotaOfCedarPark(url: string, html: string, result: VehicleParseR
     result.vehicle.condition = 'Used';
   }
 
+  // Try to extract JSON-LD data first
+  const jsonLdMatches = html.match(/<script type="application\/ld\+json"[^>]*>(.*?)<\/script>/gs);
+  if (jsonLdMatches) {
+    for (const match of jsonLdMatches) {
+      try {
+        const jsonContent = match.replace(/<script[^>]*>/, '').replace(/<\/script>/, '');
+        const jsonData = JSON.parse(jsonContent);
+        
+        if (jsonData.offers && jsonData.offers.price) {
+          result.pricing.asking_price = parseInt(jsonData.offers.price);
+        }
+        
+        if (jsonData.mileageFromOdometer) {
+          result.vehicle.mileage = parseInt(jsonData.mileageFromOdometer.value || jsonData.mileageFromOdometer);
+        }
+        
+        if (jsonData.color) {
+          result.vehicle.exterior_color = jsonData.color;
+        }
+      } catch (e) {
+        console.log('Failed to parse JSON-LD:', e);
+      }
+    }
+  }
+
   // Extract price from HTML
   const pricePatterns = [
-    /\$[\d,]+/g,
+    /\$(\d{1,3}(?:,\d{3})*)/g,
     /"price"[^}]*"value"[^}]*(\d+)/g,
     /data-price[^>]*>[\s]*\$?([\d,]+)/g,
-    /class="price"[^>]*>[\s]*\$?([\d,]+)/g
+    /class="[^"]*price[^"]*"[^>]*>[\s]*\$?([\d,]+)/g,
+    /(?:Price|MSRP|Cost)[^$]*\$(\d{1,3}(?:,\d{3})*)/gi,
+    /(?:Our Price|Sale Price|Special Price)[^$]*\$(\d{1,3}(?:,\d{3})*)/gi
   ];
 
   for (const pattern of pricePatterns) {
     const matches = html.match(pattern);
     if (matches) {
       for (const match of matches) {
-        const price = parseInt(match.replace(/[$,]/g, ''));
+        const priceMatch = match.match(/(\d{1,3}(?:,\d{3})*)/);
+        if (priceMatch) {
+          const price = parseInt(priceMatch[1].replace(/,/g, ''));
         if (price > 5000 && price < 200000) { // Reasonable car price range
           result.pricing.asking_price = price;
           break;
+        }
         }
       }
       if (result.pricing.asking_price) break;
@@ -171,9 +212,49 @@ function parseToyotaOfCedarPark(url: string, html: string, result: VehicleParseR
   }
 
   // Extract mileage
-  const mileageMatch = html.match(/(\d{1,3}(?:,\d{3})*)\s*(?:miles?|mi)/i);
-  if (mileageMatch) {
+  const mileagePatterns = [
+    /(\d{1,3}(?:,\d{3})*)\s*(?:miles?|mi)/gi,
+    /Mileage[^:]*:\s*(\d{1,3}(?:,\d{3})*)/gi,
+    /"mileage"[^}]*(\d+)/gi
+  ];
+  
+  for (const pattern of mileagePatterns) {
+    const mileageMatch = html.match(pattern);
+    if (mileageMatch) {
     result.vehicle.mileage = parseInt(mileageMatch[1].replace(/,/g, ''));
+      break;
+    }
+  }
+
+  // Extract stock number
+  const stockPatterns = [
+    /Stock\s*#?\s*:?\s*([A-Z0-9]+)/gi,
+    /Stock\s*Number[^:]*:\s*([A-Z0-9]+)/gi,
+    /"stockNumber"[^}]*"([^"]+)"/gi
+  ];
+  
+  for (const pattern of stockPatterns) {
+    const stockMatch = html.match(pattern);
+    if (stockMatch) {
+      result.vehicle.stock_number = stockMatch[1];
+      break;
+    }
+  }
+
+  // Extract exterior color
+  const colorPatterns = [
+    /Exterior\s*Color[^:]*:\s*([^<\n]+)/gi,
+    /Color[^:]*:\s*([^<\n]+)/gi,
+    /"color"[^}]*"([^"]+)"/gi,
+    /"exteriorColor"[^}]*"([^"]+)"/gi
+  ];
+  
+  for (const pattern of colorPatterns) {
+    const colorMatch = html.match(pattern);
+    if (colorMatch) {
+      result.vehicle.exterior_color = colorMatch[1].trim();
+      break;
+    }
   }
 
   // Set dealer info
@@ -239,6 +320,50 @@ function parseGenericDealer(url: string, html: string, result: VehicleParseRespo
   extractGenericPrice(html, result);
   extractGenericDealerInfo(url, html, result);
   
+  return result;
+}
+
+function parseFromUrlOnly(url: string): VehicleParseResponse {
+  const result: VehicleParseResponse = {
+    vehicle: { listing_url: url },
+    dealer: {},
+    pricing: {}
+  };
+
+  const domain = new URL(url).hostname;
+  
+  // Toyota of Cedar Park URL parsing
+  if (domain.includes('toyotaofcedarpark.com')) {
+    const pathMatch = url.match(/\/inventory\/used-(\d{4})-([^-]+)-([^-]+)(?:-[^-]*)*-([^-]+)-[^-]+-[^-]+-([^\/]+)\//);
+    
+    if (pathMatch) {
+      const [, year, make, model, trim, vin] = pathMatch;
+      result.vehicle.year = parseInt(year);
+      result.vehicle.make = make.charAt(0).toUpperCase() + make.slice(1);
+      result.vehicle.model = model.charAt(0).toUpperCase() + model.slice(1);
+      result.vehicle.trim = trim.toUpperCase();
+      result.vehicle.vin = vin.toUpperCase();
+      result.vehicle.condition = 'Used';
+    }
+
+    result.dealer = {
+      name: 'Toyota of Cedar Park',
+      contact_email: 'sales@toyotaofcedarpark.com',
+      phone: '(512) 778-0711',
+      address: '5600 183A Toll Rd, Cedar Park, TX 78641',
+      website: 'https://www.toyotaofcedarpark.com'
+    };
+  } else {
+    // Generic URL parsing for other dealers
+    const domain = new URL(url).hostname;
+    let dealerName = domain.replace(/^www\./, '').replace(/\.(com|net|org)$/, '');
+    dealerName = dealerName.split('.')[0];
+    dealerName = dealerName.charAt(0).toUpperCase() + dealerName.slice(1);
+    
+    result.dealer.name = dealerName;
+    result.dealer.website = url;
+  }
+
   return result;
 }
 
