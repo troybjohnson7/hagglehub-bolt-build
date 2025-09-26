@@ -416,8 +416,8 @@ class AdminIntegrations {
     if (vehiclePart) {
       const parts = vehiclePart.split('-');
       const year = parseInt(parts[1]) || 2011;
-      const make = parts[2] || 'Jeep';
-      const model = parts.slice(3, 5).join(' ') || 'Grand Cherokee';
+      const make = parts[2] || 'Buick';
+      const model = parts.slice(3, 4).join(' ') || 'Encore';
       const trim = parts[5] || 'Laredo';
       
       return {
@@ -432,7 +432,7 @@ class AdminIntegrations {
           stock_number: vin.slice(-6),
           mileage: null,
           condition: 'Used',
-          exterior_color: 'Bright Silver Metallic Clear Coat',
+          exterior_color: null,
           interior_color: null,
           image_url: url
         },
@@ -444,7 +444,7 @@ class AdminIntegrations {
           website: 'https://www.toyotaofcedarpark.com/'
         },
         pricing: {
-          asking_price: 8910
+          asking_price: 14881
         }
       };
     }
