@@ -49,15 +49,24 @@ TTL: 1 Hour
 
 In your Mailgun dashboard, set up these webhooks:
 
-### **Inbound Email Webhook**
-- **URL**: `https://[your-supabase-project].supabase.co/functions/v1/receive-email`
-- **Events**: All inbound messages
-- **Method**: POST
+### **Setting Up Webhooks in Mailgun Dashboard:**
 
-### **Email Status Webhook**  
-- **URL**: `https://[your-supabase-project].supabase.co/functions/v1/email-status`
-- **Events**: delivered, opened, clicked, bounced, dropped
-- **Method**: POST
+1. **Go to Mailgun Dashboard** → Select your `hagglehub.app` domain
+2. **Navigate to Webhooks** (usually under "Sending" or "Settings")
+3. **Add webhooks for these events:**
+
+#### **For Email Status Tracking:**
+- **Event**: `delivered` → **URL**: `https://[your-supabase-project].supabase.co/functions/v1/email-status`
+- **Event**: `opened` → **URL**: `https://[your-supabase-project].supabase.co/functions/v1/email-status`
+- **Event**: `clicked` → **URL**: `https://[your-supabase-project].supabase.co/functions/v1/email-status`
+- **Event**: `bounced` → **URL**: `https://[your-supabase-project].supabase.co/functions/v1/email-status`
+- **Event**: `dropped` → **URL**: `https://[your-supabase-project].supabase.co/functions/v1/email-status`
+
+#### **For Inbound Email Processing:**
+- Look for **"Routes"** or **"Receiving"** section in Mailgun
+- Create a route that forwards emails to: `https://[your-supabase-project].supabase.co/functions/v1/receive-email`
+- Pattern: `match_recipient("deals-.*@hagglehub.app")`
+- Action: `forward("https://[your-supabase-project].supabase.co/functions/v1/receive-email")`
 
 ## 🧪 Testing
 
