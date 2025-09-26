@@ -23,6 +23,10 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  console.log('=== EMAIL FUNCTION CALLED ===')
+  console.log('Request method:', req.method)
+  console.log('Request headers:', Object.fromEntries(req.headers.entries()))
+
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -31,8 +35,12 @@ serve(async (req) => {
 
     const { to, subject, html, text, from, deal_id, dealer_id }: EmailRequest = await req.json()
 
+    console.log('Email request data:', { to, subject, from, deal_id, dealer_id })
+    console.log('HTML content length:', html?.length)
+
     // Validate required fields
     if (!to || !subject || !html) {
+      console.error('Missing required fields:', { to: !!to, subject: !!subject, html: !!html })
       return new Response(
         JSON.stringify({ error: 'Missing required fields: to, subject, html' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -43,12 +51,19 @@ serve(async (req) => {
     const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN')
     const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY')
     
+    console.log('Mailgun config:', { 
+      domain: mailgunDomain ? 'SET' : 'MISSING',
+      apiKey: mailgunApiKey ? 'SET' : 'MISSING'
+    })
+
     if (!mailgunDomain || !mailgunApiKey) {
       // Fallback: Mock email sending for development
-      console.log('Mock email sent:', { to, subject, from })
+      console.log('USING MOCK EMAIL - Mailgun not configured')
+      console.log('Mock email details:', { to, subject, from })
       
       // Still log the message to database
       if (deal_id && dealer_id) {
+        console.log('Logging mock message to database...')
         const { error: dbError } = await supabase
           .from('messages')
           .insert({
@@ -60,17 +75,26 @@ serve(async (req) => {
             is_read: true,
             mailgun_id: `mock-${Date.now()}`
           })
+        
+        if (dbError) {
+          console.error('Database error:', dbError)
+        } else {
+          console.log('Mock message logged successfully')
+        }
       }
 
       return new Response(
         JSON.stringify({ 
           success: true, 
           message_id: `mock-${Date.now()}`,
-          message: 'Mock email sent successfully (Mailgun not configured)' 
+          message: 'Mock email sent successfully (Mailgun not configured)',
+          debug: 'Check Supabase logs for details'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    console.log('Preparing to send via Mailgun...')
 
     // Prepare email data for Mailgun
     const formData = new FormData()
@@ -84,6 +108,8 @@ serve(async (req) => {
     formData.append('o:tag', 'hagglehub')
     if (deal_id) formData.append('o:tag', `deal-${deal_id}`)
     if (dealer_id) formData.append('o:tag', `dealer-${dealer_id}`)
+
+    console.log('Sending to Mailgun API...')
 
     // Send email via Mailgun
     const mailgunResponse = await fetch(
@@ -99,6 +125,8 @@ serve(async (req) => {
 
     const mailgunResult = await mailgunResponse.json()
 
+    console.log('Mailgun response status:', mailgunResponse.status)
+    console.log('Mailgun response:', mailgunResult)
     if (!mailgunResponse.ok) {
       console.error('Mailgun error:', mailgunResult)
       return new Response(
@@ -107,8 +135,10 @@ serve(async (req) => {
       )
     }
 
+    console.log('Email sent successfully via Mailgun!')
     // Log the sent message to database
     if (deal_id && dealer_id) {
+      console.log('Logging sent message to database...')
       const { error: dbError } = await supabase
         .from('messages')
         .insert({
@@ -124,6 +154,8 @@ serve(async (req) => {
       if (dbError) {
         console.error('Database error:', dbError)
         // Don't fail the request if DB logging fails
+      } else {
+        console.log('Message logged to database successfully')
       }
     }
 
