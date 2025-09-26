@@ -277,12 +277,14 @@ class SupabaseAuth {
           return { ...currentUser, ...createdProfile };
         }
       }
-    } catch (error) {
-      console.warn('Supabase user fetch failed:', error);
-      return null;
-    }
+
+    return { ...currentUser, ...profile };
+  } catch (error) {
+    console.warn('Supabase user fetch failed:', error);
+    return null;
   }
-  
+  }
+
   async updateMyUserData(updates) {
     // Handle mock user updates
     const mockSession = localStorage.getItem('mock_session');
