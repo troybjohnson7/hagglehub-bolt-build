@@ -3,14 +3,27 @@
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 export async function sendReply({ message_content, dealer_id, deal_id }) {
   try {
     console.log('Calling Edge Function with:', { message_content, dealer_id, deal_id });
     
+    // Get the current session token properly
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session) {
+      console.error('No valid session found:', sessionError);
+      throw new Error('Authentication required');
+    }
+
+    console.log('Using session token for Edge Function call');
+    
     const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Authorization': `Bearer ${session.access_token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
