@@ -22,7 +22,7 @@
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey",
 };
 
 interface InboundEmail {
@@ -41,6 +41,7 @@ Deno.serve(async (req: Request) => {
   console.log('Timestamp:', timestamp)
   console.log('Request method:', req.method)
   console.log('Request URL:', req.url)
+  console.log('Request headers:', Object.fromEntries(req.headers.entries()))
 
   if (req.method === "OPTIONS") {
     console.log('CORS preflight request - returning OK')
@@ -52,8 +53,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     console.log('=== CREATING SUPABASE CLIENT WITH SERVICE ROLE ===')
-    // Import here to avoid issues
-    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2')
+    const { createClient } = await import('npm:@supabase/supabase-js@2')
     
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
