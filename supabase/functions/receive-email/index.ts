@@ -53,10 +53,13 @@ serve(async (req) => {
   }
 
   try {
+    console.log('=== CREATING SUPABASE CLIENT WITH SERVICE ROLE ===')
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
+    
+    console.log('Supabase client created with service role key')
 
     console.log('=== PARSING FORM DATA ===')
     // Parse form data from Mailgun webhook
