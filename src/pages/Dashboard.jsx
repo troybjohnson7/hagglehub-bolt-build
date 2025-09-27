@@ -54,27 +54,46 @@ export default function Dashboard() {
         return;
       }
 
-      // Add delays between API calls to prevent rate limiting
-      const dealData = await Deal.list('-created_date');
-      console.log('Dashboard: Fetched deals:', dealData.length);
-      console.log('Dashboard: Deal data:', dealData);
-      await new Promise(resolve => setTimeout(resolve, 400));
+      // Fetch data with error handling for each call
+      try {
+        const dealData = await Deal.list('-created_date');
+        console.log('Dashboard: Fetched deals:', dealData.length);
+        setDeals(dealData || []);
+      } catch (dealError) {
+        console.error('Dashboard: Deal fetch error:', dealError);
+        setDeals([]);
+      }
       
-      const vehicleData = await Vehicle.list();
-      console.log('Dashboard: Fetched vehicles:', vehicleData.length);
-      await new Promise(resolve => setTimeout(resolve, 400));
+      try {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        const vehicleData = await Vehicle.list();
+        console.log('Dashboard: Fetched vehicles:', vehicleData.length);
+        setVehicles(vehicleData || []);
+      } catch (vehicleError) {
+        console.error('Dashboard: Vehicle fetch error:', vehicleError);
+        setVehicles([]);
+      }
       
-      const dealerData = await Dealer.list();
-      console.log('Dashboard: Fetched dealers:', dealerData.length);
-      await new Promise(resolve => setTimeout(resolve, 400));
+      try {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        const dealerData = await Dealer.list();
+        console.log('Dashboard: Fetched dealers:', dealerData.length);
+        setDealers(dealerData || []);
+      } catch (dealerError) {
+        console.error('Dashboard: Dealer fetch error:', dealerError);
+        setDealers([]);
+      }
       
-      const messageData = await Message.list('-created_date');
-      console.log('Dashboard: Fetched messages:', messageData.length);
+      try {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        const messageData = await Message.list('-created_date');
+        console.log('Dashboard: Fetched messages:', messageData.length);
+        setMessages(messageData || []);
+      } catch (messageError) {
+        console.error('Dashboard: Message fetch error:', messageError);
+        setMessages([]);
+      }
       
-      setDeals(dealData);
-      setVehicles(vehicleData);
-      setDealers(dealerData);
-      setMessages(messageData);
       console.log('Dashboard: All data set successfully');
 
     } catch (error) {
@@ -83,6 +102,12 @@ export default function Dashboard() {
       // Only redirect on auth errors, not data fetch errors
       if (error.message?.includes('Not authenticated') || error.message?.includes('JWT')) {
         navigate('/', { replace: true });
+      } else {
+        // Set empty arrays so dashboard can still render
+        setDeals([]);
+        setVehicles([]);
+        setDealers([]);
+        setMessages([]);
       }
     } finally {
       setIsLoading(false);
