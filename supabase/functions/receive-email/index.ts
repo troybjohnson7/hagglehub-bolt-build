@@ -283,41 +283,42 @@ Deno.serve(async (req: Request) => {
 function cleanEmailContent(content: string): string {
   if (!content) return content;
   
-  // Split into lines for processing
-  const lines = content.split('\n');
-  const cleanedLines = [];
+  console.log('=== CLEANING EMAIL CONTENT ===');
+  console.log('Original content:', content);
   
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    
-    // Stop at common reply indicators
-    if (
-      line.startsWith('On ') && (line.includes(' wrote:') || line.includes(' said:')) ||
-      line.startsWith('From:') ||
-      line.startsWith('Sent:') ||
-      line.startsWith('To:') ||
-      line.startsWith('Subject:') ||
-      line.startsWith('-----Original Message-----') ||
-      line.startsWith('________________________________') ||
-      line.match(/^>+\s*/) || // Quoted text starting with >
-      line.includes('gmail.com wrote:') ||
-      line.includes('yahoo.com wrote:') ||
-      line.includes('outlook.com wrote:') ||
-      line.includes('@') && line.includes('wrote:')
-    ) {
+  // Remove quoted reply sections - look for common patterns
+  let cleaned = content;
+  
+  // Pattern 1: "On [date] at [time] [name] <email> wrote:"
+  cleaned = cleaned.replace(/\s*On\s+[^<>]*<[^>]+>\s+wrote:\s*[\s\S]*$/i, '');
+  
+  // Pattern 2: "On [date] [name] wrote:"
+  cleaned = cleaned.replace(/\s*On\s+[^:]+wrote:\s*[\s\S]*$/i, '');
+  
+  // Pattern 3: Lines starting with > (quoted text)
+  const lines = cleaned.split('\n');
+  const filteredLines = [];
+  let foundQuotedSection = false;
+  
+  for (const line of lines) {
+    // If we hit a line starting with >, stop processing
+    if (line.trim().startsWith('>')) {
+      foundQuotedSection = true;
       break;
     }
     
-    // Skip empty lines at the start
-    if (cleanedLines.length === 0 && line === '') {
-      continue;
+    // If we hit "wrote:" pattern, stop processing
+    if (line.includes('wrote:') && (line.includes('@') || line.includes('On '))) {
+      foundQuotedSection = true;
+      break;
     }
     
-    cleanedLines.push(lines[i]); // Keep original line with whitespace
+    filteredLines.push(line);
   }
   
-  // Join back and trim
-  let cleaned = cleanedLines.join('\n').trim();
+  if (foundQuotedSection) {
+    cleaned = filteredLines.join('\n');
+  }
   
   // Remove common email signatures
   const signaturePatterns = [
@@ -334,5 +335,7 @@ function cleanEmailContent(content: string): string {
     cleaned = cleaned.replace(pattern, '');
   }
   
-  return cleaned.trim();
+  const finalCleaned = cleaned.trim();
+  console.log('Cleaned content:', finalCleaned);
+  return finalCleaned;
 }
