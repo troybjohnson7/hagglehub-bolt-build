@@ -32,11 +32,14 @@ export default function IndexPage() {
   // This function will be called when the "Get Started" button is clicked
   const handleLogin = async () => {
     try {
-      await User.login(); // This triggers the Base44 login/signup flow
+      const result = await User.login();
+      if (result.isTestUserFallback) {
+        alert("Demo login activated! Redirecting to dashboard...");
+      }
+      window.location.reload();
     } catch (error) {
       console.error("Login failed:", error);
-      // For demo purposes, show a message
-      alert("Demo login activated! Redirecting to dashboard...");
+      alert("Login failed. Please try again.");
     }
   };
 

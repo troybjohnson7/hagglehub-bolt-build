@@ -125,51 +125,64 @@ class SupabaseEntity {
 // Real Supabase auth implementation
 class SupabaseAuth {
   async login() {
-
     console.log('Auth: Starting login process...');
     
-    // Try to sign in with the admin credentials
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: 'admin@hagglehub.app',
-      password: 'admin123'
-    });
-    
-    if (error) {
-      console.error('Auth: Login failed:', error);
-      
-      // If login fails, try to sign up the admin user
-      console.log('Auth: Attempting to create admin user...');
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+    try {
+      // Try to sign in with the admin credentials
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: 'admin@hagglehub.app',
-        password: 'admin123',
-        options: {
-          data: {
-            full_name: 'Admin User'
-          }
-        }
+        password: 'admin123'
       });
       
-      if (signUpError) {
-        console.error('Auth: Signup failed:', signUpError);
-        // Create test user as fallback
-        console.log('Auth: Creating test user fallback...');
-        const testUser = {
-          id: 'test-admin-id',
+      if (error) {
+        console.log('Auth: Login failed, attempting to create admin user...');
+        
+        // If login fails, try to sign up the admin user
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: 'admin@hagglehub.app',
-          full_name: 'Admin User',
-          subscription_tier: 'closer_annual',
-          has_completed_onboarding: true,
-          email_identifier: 'admin123'
-        };
-        localStorage.setItem('test_user', JSON.stringify(testUser));
-        return testUser;
+          password: 'admin123',
+          options: {
+            data: {
+              full_name: 'Admin User'
+            }
+          }
+        });
+        
+        if (signUpError) {
+          console.log('Auth: Signup also failed, using test user fallback...');
+          // Create test user as fallback
+          const testUser = {
+            id: 'test-admin-id',
+            email: 'admin@hagglehub.app',
+            full_name: 'Admin User',
+            subscription_tier: 'closer_annual',
+            has_completed_onboarding: true,
+            email_identifier: 'admin123'
+          };
+          localStorage.setItem('test_user', JSON.stringify(testUser));
+          return { user: testUser, isTestUserFallback: true };
+        }
+        
+        console.log('Auth: Admin user created successfully');
+        return { user: signUpData, isTestUserFallback: false };
       }
       
-      return signUpData;
+      console.log('Auth: Login successful');
+      return { user: data, isTestUserFallback: false };
+    } catch (error) {
+      console.log('Auth: Complete authentication failure, using test user...');
+      // Complete fallback for any unexpected errors
+      const testUser = {
+        id: 'test-admin-id',
+        email: 'admin@hagglehub.app',
+        full_name: 'Admin User',
+        subscription_tier: 'closer_annual',
+        has_completed_onboarding: true,
+        email_identifier: 'admin123'
+      };
+      localStorage.setItem('test_user', JSON.stringify(testUser));
+      return { user: testUser, isTestUserFallback: true };
     }
-    
-    console.log('Auth: Login initiated successfully');
-    return data;
   }
 
   async logout() {

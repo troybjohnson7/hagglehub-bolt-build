@@ -100,20 +100,14 @@ export default function Layout({ children, currentPageName }) {
   const handleLogin = async () => {
     try {
       console.log('Attempting login...');
-      await User.login();
+      const result = await User.login();
+      if (result.isTestUserFallback) {
+        alert("Demo login activated! Redirecting to dashboard...");
+      }
+      window.location.reload();
     } catch (error) {
       console.error("Login failed:", error);
-      // For testing, create a mock user session
-      console.log("Creating test session...");
-      localStorage.setItem('test_user', JSON.stringify({
-        id: 'test-admin-id',
-        email: 'admin@hagglehub.app',
-        full_name: 'Admin User',
-        subscription_tier: 'closer_annual',
-        has_completed_onboarding: true,
-        email_identifier: 'admin123'
-      }));
-      window.location.reload();
+      alert("Login failed. Please try again.");
     }
   };
 
