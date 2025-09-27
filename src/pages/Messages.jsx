@@ -95,7 +95,7 @@ export default function MessagesPage() {
 
         } catch (error) {
           console.error("Failed to fetch messages:", error);
-    };
+        } finally {
         } finally {
           setIsLoading(false);
         }
