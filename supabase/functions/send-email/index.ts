@@ -56,14 +56,34 @@ serve(async (req) => {
       apiKey: mailgunApiKey ? 'SET' : 'MISSING'
     })
 
+    // Get current user from auth header
+    const authHeader = req.headers.get('authorization')
+    let currentUserId = null
+    
+    if (authHeader) {
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
+        if (user && !authError) {
+          currentUserId = user.id
+          console.log('Authenticated user ID:', currentUserId)
+        } else {
+          console.log('Auth error:', authError)
+        }
+      } catch (authErr) {
+        console.log('Failed to get user from token:', authErr)
+      }
+    }
+
     if (!mailgunDomain || !mailgunApiKey) {
-      // Fallback: Mock email sending for development
+      // Mock email sending for development
       console.log('USING MOCK EMAIL - Mailgun not configured')
       console.log('Mock email details:', { to, subject, from })
       
       // Still log the message to database
-      if (deal_id && dealer_id) {
-        const { error: dbError } = await supabase
+      if (deal_id && dealer_id && currentUserId) {
+        console.log('Logging mock message to database...')
+        
+        const { data: insertedMessage, error: dbError } = await supabase
           .from('messages')
           .insert({
             deal_id,
@@ -73,14 +93,26 @@ serve(async (req) => {
             channel: 'email',
             is_read: true,
             mailgun_id: `mock-${Date.now()}`,
-            created_by: null // Will be handled by RLS
+            created_by: currentUserId
           })
+          .select()
+          .single()
         
         if (dbError) {
           console.error('Database error:', dbError)
+          return new Response(
+            JSON.stringify({ error: 'Failed to log message to database', details: dbError }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
         } else {
-          console.log('Mock message logged successfully')
+          console.log('Mock message logged successfully:', insertedMessage)
         }
+      } else {
+        console.log('Skipping database logging - missing required data:', { 
+          deal_id: !!deal_id, 
+          dealer_id: !!dealer_id, 
+          currentUserId: !!currentUserId 
+        })
       }
 
       return new Response(
@@ -127,6 +159,7 @@ serve(async (req) => {
 
     console.log('Mailgun response status:', mailgunResponse.status)
     console.log('Mailgun response:', mailgunResult)
+    
     if (!mailgunResponse.ok) {
       console.error('Mailgun error:', mailgunResult)
       return new Response(
@@ -136,58 +169,31 @@ serve(async (req) => {
     }
 
     console.log('Email sent successfully via Mailgun!')
+    
     // Log the sent message to database
-    if (deal_id && dealer_id) {
+    if (deal_id && dealer_id && currentUserId) {
       console.log('Logging sent message to database...')
       
-      // Validate UUIDs before database insertion
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(deal_id) || !uuidRegex.test(dealer_id)) {
-        console.error('Invalid UUID format:', { deal_id, dealer_id });
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            message_id: mailgunResult.id,
-            message: 'Email sent successfully but not logged due to invalid UUID format',
-            warning: 'Invalid UUID format for deal_id or dealer_id'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-      
-      
-      // Validate UUIDs before database insertion
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(deal_id) || !uuidRegex.test(dealer_id)) {
-        console.error('Invalid UUID format:', { deal_id, dealer_id });
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'Invalid UUID format for deal_id or dealer_id',
-            message_id: `mock-${Date.now()}`,
-            message: 'Mock email sent but not logged due to invalid UUID format'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-      
-      const { error: dbError } = await supabase
+      const { data: insertedMessage, error: dbError } = await supabase
         .from('messages')
         .insert({
           deal_id,
           dealer_id,
-          content: text || html.replace(/<[^>]*>/g, ''), // Strip HTML for content
+          content: text || html.replace(/<[^>]*>/g, ''),
           direction: 'outbound',
           channel: 'email',
           is_read: true,
-          mailgun_id: mailgunResult.id
+          mailgun_id: mailgunResult.id,
+          created_by: currentUserId
         })
+        .select()
+        .single()
 
       if (dbError) {
         console.error('Database error:', dbError)
         // Don't fail the request if DB logging fails
       } else {
-        console.log('Message logged to database successfully')
+        console.log('Message logged to database successfully:', insertedMessage)
       }
     }
 
