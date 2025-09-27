@@ -48,7 +48,7 @@ serve(async (req) => {
     }
 
     // Get Mailgun credentials from environment
-    const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN')
+    const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN') || 'hagglehub.app'
     const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY')
     
     console.log('Mailgun config:', { 
