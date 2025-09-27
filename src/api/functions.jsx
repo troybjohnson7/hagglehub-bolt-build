@@ -10,6 +10,26 @@ export async function sendReply({ message_content, dealer_id, deal_id }) {
   try {
     console.log('Calling Edge Function with:', { message_content, dealer_id, deal_id });
     
+    // Get current user to use their unique email
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Get user profile to get email_identifier
+    const { data: profile, error: profileError } = await supabase
+      .from('users')
+      .select('email_identifier, full_name')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile?.email_identifier) {
+      throw new Error('User email identifier not found');
+    }
+
+    const userEmail = `deals-${profile.email_identifier}@hagglehub.app`;
+    const fromName = profile.full_name || 'HaggleHub User';
+
     // Get the current session token properly
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
@@ -19,6 +39,7 @@ export async function sendReply({ message_content, dealer_id, deal_id }) {
     }
 
     console.log('Using session token for Edge Function call');
+    console.log('Sending from user email:', userEmail);
     
     const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
       method: 'POST',
@@ -27,11 +48,11 @@ export async function sendReply({ message_content, dealer_id, deal_id }) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        subject: 'Test from HaggleHub',
-        to: 'troy.b.johnson@gmail.com', // Your test email
+        subject: 'Re: Vehicle Inquiry',
+        to: 'troy.b.johnson@gmail.com',
         html: `<p>${message_content}</p>`,
         text: message_content,
-        from: 'HaggleHub <noreply@hagglehub.app>',
+        from: `${fromName} <${userEmail}>`,
         deal_id,
         dealer_id
       })
