@@ -54,7 +54,7 @@ export default function MessageBubble({ message, dealer }) {
               }`}>
                 {new Date(message.created_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
               </p>
-              {message.channel && message.channel !== 'app' && (
+              {message.channel && (
                 <Badge className={`${getChannelColor(message.channel)} text-xs h-auto py-0.5 px-1.5 flex items-center gap-1`}>
                   {getChannelIcon(message.channel)}
                   <span className="capitalize">{message.channel}</span>
