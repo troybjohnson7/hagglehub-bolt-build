@@ -18,8 +18,9 @@ interface EmailRequest {
 }
 
 serve(async (req) => {
+  const timestamp = new Date().toISOString()
   console.log('=== EMAIL FUNCTION STARTED ===')
-  console.log('Timestamp:', new Date().toISOString())
+  console.log('Timestamp:', timestamp)
   console.log('Request method:', req.method)
   console.log('Request URL:', req.url)
 
@@ -32,9 +33,17 @@ serve(async (req) => {
   try {
     console.log('=== PARSING REQUEST BODY ===')
     const requestBody = await req.json()
-    console.log('Request body received:', JSON.stringify(requestBody, null, 2))
+    console.log(`[${timestamp}] Request body received:`, JSON.stringify(requestBody, null, 2))
 
     const { to, subject, html, text, from, deal_id, dealer_id }: EmailRequest = requestBody
+    
+    // Special logging for test messages
+    if (subject?.includes('Test') || html?.includes('Test')) {
+      console.log(`🧪 [TEST MESSAGE DETECTED] ${timestamp}`)
+      console.log(`🧪 Subject: "${subject}"`)
+      console.log(`🧪 Content: "${html}"`)
+      console.log(`🧪 To: "${to}"`)
+    }
 
     console.log('=== VALIDATING REQUIRED FIELDS ===')
     console.log('to:', to)
