@@ -63,22 +63,6 @@ serve(async (req) => {
       
       // Still log the message to database
       if (deal_id && dealer_id) {
-        // Validate UUIDs before database insertion
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-        if (!uuidRegex.test(deal_id) || !uuidRegex.test(dealer_id)) {
-          console.error('Invalid UUID format for mock email:', { deal_id, dealer_id });
-          return new Response(
-            JSON.stringify({ 
-              success: true, 
-              message_id: `mock-${Date.now()}`,
-              message: 'Mock email sent but not logged due to invalid UUID format',
-              warning: 'Invalid UUID format for deal_id or dealer_id'
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
-        
-        console.log('Logging mock message to database...')
         const { error: dbError } = await supabase
           .from('messages')
           .insert({
