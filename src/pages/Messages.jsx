@@ -88,9 +88,16 @@ export default function MessagesPage() {
           const messageData = await Message.filter({ dealer_id: selectedDealerId });
           setMessages(messageData.sort((a, b) => new Date(a.created_date) - new Date(b.created_date)));
           
+          // Mark all unread messages from this dealer as read
           const unreadMessages = messageData.filter(m => !m.is_read && m.direction === 'inbound');
           if (unreadMessages.length > 0) {
+            console.log(`Marking ${unreadMessages.length} messages as read for dealer ${selectedDealerId}`);
             await Promise.all(unreadMessages.map(m => Message.update(m.id, { is_read: true })));
+            
+            // Trigger a storage event to notify other components (like notifications)
+            window.dispatchEvent(new CustomEvent('messagesRead', { 
+              detail: { dealerId: selectedDealerId, count: unreadMessages.length }
+            }));
           }
 
         } catch (error) {

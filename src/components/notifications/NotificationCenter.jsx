@@ -56,19 +56,22 @@ export default function NotificationCenter() {
         const regularUnreadMessages = messages.filter(m => !m.is_read && m.deal_id !== user?.fallback_deal_id);
         if (regularUnreadMessages.length > 0) {
           const dealerIdsWithUnread = [...new Set(regularUnreadMessages.map(m => m.dealer_id))];
-          const dealerNames = dealerIdsWithUnread.map(id => dealers.find(d => d.id === id)?.name).filter(Boolean);
+          const dealerNames = dealerIdsWithUnread.map(id => {
+            const dealer = dealers.find(d => d.id === id);
+            return dealer?.name;
+          }).filter(Boolean);
 
-          let link = createPageUrl('Messages');
-          // If all unread messages are from a single dealer, link directly to their conversation
-          if (dealerIdsWithUnread.length === 1) {
-            link = createPageUrl(`Messages?dealer_id=${dealerIdsWithUnread[0]}`);
-          }
+          // Always link to the specific dealer conversation for unread messages
+          const primaryDealerId = dealerIdsWithUnread[0];
+          const link = createPageUrl(`Messages?dealer_id=${primaryDealerId}`);
 
           generatedNotifications.push({
             id: 'unread_messages',
             type: 'message',
             title: `${regularUnreadMessages.length} New Message${regularUnreadMessages.length > 1 ? 's' : ''}`,
-            description: `From: ${dealerNames.slice(0, 2).join(', ')}${dealerNames.length > 2 ? ` +${dealerNames.length - 2} more` : ''}`,
+            description: dealerNames.length === 1 
+              ? `From: ${dealerNames[0]}` 
+              : `From: ${dealerNames.slice(0, 2).join(', ')}${dealerNames.length > 2 ? ` +${dealerNames.length - 2} more` : ''}`,
             icon: MessageCircle,
             color: 'text-blue-600',
             bgColor: 'bg-blue-50',
@@ -168,9 +171,21 @@ export default function NotificationCenter() {
     }
 
     fetchNotifications();
-    // Increased interval to 15 minutes to reduce API calls
-    const interval = setInterval(fetchNotifications, 900000); // 15 minutes
-    return () => clearInterval(interval);
+    // Check for notifications more frequently to update when messages are read
+    const interval = setInterval(fetchNotifications, 30000); // 30 seconds
+    
+    // Listen for messages being read to immediately update notifications
+    const handleMessagesRead = () => {
+      console.log('Messages read event detected, refreshing notifications');
+      setTimeout(fetchNotifications, 1000); // Small delay to ensure DB is updated
+    };
+    
+    window.addEventListener('messagesRead', handleMessagesRead);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('messagesRead', handleMessagesRead);
+    };
   }, []);
 
   const NotificationList = () => (
