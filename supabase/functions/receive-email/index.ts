@@ -183,21 +183,22 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log('=== FINDING DEAL FOR MESSAGE ===')
-    // Try to find an existing deal for this dealer
-    const { data: existingDeals } = await supabase
-      .from('deals')
-      .select('id, status')
-      .eq('dealer_id', dealer.id)
-      .eq('created_by', user.id)
-      .in('status', ['quote_requested', 'negotiating', 'final_offer'])
-      .limit(1)
-
-    let dealId = existingDeals && existingDeals.length > 0 
-      ? existingDeals[0].id 
-      : user.fallback_deal_id
-
-    console.log('Using deal ID:', dealId)
+    // Use advanced matching logic to find the correct deal
+    const matchResult = await findMatchingDeal(supabase, emailData, user.id, dealer.id)
+    const matchedDeal = matchResult.deal
+    
+    let dealId = matchedDeal ? matchedDeal.id : user.fallback_deal_id
+    console.log('Matched deal ID:', dealId)
     console.log('Is fallback deal:', dealId === user.fallback_deal_id)
+    console.log('Match method:', matchedDeal ? 'VIN/Stock/Dealer' : 'Fallback')
+    
+    // If we found VIN or stock info but no matching vehicle, log it for potential manual review
+    if (!matchedDeal && (matchResult.extractedVin || matchResult.extractedStock)) {
+      console.log('=== POTENTIAL NEW VEHICLE DETECTED ===')
+      console.log('VIN:', matchResult.extractedVin)
+      console.log('Stock:', matchResult.extractedStock)
+      console.log('This email may be about a new vehicle not yet tracked')
+    }
 
     console.log('=== CREATING MESSAGE RECORD ===')
     // Clean the email content to remove quoted replies and signatures
@@ -286,38 +287,28 @@ function cleanEmailContent(content: string): string {
   console.log('=== CLEANING EMAIL CONTENT ===');
   console.log('Original content:', content);
   
-  // First, try to split on common reply patterns
-  let cleaned = content;
-  
-  // Pattern 1: Split on "On [date] at [time] [name] <email> wrote:"
-  const onWrotePattern = /\s*On\s+[^,]+,\s+[^<]+<[^>]+>\s+wrote:\s*$/gm;
-  const onWroteMatch = cleaned.search(onWrotePattern);
-  if (onWroteMatch !== -1) {
-    cleaned = cleaned.substring(0, onWroteMatch);
-    console.log('Found "On...wrote:" pattern at position:', onWroteMatch);
-  }
-  
-  // Pattern 2: Split on lines that contain email addresses and "wrote:"
-  const emailWrotePattern = /^.*@.*wrote:\s*$/gm;
-  const emailWroteMatch = cleaned.search(emailWrotePattern);
-  if (emailWroteMatch !== -1) {
-    cleaned = cleaned.substring(0, emailWroteMatch);
-    console.log('Found email "wrote:" pattern at position:', emailWroteMatch);
-  }
-  // Split by lines and process line by line
+  // Split content into lines for processing
   const lines = content.split('\n');
   const filteredLines = [];
   
   for (const line of lines) {
     const trimmedLine = line.trim();
     
-    // Stop at quoted text markers
+    // Stop at lines starting with > (quoted text)
     if (trimmedLine.startsWith('>')) {
+      console.log('Found quoted line starting with >, stopping at:', trimmedLine);
       break;
     }
     
-    // Stop at "On [date]... wrote:" patterns
-    if (trimmedLine.startsWith('On ') && (trimmedLine.includes('wrote:') || line.includes('<') && line.includes('>'))) {
+    // Stop at "On [date] at [time] [name] <email> wrote:" patterns
+    if (trimmedLine.match(/^On\s+\w+,\s+\w+\s+\d+,\s+\d{4}\s+at\s+\d+:\d+\s+(AM|PM).*wrote:\s*$/i)) {
+      console.log('Found "On date at time wrote:" pattern, stopping at:', trimmedLine);
+      break;
+    }
+    
+    // Stop at other "wrote:" patterns with email addresses
+    if (trimmedLine.includes('wrote:') && trimmedLine.includes('@')) {
+      console.log('Found email wrote pattern, stopping at:', trimmedLine);
       break;
     }
     
@@ -326,14 +317,14 @@ function cleanEmailContent(content: string): string {
         trimmedLine.startsWith('Sent:') || 
         trimmedLine.startsWith('To:') || 
         trimmedLine.startsWith('Subject:')) {
+      console.log('Found email header, stopping at:', trimmedLine);
       break;
     }
     
     filteredLines.push(line);
   }
   
-  // Use the filtered lines result
-  cleaned = filteredLines.join('\n').trim();
+  let cleaned = filteredLines.join('\n').trim();
   
   // Remove common email signatures
   const signaturePatterns = [
@@ -353,4 +344,130 @@ function cleanEmailContent(content: string): string {
   const finalCleaned = cleaned.trim();
   console.log('Cleaned content:', finalCleaned);
   return finalCleaned;
+}
+
+// Advanced message matching logic similar to Base44 processor
+async function findMatchingDeal(supabase: any, emailData: Partial<InboundEmail>, userId: string, dealerId: string) {
+  console.log('=== FINDING MATCHING DEAL ===');
+  console.log('User ID:', userId);
+  console.log('Dealer ID:', dealerId);
+  
+  const { sender, subject, 'body-plain': bodyPlain } = emailData;
+  
+  // Extract potential VIN from email content
+  const vinPattern = /\b[A-HJ-NPR-Z0-9]{17}\b/gi;
+  const vinMatches = (subject + ' ' + bodyPlain).match(vinPattern);
+  const extractedVin = vinMatches ? vinMatches[0].toUpperCase() : null;
+  
+  console.log('Extracted VIN from email:', extractedVin);
+  
+  // Extract potential stock number
+  const stockPattern = /(?:stock|stk)[\s#:]*([A-Z0-9]+)/gi;
+  const stockMatches = (subject + ' ' + bodyPlain).match(stockPattern);
+  const extractedStock = stockMatches ? stockMatches[1] : null;
+  
+  console.log('Extracted stock number:', extractedStock);
+  
+  // Extract phone numbers from email signature
+  const phonePattern = /(\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})/g;
+  const phoneMatches = bodyPlain.match(phonePattern);
+  const extractedPhone = phoneMatches ? phoneMatches[0] : null;
+  
+  console.log('Extracted phone:', extractedPhone);
+  
+  let matchedDeal = null;
+  
+  // Step 1: Try VIN matching first (most reliable)
+  if (extractedVin) {
+    console.log('Step 1: Attempting VIN match for:', extractedVin);
+    const { data: vehicles } = await supabase
+      .from('vehicles')
+      .select('id')
+      .eq('vin', extractedVin)
+      .eq('created_by', userId);
+      
+    if (vehicles && vehicles.length > 0) {
+      console.log('Found vehicle with VIN:', vehicles[0].id);
+      const { data: deals } = await supabase
+        .from('deals')
+        .select('*')
+        .eq('vehicle_id', vehicles[0].id)
+        .eq('created_by', userId)
+        .in('status', ['quote_requested', 'negotiating', 'final_offer']);
+        
+      if (deals && deals.length > 0) {
+        matchedDeal = deals[0];
+        console.log('VIN matched to deal:', matchedDeal.id);
+      }
+    }
+  }
+  
+  // Step 2: Try stock number matching
+  if (!matchedDeal && extractedStock) {
+    console.log('Step 2: Attempting stock number match for:', extractedStock);
+    const { data: vehicles } = await supabase
+      .from('vehicles')
+      .select('id')
+      .eq('stock_number', extractedStock)
+      .eq('created_by', userId);
+      
+    if (vehicles && vehicles.length > 0) {
+      console.log('Found vehicle with stock number:', vehicles[0].id);
+      const { data: deals } = await supabase
+        .from('deals')
+        .select('*')
+        .eq('vehicle_id', vehicles[0].id)
+        .eq('created_by', userId)
+        .in('status', ['quote_requested', 'negotiating', 'final_offer']);
+        
+      if (deals && deals.length > 0) {
+        matchedDeal = deals[0];
+        console.log('Stock number matched to deal:', matchedDeal.id);
+      }
+    }
+  }
+  
+  // Step 3: Try dealer contact info matching (phone or email)
+  if (!matchedDeal) {
+    console.log('Step 3: Attempting dealer contact matching');
+    
+    // Update dealer with new contact info if we found any
+    const dealerUpdates = {};
+    if (extractedPhone && extractedPhone !== dealerId.phone) {
+      dealerUpdates.phone = extractedPhone;
+    }
+    if (sender && sender !== dealerId.contact_email) {
+      dealerUpdates.contact_email = sender;
+    }
+    
+    if (Object.keys(dealerUpdates).length > 0) {
+      console.log('Updating dealer with new contact info:', dealerUpdates);
+      await supabase
+        .from('dealers')
+        .update(dealerUpdates)
+        .eq('id', dealerId);
+    }
+    
+    // Find active deals with this dealer
+    const { data: deals } = await supabase
+      .from('deals')
+      .select('*')
+      .eq('dealer_id', dealerId)
+      .eq('created_by', userId)
+      .in('status', ['quote_requested', 'negotiating', 'final_offer'])
+      .order('created_date', { ascending: false });
+      
+    if (deals && deals.length > 0) {
+      matchedDeal = deals[0]; // Use most recent active deal
+      console.log('Matched to most recent active deal with dealer:', matchedDeal.id);
+    }
+  }
+  
+  console.log('Final matched deal:', matchedDeal?.id || 'none');
+  return {
+    deal: matchedDeal,
+    extractedVin,
+    extractedStock,
+    extractedPhone
+  };
 }
