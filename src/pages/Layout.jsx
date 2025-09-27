@@ -101,10 +101,12 @@ export default function Layout({ children, currentPageName }) {
     try {
       console.log('Attempting login...');
       const result = await User.login();
+      console.log('Layout: Login result:', result);
       if (result.isTestUserFallback) {
-        alert("Demo login activated! Redirecting to dashboard...");
+        console.log('Layout: Test user fallback activated');
       }
-      window.location.reload();
+      console.log('Layout: Redirecting to dashboard...');
+      window.location.href = '/dashboard';
     } catch (error) {
       console.error("Login failed:", error);
       alert("Login failed. Please try again.");

@@ -32,11 +32,14 @@ export default function IndexPage() {
   // This function will be called when the "Get Started" button is clicked
   const handleLogin = async () => {
     try {
+      console.log('Index: Starting login process...');
       const result = await User.login();
+      console.log('Index: Login result:', result);
       if (result.isTestUserFallback) {
-        alert("Demo login activated! Redirecting to dashboard...");
+        console.log('Index: Test user fallback activated');
       }
-      window.location.reload();
+      console.log('Index: Reloading page...');
+      window.location.href = '/dashboard';
     } catch (error) {
       console.error("Login failed:", error);
       alert("Login failed. Please try again.");

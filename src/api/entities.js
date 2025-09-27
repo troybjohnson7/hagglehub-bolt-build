@@ -160,15 +160,16 @@ class SupabaseAuth {
             email_identifier: 'admin123'
           };
           localStorage.setItem('test_user', JSON.stringify(testUser));
-          return { user: testUser, isTestUserFallback: true };
+          console.log('Auth: Test user fallback activated');
+          return { user: testUser, session: null, isTestUserFallback: true };
         }
         
         console.log('Auth: Admin user created successfully');
-        return { user: signUpData, isTestUserFallback: false };
+        return { user: signUpData.user, session: signUpData.session, isTestUserFallback: false };
       }
       
       console.log('Auth: Login successful');
-      return { user: data, isTestUserFallback: false };
+      return { user: data.user, session: data.session, isTestUserFallback: false };
     } catch (error) {
       console.log('Auth: Complete authentication failure, using test user...');
       // Complete fallback for any unexpected errors
@@ -181,7 +182,8 @@ class SupabaseAuth {
         email_identifier: 'admin123'
       };
       localStorage.setItem('test_user', JSON.stringify(testUser));
-      return { user: testUser, isTestUserFallback: true };
+      console.log('Auth: Test user fallback activated');
+      return { user: testUser, session: null, isTestUserFallback: true };
     }
   }
 
