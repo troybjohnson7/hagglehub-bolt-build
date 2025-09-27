@@ -62,7 +62,8 @@ export const sendReply = async ({ message_content, dealer_id, deal_id }) => {
       direction: 'outbound',
       channel: 'email',
       is_read: true,
-      mailgun_id: `mock-${Date.now()}`
+      mailgun_id: `mock-${Date.now()}`,
+      created_by: user.id
     };
 
     const { data: createdMessage, error } = await supabase
