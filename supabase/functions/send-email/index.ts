@@ -56,6 +56,14 @@ serve(async (req) => {
       apiKey: mailgunApiKey ? 'SET' : 'MISSING'
     })
 
+    if (!mailgunApiKey) {
+      console.error('MAILGUN_API_KEY environment variable is not set')
+      return new Response(
+        JSON.stringify({ error: 'Mailgun not configured - missing API key' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Get current user from auth header
     const authHeader = req.headers.get('authorization')
     let currentUserId = null
@@ -72,58 +80,6 @@ serve(async (req) => {
       } catch (authErr) {
         console.log('Failed to get user from token:', authErr)
       }
-    }
-
-    if (!mailgunDomain || !mailgunApiKey) {
-      // Mock email sending for development
-      console.log('USING MOCK EMAIL - Mailgun not configured')
-      console.log('Mock email details:', { to, subject, from })
-      
-      // Still log the message to database
-      if (deal_id && dealer_id && currentUserId) {
-        console.log('Logging mock message to database...')
-        
-        const { data: insertedMessage, error: dbError } = await supabase
-          .from('messages')
-          .insert({
-            deal_id,
-            dealer_id,
-            content: text || html.replace(/<[^>]*>/g, ''),
-            direction: 'outbound',
-            channel: 'email',
-            is_read: true,
-            mailgun_id: `mock-${Date.now()}`,
-            created_by: currentUserId
-          })
-          .select()
-          .single()
-        
-        if (dbError) {
-          console.error('Database error:', dbError)
-          return new Response(
-            JSON.stringify({ error: 'Failed to log message to database', details: dbError }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        } else {
-          console.log('Mock message logged successfully:', insertedMessage)
-        }
-      } else {
-        console.log('Skipping database logging - missing required data:', { 
-          deal_id: !!deal_id, 
-          dealer_id: !!dealer_id, 
-          currentUserId: !!currentUserId 
-        })
-      }
-
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message_id: `mock-${Date.now()}`,
-          message: 'Mock email sent successfully (Mailgun not configured)',
-          debug: 'Check Supabase logs for details'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
     }
 
     console.log('Preparing to send via Mailgun...')
@@ -191,10 +147,23 @@ serve(async (req) => {
 
       if (dbError) {
         console.error('Database error:', dbError)
-        // Don't fail the request if DB logging fails
+        return new Response(
+          JSON.stringify({ error: 'Failed to log message to database', details: dbError }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
       } else {
         console.log('Message logged to database successfully:', insertedMessage)
       }
+    } else {
+      console.error('Missing required data for database logging:', { 
+        deal_id: !!deal_id, 
+        dealer_id: !!dealer_id, 
+        currentUserId: !!currentUserId 
+      })
+      return new Response(
+        JSON.stringify({ error: 'Missing required data for message logging' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     return new Response(
