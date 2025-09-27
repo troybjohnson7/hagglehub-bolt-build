@@ -108,7 +108,7 @@ export default function Dashboard() {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [navigate, location.pathname]);
+  }, [navigate]);
 
   // Add a manual refresh function that can be called when needed
   const refreshData = () => {
