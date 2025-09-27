@@ -150,7 +150,8 @@ export default function MessagesPage() {
             const messageData = await Message.filter({ dealer_id: selectedDealerId });
             setMessages(messageData.sort((a, b) => new Date(a.created_date) - new Date(b.created_date)));
             toast.success('Email sent successfully!');
-            createdMessage = null; 
+            setIsSending(false);
+            return; // Exit early since message was created by Edge Function
           } else {
             throw new Error('Failed to send email');
           }
@@ -160,8 +161,6 @@ export default function MessagesPage() {
           // Fallback to creating an app message if email fails
           channel = 'app';
         }
-      } else {
-        // Handle app messages (no actual email sent)
       }
       
       // Create app message if not email or if email failed

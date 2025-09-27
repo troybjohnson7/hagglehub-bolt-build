@@ -188,7 +188,7 @@ serve(async (req) => {
         direction: 'outbound',
         channel: 'email',
         is_read: true,
-        mailgun_id: parsedResult.id,
+        mailgun_id: parsedResult.id || null,
         created_by: currentUserId
       }
       
@@ -219,6 +219,15 @@ serve(async (req) => {
       console.error('deal_id:', deal_id)
       console.error('dealer_id:', dealer_id) 
       console.error('currentUserId:', currentUserId)
+      
+      // Return error if we can't log the message
+      return new Response(
+        JSON.stringify({ 
+          error: 'Missing required data for message logging',
+          details: `deal_id: ${deal_id}, dealer_id: ${dealer_id}, user: ${currentUserId ? 'present' : 'missing'}`
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     console.log('=== FUNCTION COMPLETED SUCCESSFULLY ===')
