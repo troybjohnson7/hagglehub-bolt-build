@@ -13,77 +13,37 @@ export const sendReply = async ({ message_content, dealer_id, deal_id }) => {
   console.log('sendReply called with:', { message_content, dealer_id, deal_id });
   
   try {
-    // Get current user for proper email context
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('Not authenticated');
-    }
-    
-    // Get user profile for email details
-    const { data: userProfile } = await supabase
-      .from('users')
-      .select('full_name, email_identifier')
-      .eq('id', user.id)
-      .single();
-    
-    // Get dealer information
-    const { data: dealer } = await supabase
-      .from('dealers')
-      .select('name, contact_email')
-      .eq('id', dealer_id)
-      .single();
-    
-    // Get vehicle information for context
-    const { data: deal } = await supabase
-      .from('deals')
-      .select('vehicle_id')
-      .eq('id', deal_id)
-      .single();
-    
-    let vehicleInfo = 'Vehicle';
-    if (deal?.vehicle_id) {
-      const { data: vehicle } = await supabase
-        .from('vehicles')
-        .select('year, make, model')
-        .eq('id', deal.vehicle_id)
-        .single();
-      
-      if (vehicle) {
-        vehicleInfo = `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
-      }
-    }
-    
-    // For now, just create the message directly without calling Edge Function
-    // This bypasses the fetch error while still logging the message
-    const messageData = {
-      content: message_content,
-      deal_id,
-      dealer_id,
-      direction: 'outbound',
-      channel: 'email',
-      is_read: true,
-      mailgun_id: `mock-${Date.now()}`,
-      created_by: user.id
-    };
+    // Actually call the Supabase Edge Function
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to: 'troy.b.johnson@gmail.com', // Your test email
+        subject: 'Test from HaggleHub',
+        html: `<p>${message_content}</p>`,
+        text: message_content,
+        from: 'HaggleHub <noreply@hagglehub.app>',
+        deal_id,
+        dealer_id
+      })
+    });
 
-    const { data: createdMessage, error } = await supabase
-      .from('messages')
-      .insert(messageData)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error('Failed to save message');
+    console.log('Edge Function response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Edge Function error:', errorText);
+      throw new Error(`Edge Function failed: ${response.status} - ${errorText}`);
     }
 
-    console.log('Message saved successfully:', createdMessage);
+    const result = await response.json();
+    console.log('Edge Function result:', result);
     
     return {
-      data: {
-        success: true,
-        message: 'Message sent successfully (mock mode)',
-        message_id: `mock-${Date.now()}`
-      }
+      data: result
     };
   } catch (error) {
     console.error('sendReply error:', error);
