@@ -95,7 +95,7 @@ export default function MessagesPage() {
 
         } catch (error) {
           console.error("Failed to fetch messages:", error);
-          toast.error("Failed to load messages. Please try again.");
+    };
         } finally {
           setIsLoading(false);
         }
