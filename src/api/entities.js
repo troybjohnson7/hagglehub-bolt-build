@@ -149,50 +149,83 @@ class SupabaseAuth {
         });
         
         if (signUpError) {
-          console.log('Auth: Signup also failed, using test user fallback...');
-          // Create test user as fallback
-          const testUser = {
-            id: 'test-admin-id',
-            email: 'admin@hagglehub.app',
-            full_name: 'Admin User',
-            subscription_tier: 'closer_annual',
-            has_completed_onboarding: true,
-            email_identifier: 'admin123'
-          };
-          localStorage.setItem('test_user', JSON.stringify(testUser));
-          console.log('Auth: Test user fallback activated');
-          return { user: testUser, session: null, isTestUserFallback: true };
+          console.error('Auth: Both login and signup failed:', signUpError);
+          throw new Error(`Authentication failed: ${signUpError.message}`);
         }
         
-        console.log('Auth: Admin user created successfully');
-        return { user: signUpData.user, session: signUpData.session, isTestUserFallback: false };
+        console.log('Auth: Admin user created successfully, now creating profile...');
+        
+        // Create user profile in our custom users table
+        if (signUpData.user) {
+          await this.createUserProfile(signUpData.user);
+        }
+        
+        return { user: signUpData.user, session: signUpData.session };
       }
       
-      console.log('Auth: Login successful');
-      return { user: data.user, session: data.session, isTestUserFallback: false };
+      console.log('Auth: Login successful, ensuring profile exists...');
+      
+      // Ensure user profile exists in our custom users table
+      if (data.user) {
+        await this.ensureUserProfile(data.user);
+      }
+      
+      return { user: data.user, session: data.session };
     } catch (error) {
-      console.log('Auth: Complete authentication failure, using test user...');
-      // Complete fallback for any unexpected errors
-      const testUser = {
-        id: 'test-admin-id',
-        email: 'admin@hagglehub.app',
-        full_name: 'Admin User',
-        subscription_tier: 'closer_annual',
-        has_completed_onboarding: true,
-        email_identifier: 'admin123'
-      };
-      localStorage.setItem('test_user', JSON.stringify(testUser));
-      console.log('Auth: Test user fallback activated');
-      return { user: testUser, session: null, isTestUserFallback: true };
+      console.error('Auth: Authentication error:', error);
+      throw error;
     }
+  }
+
+  async createUserProfile(authUser) {
+    console.log('Auth: Creating user profile for:', authUser.email);
+    
+    const profileData = {
+      id: authUser.id,
+      email: authUser.email,
+      full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
+      email_identifier: this.generateEmailIdentifier(),
+      subscription_tier: 'free',
+      has_completed_onboarding: false
+    };
+
+    const { data, error } = await supabase
+      .from('users')
+      .insert(profileData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Auth: Failed to create user profile:', error);
+      // Don't throw error - user can still function without profile initially
+    } else {
+      console.log('Auth: User profile created successfully');
+    }
+
+    return data;
+  }
+
+  async ensureUserProfile(authUser) {
+    console.log('Auth: Ensuring user profile exists for:', authUser.email);
+    
+    // Check if profile exists
+    const { data: existingProfile, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', authUser.id)
+      .single();
+
+    if (error && error.code === 'PGRST116') {
+      // Profile doesn't exist, create it
+      return await this.createUserProfile(authUser);
+    }
+
+    return existingProfile;
   }
 
   async logout() {
 
     console.log('Auth: Logging out...');
-    
-    // Clear test user
-    localStorage.removeItem('test_user');
     
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -207,13 +240,6 @@ class SupabaseAuth {
 
     try {
       console.log('Auth: Checking current user...');
-      
-      // Check for test user first
-      const testUser = localStorage.getItem('test_user');
-      if (testUser) {
-        console.log('Auth: Using test user');
-        return JSON.parse(testUser);
-      }
       
       // Get current user from Supabase auth
       const { data: { user: supabaseUser }, error } = await supabase.auth.getUser();
@@ -235,27 +261,8 @@ class SupabaseAuth {
       if (profileError) {
         // If profile doesn't exist, create it
         if (profileError.code === 'PGRST116') {
-          console.log('Auth: Creating new user profile...');
-          const newProfile = {
-            id: currentUser.id,
-            email: currentUser.email,
-            full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0],
-            email_identifier: this.generateEmailIdentifier(),
-            subscription_tier: 'free',
-            has_completed_onboarding: false
-          };
-
-          const { data: createdProfile, error: createError } = await supabase
-            .from('users')
-            .insert(newProfile)
-            .select()
-            .single();
-
-          if (createError) {
-            console.error('Auth: Failed to create profile:', createError);
-            return { ...currentUser, ...newProfile };
-          }
-          console.log('Auth: Created new profile successfully');
+          console.log('Auth: Profile missing, creating...');
+          const createdProfile = await this.createUserProfile(currentUser);
           return { ...currentUser, ...createdProfile };
         }
         console.error('Auth: Profile fetch error:', profileError);
