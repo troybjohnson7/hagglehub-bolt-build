@@ -3,36 +3,15 @@ import { createClient } from '@supabase/supabase-js';
 // Create Supabase client for real database operations
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const isTestMode = !supabaseUrl || !supabaseKey;
 
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey, {
+const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
     flowType: 'pkce'
   }
-}) : null;
-
-// Test mode data storage
-const testData = {
-  vehicles: [],
-  dealers: [],
-  deals: [],
-  messages: [],
-  market_data: [],
-  user: {
-    id: 'test-user-123',
-    email: 'test@example.com',
-    full_name: 'Test User',
-    email_identifier: 'testuser',
-    subscription_tier: 'free',
-    has_completed_onboarding: true
-  }
-};
-
-// Generate test ID
-const generateTestId = () => `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+});
 
 // Real Supabase entity implementation
 class SupabaseEntity {
@@ -41,25 +20,6 @@ class SupabaseEntity {
   }
 
   async list(orderBy = '') {
-    if (isTestMode) {
-      console.log(`Test Mode: Fetching ${this.tableName}...`);
-      let data = [...testData[this.tableName]];
-      
-      if (orderBy) {
-        const isDesc = orderBy.startsWith('-');
-        const field = isDesc ? orderBy.substring(1) : orderBy;
-        data.sort((a, b) => {
-          const aVal = a[field];
-          const bVal = b[field];
-          if (aVal < bVal) return isDesc ? 1 : -1;
-          if (aVal > bVal) return isDesc ? -1 : 1;
-          return 0;
-        });
-      }
-      
-      console.log(`Test Mode: Returning ${data.length} ${this.tableName} records`);
-      return data;
-    }
 
     console.log(`Entity: Fetching ${this.tableName} from Supabase...`);
     let query = supabase.from(this.tableName).select('*');
@@ -79,14 +39,6 @@ class SupabaseEntity {
   }
 
   async filter(criteria) {
-    if (isTestMode) {
-      console.log(`Test Mode: Filtering ${this.tableName} with criteria:`, criteria);
-      const data = testData[this.tableName].filter(item => {
-        return Object.entries(criteria).every(([key, value]) => item[key] === value);
-      });
-      console.log(`Test Mode: Filter returned ${data.length} ${this.tableName} records`);
-      return data;
-    }
 
     console.log(`Entity: Filtering ${this.tableName} with criteria:`, criteria);
     let query = supabase.from(this.tableName).select('*');
@@ -104,26 +56,6 @@ class SupabaseEntity {
   }
 
   async create(itemData) {
-    if (isTestMode) {
-      console.log(`Test Mode: Creating ${this.tableName} with data:`, itemData);
-      const newItem = {
-        id: generateTestId(),
-        ...itemData,
-        created_by: testData.user.id,
-        created_date: new Date().toISOString()
-      };
-      
-      testData[this.tableName].push(newItem);
-      console.log(`Test Mode: Successfully created ${this.tableName}:`, newItem);
-      
-      // Trigger storage event for Dashboard refresh
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: `test_${this.tableName}_created`,
-        newValue: JSON.stringify(newItem)
-      }));
-      
-      return newItem;
-    }
 
     console.log(`Entity: Creating ${this.tableName} with data:`, itemData);
     const { data: { user } } = await supabase.auth.getUser();
@@ -152,15 +84,6 @@ class SupabaseEntity {
   }
 
   async update(id, updates) {
-    if (isTestMode) {
-      console.log(`Test Mode: Updating ${this.tableName} ${id} with:`, updates);
-      const index = testData[this.tableName].findIndex(item => item.id === id);
-      if (index === -1) throw new Error(`${this.tableName} not found`);
-      
-      testData[this.tableName][index] = { ...testData[this.tableName][index], ...updates };
-      console.log(`Test Mode: Successfully updated ${this.tableName}:`, testData[this.tableName][index]);
-      return testData[this.tableName][index];
-    }
 
     console.log(`Entity: Updating ${this.tableName} ${id} with:`, updates);
     const { data, error } = await supabase
@@ -179,15 +102,6 @@ class SupabaseEntity {
   }
 
   async delete(id) {
-    if (isTestMode) {
-      console.log(`Test Mode: Deleting ${this.tableName} ${id}`);
-      const index = testData[this.tableName].findIndex(item => item.id === id);
-      if (index === -1) throw new Error(`${this.tableName} not found`);
-      
-      testData[this.tableName].splice(index, 1);
-      console.log(`Test Mode: Successfully deleted ${this.tableName} ${id}`);
-      return true;
-    }
 
     console.log(`Entity: Deleting ${this.tableName} ${id}`);
     const { error } = await supabase
@@ -207,10 +121,6 @@ class SupabaseEntity {
 // Real Supabase auth implementation
 class SupabaseAuth {
   async login() {
-    if (isTestMode) {
-      console.log('Test Mode: Mock login successful');
-      return { user: testData.user };
-    }
 
     console.log('Auth: Starting login process...');
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -229,10 +139,6 @@ class SupabaseAuth {
   }
 
   async logout() {
-    if (isTestMode) {
-      console.log('Test Mode: Mock logout');
-      return;
-    }
 
     console.log('Auth: Logging out...');
     const { error } = await supabase.auth.signOut();
@@ -245,10 +151,6 @@ class SupabaseAuth {
   }
 
   async me() {
-    if (isTestMode) {
-      console.log('Test Mode: Returning test user');
-      return testData.user;
-    }
 
     try {
       console.log('Auth: Checking current user...');
@@ -308,11 +210,6 @@ class SupabaseAuth {
   }
 
   async updateMyUserData(updates) {
-    if (isTestMode) {
-      console.log('Test Mode: Updating user data:', updates);
-      testData.user = { ...testData.user, ...updates };
-      return testData.user;
-    }
 
     console.log('Auth: Updating user data:', updates);
     const currentUser = await this.me();
