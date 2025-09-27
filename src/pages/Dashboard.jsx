@@ -40,7 +40,7 @@ export default function Dashboard() {
       const currentUser = await User.me();
       if (!currentUser) {
         console.log('Dashboard: No user found, redirecting to home');
-        navigate('/');
+        navigate('/', { replace: true });
         return;
       }
       
@@ -50,7 +50,7 @@ export default function Dashboard() {
       // Check if user needs onboarding
       if (!currentUser.has_completed_onboarding) {
         console.log('Dashboard: User needs onboarding, redirecting');
-        navigate('/onboarding');
+        navigate('/onboarding', { replace: true });
         return;
       }
 
@@ -80,8 +80,10 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Dashboard data fetch error:", error);
       
-      // Redirect to home on any error
-      navigate('/');
+      // Only redirect on auth errors, not data fetch errors
+      if (error.message?.includes('Not authenticated') || error.message?.includes('JWT')) {
+        navigate('/', { replace: true });
+      }
     } finally {
       setIsLoading(false);
       console.log('Dashboard: Loading complete');

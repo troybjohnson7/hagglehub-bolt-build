@@ -24,6 +24,7 @@ class SupabaseEntity {
   }
 
   async list(orderBy = '') {
+    console.log(`Entity: Fetching ${this.tableName} from Supabase...`);
     let query = supabase.from(this.tableName).select('*');
     if (orderBy) {
       const isDesc = orderBy.startsWith('-');
@@ -32,24 +33,37 @@ class SupabaseEntity {
     }
     
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) {
+      console.error(`Supabase ${this.tableName} list failed:`, error);
+      throw error;
+    }
+    console.log(`Entity: Successfully fetched ${data?.length || 0} ${this.tableName} records`);
     return data || [];
   }
 
   async filter(criteria) {
+    console.log(`Entity: Filtering ${this.tableName} with criteria:`, criteria);
     let query = supabase.from(this.tableName).select('*');
     Object.entries(criteria).forEach(([key, value]) => {
       query = query.eq(key, value);
     });
     
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) {
+      console.error(`Supabase ${this.tableName} filter failed:`, error);
+      throw error;
+    }
+    console.log(`Entity: Filter returned ${data?.length || 0} ${this.tableName} records`);
     return data || [];
   }
 
   async create(itemData) {
+    console.log(`Entity: Creating ${this.tableName} with data:`, itemData);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
+    if (!user) {
+      console.error('Entity: User not authenticated');
+      throw new Error('Not authenticated');
+    }
 
     const dataWithUser = {
       ...itemData,
@@ -62,11 +76,16 @@ class SupabaseEntity {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error(`Supabase ${this.tableName} create failed:`, error);
+      throw error;
+    }
+    console.log(`Entity: Successfully created ${this.tableName}:`, data);
     return data;
   }
 
   async update(id, updates) {
+    console.log(`Entity: Updating ${this.tableName} ${id} with:`, updates);
     const { data, error } = await supabase
       .from(this.tableName)
       .update(updates)
@@ -74,17 +93,26 @@ class SupabaseEntity {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error(`Supabase ${this.tableName} update failed:`, error);
+      throw error;
+    }
+    console.log(`Entity: Successfully updated ${this.tableName}:`, data);
     return data;
   }
 
   async delete(id) {
+    console.log(`Entity: Deleting ${this.tableName} ${id}`);
     const { error } = await supabase
       .from(this.tableName)
       .delete()
       .eq('id', id);
     
-    if (error) throw error;
+    if (error) {
+      console.error(`Supabase ${this.tableName} delete failed:`, error);
+      throw error;
+    }
+    console.log(`Entity: Successfully deleted ${this.tableName} ${id}`);
     return true;
   }
 }
@@ -92,6 +120,7 @@ class SupabaseEntity {
 // Real Supabase auth implementation
 class SupabaseAuth {
   async login() {
+    console.log('Auth: Starting login process...');
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -99,25 +128,37 @@ class SupabaseAuth {
       }
     });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Auth: Login failed:', error);
+      throw error;
+    }
+    console.log('Auth: Login initiated successfully');
     return data;
   }
 
   async logout() {
+    console.log('Auth: Logging out...');
     const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    if (error) {
+      console.error('Auth: Logout failed:', error);
+      throw error;
+    }
+    console.log('Auth: Logout successful');
     window.location.href = '/';
   }
 
   async me() {
     try {
+      console.log('Auth: Checking current user...');
       // Get current user from Supabase auth
       const { data: { user: supabaseUser }, error } = await supabase.auth.getUser();
       if (error || !supabaseUser) {
+        console.log('Auth: No authenticated user found');
         return null;
       }
 
       const currentUser = supabaseUser;
+      console.log('Auth: Found authenticated user:', currentUser.email);
 
       // Get user profile from users table
       const { data: profile, error: profileError } = await supabase
@@ -129,6 +170,7 @@ class SupabaseAuth {
       if (profileError) {
         // If profile doesn't exist, create it
         if (profileError.code === 'PGRST116') {
+          console.log('Auth: Creating new user profile...');
           const newProfile = {
             id: currentUser.id,
             email: currentUser.email,
@@ -144,12 +186,18 @@ class SupabaseAuth {
             .select()
             .single();
 
-          if (createError) return { ...currentUser, ...newProfile };
+          if (createError) {
+            console.error('Auth: Failed to create profile:', createError);
+            return { ...currentUser, ...newProfile };
+          }
+          console.log('Auth: Created new profile successfully');
           return { ...currentUser, ...createdProfile };
         }
+        console.error('Auth: Profile fetch error:', profileError);
         throw profileError;
       }
 
+      console.log('Auth: User profile loaded successfully');
       return { ...currentUser, ...profile };
     } catch (error) {
       console.error('Auth error:', error);
@@ -158,6 +206,7 @@ class SupabaseAuth {
   }
 
   async updateMyUserData(updates) {
+    console.log('Auth: Updating user data:', updates);
     const currentUser = await this.me();
     if (!currentUser) throw new Error('Not authenticated');
 
@@ -168,7 +217,11 @@ class SupabaseAuth {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Auth: Update failed:', error);
+      throw error;
+    }
+    console.log('Auth: User data updated successfully');
     return { ...currentUser, ...data };
   }
 

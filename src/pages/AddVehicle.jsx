@@ -281,17 +281,16 @@ function DealForm({ parsedData, setStep, currentUser }) {
       console.log('AddVehicle: Created vehicle:', newVehicle);
       console.log('AddVehicle: Created dealer:', newDealer);
       
-      // Force trigger storage event for Dashboard refresh
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: 'mock_deals',
-        newValue: JSON.stringify([])
-      }));
-      
       // Navigate back to dashboard
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     } catch (error) {
       console.error("Failed to create new deal:", error);
-      toast.error("Failed to create deal. Please check your inputs.");
+      if (error.message?.includes('Not authenticated')) {
+        toast.error("Please log in to create deals");
+        navigate('/', { replace: true });
+      } else {
+        toast.error("Failed to create deal. Please check your inputs and try again.");
+      }
     } finally {
       setIsLoading(false);
     }
