@@ -286,8 +286,24 @@ function cleanEmailContent(content: string): string {
   console.log('=== CLEANING EMAIL CONTENT ===');
   console.log('Original content:', content);
   
-  // Remove quoted reply sections - look for common patterns
+  // First, try to split on common reply patterns
+  let cleaned = content;
   
+  // Pattern 1: Split on "On [date] at [time] [name] <email> wrote:"
+  const onWrotePattern = /\s*On\s+[^,]+,\s+[^<]+<[^>]+>\s+wrote:\s*$/gm;
+  const onWroteMatch = cleaned.search(onWrotePattern);
+  if (onWroteMatch !== -1) {
+    cleaned = cleaned.substring(0, onWroteMatch);
+    console.log('Found "On...wrote:" pattern at position:', onWroteMatch);
+  }
+  
+  // Pattern 2: Split on lines that contain email addresses and "wrote:"
+  const emailWrotePattern = /^.*@.*wrote:\s*$/gm;
+  const emailWroteMatch = cleaned.search(emailWrotePattern);
+  if (emailWroteMatch !== -1) {
+    cleaned = cleaned.substring(0, emailWroteMatch);
+    console.log('Found email "wrote:" pattern at position:', emailWroteMatch);
+  }
   // Split by lines and process line by line
   const lines = content.split('\n');
   const filteredLines = [];
@@ -296,12 +312,12 @@ function cleanEmailContent(content: string): string {
     const trimmedLine = line.trim();
     
     // Stop at quoted text markers
-    if (line.trim().startsWith('>')) {
+    if (trimmedLine.startsWith('>')) {
       break;
     }
     
     // Stop at "On [date]... wrote:" patterns
-    if (trimmedLine.startsWith('On ') && trimmedLine.includes('wrote:')) {
+    if (trimmedLine.startsWith('On ') && (trimmedLine.includes('wrote:') || line.includes('<') && line.includes('>'))) {
       break;
     }
     
@@ -316,7 +332,8 @@ function cleanEmailContent(content: string): string {
     filteredLines.push(line);
   }
   
-  let cleaned = filteredLines.join('\n');
+  // Use the filtered lines result
+  cleaned = filteredLines.join('\n').trim();
   
   // Remove common email signatures
   const signaturePatterns = [
