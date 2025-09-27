@@ -1,25 +1,12 @@
 import React from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, Mail, MessageSquare } from 'lucide-react';
+import { DollarSign } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function MessageBubble({ message, dealer }) {
   const isUser = message.direction === 'outbound';
 
-  const getChannelIcon = (channel) => {
-    switch (channel) {
-      case 'email': return <Mail className="w-3 h-3" />;
-      default: return <MessageSquare className="w-3 h-3" />;
-    }
-  };
-
-  const getChannelColor = (channel) => {
-    switch (channel) {
-      case 'email': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-slate-100 text-slate-800';
-    }
-  };
 
   return (
     <motion.div
@@ -54,12 +41,6 @@ export default function MessageBubble({ message, dealer }) {
               }`}>
                 {new Date(message.created_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
               </p>
-              {message.channel && (
-                <Badge className={`${getChannelColor(message.channel)} text-xs h-auto py-0.5 px-1.5 flex items-center gap-1`}>
-                  {getChannelIcon(message.channel)}
-                  <span className="capitalize">{message.channel}</span>
-                </Badge>
-              )}
             </div>
             {message.contains_offer && message.extracted_price && (
               <Badge className="bg-lime-500 text-lime-900 text-xs">
