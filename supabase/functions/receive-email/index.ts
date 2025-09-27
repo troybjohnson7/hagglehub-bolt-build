@@ -335,4 +335,4 @@ function cleanEmailContent(content: string): string {
   }
   
   return cleaned.trim();
-})
+}
