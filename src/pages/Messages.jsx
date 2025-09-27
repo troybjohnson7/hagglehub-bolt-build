@@ -137,25 +137,35 @@ export default function MessagesPage() {
       let createdMessage;
 
       if (direction === 'outbound' && channel === 'email') {
-        // Use the backend function to send email and save message
-        const response = await sendReply({
-          message_content: content,
-          dealer_id: selectedDealerId,
-          deal_id: currentDeal.id
-        });
-        
-        if (response.data.success) {
-          // Refresh messages to show the new outbound message
-          const messageData = await Message.filter({ dealer_id: selectedDealerId });
-          setMessages(messageData.sort((a, b) => new Date(a.created_date) - new Date(b.created_date)));
-          toast.success('Email sent successfully!');
-          // The createdMessage will not be directly available here as it's created on the backend
-          createdMessage = null; 
-        } else {
-          throw new Error('Failed to send email');
+        try {
+          // Use the backend function to send email and save message
+          const response = await sendReply({
+            message_content: content,
+            dealer_id: selectedDealerId,
+            deal_id: currentDeal.id
+          });
+          
+          if (response.data.success) {
+            // Refresh messages to show the new outbound message
+            const messageData = await Message.filter({ dealer_id: selectedDealerId });
+            setMessages(messageData.sort((a, b) => new Date(a.created_date) - new Date(b.created_date)));
+            toast.success('Email sent successfully!');
+            createdMessage = null; 
+          } else {
+            throw new Error('Failed to send email');
+          }
+        } catch (emailError) {
+          console.error('Email sending failed, falling back to app message:', emailError);
+          toast.error('Email sending failed, saved as app message instead');
+          // Fallback to creating an app message if email fails
+          channel = 'app';
         }
       } else {
-        // Handle app messages as before (no actual email sent)
+        // Handle app messages (no actual email sent)
+      }
+      
+      // Create app message if not email or if email failed
+      if (channel === 'app') {
         // Extract price if it's an inbound message
         let extractedPrice = null;
         if (direction === 'inbound') {
