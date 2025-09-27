@@ -52,8 +52,7 @@ export default function CompleteDealModal({
         status: outcome,
         final_price: outcome === 'deal_won' ? parseFloat(finalPrice) : null,
         negotiation_duration_days: durationDays,
-        shared_anonymously: shareData,
-        negotiation_notes: notes || deal.negotiation_notes
+        shared_anonymously: shareData
       });
 
       // If user opted to share data and deal was won, create market data

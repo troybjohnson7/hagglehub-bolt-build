@@ -43,8 +43,7 @@ export default function OnboardingPage() {
                 const fallbackDeal = await Deal.create({
                     dealer_id: fallbackDealer.id,
                     vehicle_id: null, // No vehicle for this special deal
-                    status: 'negotiating', // Keep it active
-                    notes: "This is a system-generated deal for uncategorized messages."
+                    status: 'negotiating' // Keep it active
                 });
 
                 // Step 3: Update the user record with the new fallback ID and mark onboarding as complete

@@ -41,7 +41,6 @@ export default function EditDealPage() {
     otd_price: '',
     status: '',
     priority: '',
-    negotiation_notes: '',
     quote_expires: ''
   });
 
@@ -78,7 +77,6 @@ export default function EditDealPage() {
           otd_price: currentDeal.otd_price || '',
           status: currentDeal.status || 'quote_requested',
           priority: currentDeal.priority || 'medium',
-          negotiation_notes: currentDeal.negotiation_notes || '',
           quote_expires: currentDeal.quote_expires ? currentDeal.quote_expires.split('T')[0] : ''
         });
       } catch (error) {
@@ -244,10 +242,12 @@ export default function EditDealPage() {
                 <h3 className="text-lg font-semibold text-slate-700 mb-3">Notes</h3>
                 <Textarea
                   placeholder="Negotiation notes, conditions, special terms..."
-                  value={dealData.negotiation_notes}
-                  onChange={(e) => handleInputChange('negotiation_notes', e.target.value)}
+                  value=""
+                  onChange={() => {}}
+                  disabled
                   className="min-h-[100px]"
                 />
+                <p className="text-xs text-slate-500 mt-1">Notes feature temporarily unavailable</p>
               </div>
 
               <div className="flex gap-3 pt-4">
