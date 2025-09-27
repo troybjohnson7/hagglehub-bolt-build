@@ -252,9 +252,24 @@ export default function MessagesPage() {
       Analyze everything and provide your top 2-3 strategic recommendations. Focus on building long-term leverage, uncovering dealer motivations, and moving the price closer to the user's target without creating animosity.
     `;
     
+    const tempMessage = {
+      id: `temp-${Date.now()}`,
+      content: newMessage,
+      direction: 'outbound',
+      created_date: new Date().toISOString(),
+      is_read: true,
+      contains_offer: false
+    };
+    
+    // Add message to UI immediately
+    setMessages(prev => [...prev, tempMessage]);
+    const messageToSend = newMessage;
+    setNewMessage('');
+    
     try {
-      const response = await InvokeLLM({
-        prompt,
+      await handleMessageSubmit(messageToSend);
+      // Refresh messages to get the real message from database
+      await fetchMessages();
         response_json_schema: {
           type: "object",
           properties: {
@@ -269,6 +284,9 @@ export default function MessagesPage() {
                 },
                 required: ["strategy_name", "explanation", "example_message"]
               }
+      // Remove temp message on error
+      setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
+      setNewMessage(messageToSend);
             }
           },
           required: ["suggestions"]

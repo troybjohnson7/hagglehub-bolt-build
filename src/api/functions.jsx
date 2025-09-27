@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Create Supabase client for functions
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://sodjajtwzboyeuqvztwk.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNvZGphanR3emJveWV1cXZ6dHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU0NzE4NzQsImV4cCI6MjA1MTA0Nzg3NH0.Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const testReceiver = async (data) => ({ success: true, message: 'Mock test receiver' });
@@ -52,10 +52,7 @@ export const sendReply = async ({ message_content, dealer_id, deal_id }) => {
     }
   }
   
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-  const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  if (!supabaseUrl || !supabaseKey) {
     console.error('Missing Supabase environment variables');
     throw new Error('Supabase configuration missing');
   }
@@ -67,10 +64,10 @@ export const sendReply = async ({ message_content, dealer_id, deal_id }) => {
       ? `deals-${userProfile.email_identifier}@hagglehub.app`
       : user.email;
     
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Authorization': `Bearer ${supabaseKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
