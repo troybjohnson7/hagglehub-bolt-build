@@ -18,75 +18,100 @@ interface EmailRequest {
 }
 
 serve(async (req) => {
+  console.log('=== EMAIL FUNCTION STARTED ===')
+  console.log('Timestamp:', new Date().toISOString())
+  console.log('Request method:', req.method)
+  console.log('Request URL:', req.url)
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('CORS preflight request - returning OK')
     return new Response('ok', { headers: corsHeaders })
   }
 
-  console.log('=== EMAIL FUNCTION CALLED ===')
-  console.log('Request method:', req.method)
-  console.log('Request headers:', Object.fromEntries(req.headers.entries()))
-
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    console.log('=== PARSING REQUEST BODY ===')
+    const requestBody = await req.json()
+    console.log('Request body received:', JSON.stringify(requestBody, null, 2))
 
-    const { to, subject, html, text, from, deal_id, dealer_id }: EmailRequest = await req.json()
+    const { to, subject, html, text, from, deal_id, dealer_id }: EmailRequest = requestBody
 
-    console.log('Email request data:', { to, subject, from, deal_id, dealer_id })
-    console.log('HTML content length:', html?.length)
+    console.log('=== VALIDATING REQUIRED FIELDS ===')
+    console.log('to:', to)
+    console.log('subject:', subject)
+    console.log('html length:', html?.length)
+    console.log('from:', from)
+    console.log('deal_id:', deal_id)
+    console.log('dealer_id:', dealer_id)
 
     // Validate required fields
     if (!to || !subject || !html) {
-      console.error('Missing required fields:', { to: !!to, subject: !!subject, html: !!html })
+      console.error('VALIDATION FAILED - Missing required fields')
       return new Response(
         JSON.stringify({ error: 'Missing required fields: to, subject, html' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Get Mailgun credentials from environment
-    const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN') || 'hagglehub.app'
+    console.log('=== CHECKING ENVIRONMENT VARIABLES ===')
+    const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN')
     const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY')
     
-    console.log('Mailgun config:', { 
-      domain: mailgunDomain ? 'SET' : 'MISSING',
-      apiKey: mailgunApiKey ? 'SET' : 'MISSING'
-    })
+    console.log('MAILGUN_DOMAIN:', mailgunDomain ? `SET (${mailgunDomain})` : 'NOT SET')
+    console.log('MAILGUN_API_KEY:', mailgunApiKey ? `SET (length: ${mailgunApiKey.length})` : 'NOT SET')
 
     if (!mailgunApiKey) {
-      console.error('MAILGUN_API_KEY environment variable is not set')
+      console.error('MAILGUN_API_KEY is missing')
       return new Response(
-        JSON.stringify({ error: 'Mailgun not configured - missing API key' }),
+        JSON.stringify({ error: 'Mailgun API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Get current user from auth header
-    const authHeader = req.headers.get('authorization')
-    let currentUserId = null
+    console.log('=== CREATING SUPABASE CLIENT ===')
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     
+    console.log('SUPABASE_URL:', supabaseUrl ? 'SET' : 'NOT SET')
+    console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceKey ? 'SET' : 'NOT SET')
+
+    const supabase = createClient(supabaseUrl ?? '', supabaseServiceKey ?? '')
+
+    console.log('=== AUTHENTICATING USER ===')
+    const authHeader = req.headers.get('authorization')
+    console.log('Auth header present:', !!authHeader)
+    
+    let currentUserId = null
     if (authHeader) {
       try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
-        if (user && !authError) {
+        const token = authHeader.replace('Bearer ', '')
+        console.log('Extracted token length:', token.length)
+        
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+        if (authError) {
+          console.error('Auth error:', authError)
+        } else if (user) {
           currentUserId = user.id
           console.log('Authenticated user ID:', currentUserId)
         } else {
-          console.log('Auth error:', authError)
+          console.log('No user returned from auth')
         }
       } catch (authErr) {
-        console.log('Failed to get user from token:', authErr)
+        console.error('Exception during auth:', authErr)
       }
+    } else {
+      console.log('No authorization header provided')
     }
 
-    console.log('Preparing to send via Mailgun...')
+    console.log('=== PREPARING MAILGUN REQUEST ===')
+    const fromEmail = from || `HaggleHub <noreply@${mailgunDomain}>`
+    console.log('From email:', fromEmail)
+    console.log('To email:', to)
+    console.log('Subject:', subject)
 
     // Prepare email data for Mailgun
     const formData = new FormData()
-    formData.append('from', from || `HaggleHub <noreply@${mailgunDomain}>`)
+    formData.append('from', fromEmail)
     formData.append('to', to)
     formData.append('subject', subject)
     formData.append('html', html)
@@ -97,88 +122,127 @@ serve(async (req) => {
     if (deal_id) formData.append('o:tag', `deal-${deal_id}`)
     if (dealer_id) formData.append('o:tag', `dealer-${dealer_id}`)
 
-    console.log('Sending to Mailgun API...')
+    console.log('FormData prepared with tags')
 
-    // Send email via Mailgun
-    const mailgunResponse = await fetch(
-      `https://api.mailgun.net/v3/${mailgunDomain}/messages`,
-      {
+    console.log('=== CALLING MAILGUN API ===')
+    const mailgunUrl = `https://api.mailgun.net/v3/${mailgunDomain}/messages`
+    console.log('Mailgun URL:', mailgunUrl)
+    
+    const authString = `api:${mailgunApiKey}`
+    const encodedAuth = btoa(authString)
+    console.log('Auth string prepared (length):', authString.length)
+
+    try {
+      const mailgunResponse = await fetch(mailgunUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Basic ${btoa(`api:${mailgunApiKey}`)}`
+          'Authorization': `Basic ${encodedAuth}`
         },
         body: formData
+      })
+
+      console.log('Mailgun response status:', mailgunResponse.status)
+      console.log('Mailgun response headers:', Object.fromEntries(mailgunResponse.headers.entries()))
+
+      const mailgunResult = await mailgunResponse.text()
+      console.log('Mailgun response body:', mailgunResult)
+
+      let parsedResult
+      try {
+        parsedResult = JSON.parse(mailgunResult)
+        console.log('Parsed Mailgun result:', parsedResult)
+      } catch (parseError) {
+        console.error('Failed to parse Mailgun response as JSON:', parseError)
+        console.log('Raw response:', mailgunResult)
+        throw new Error(`Mailgun returned non-JSON response: ${mailgunResult}`)
       }
-    )
 
-    const mailgunResult = await mailgunResponse.json()
+      if (!mailgunResponse.ok) {
+        console.error('Mailgun API error:', parsedResult)
+        throw new Error(`Mailgun API error: ${JSON.stringify(parsedResult)}`)
+      }
 
-    console.log('Mailgun response status:', mailgunResponse.status)
-    console.log('Mailgun response:', mailgunResult)
-    
-    if (!mailgunResponse.ok) {
-      console.error('Mailgun error:', mailgunResult)
+      console.log('=== EMAIL SENT SUCCESSFULLY ===')
+      console.log('Mailgun message ID:', parsedResult.id)
+
+    } catch (mailgunError) {
+      console.error('=== MAILGUN ERROR ===')
+      console.error('Error details:', mailgunError)
       return new Response(
-        JSON.stringify({ error: 'Failed to send email', details: mailgunResult }),
+        JSON.stringify({ 
+          error: 'Failed to send email via Mailgun', 
+          details: mailgunError.message 
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log('Email sent successfully via Mailgun!')
-    
-    // Log the sent message to database
+    console.log('=== LOGGING MESSAGE TO DATABASE ===')
     if (deal_id && dealer_id && currentUserId) {
-      console.log('Logging sent message to database...')
+      console.log('All required data present for database logging')
       
+      const messageData = {
+        deal_id,
+        dealer_id,
+        content: text || html.replace(/<[^>]*>/g, ''),
+        direction: 'outbound',
+        channel: 'email',
+        is_read: true,
+        mailgun_id: parsedResult.id,
+        created_by: currentUserId
+      }
+      
+      console.log('Message data to insert:', messageData)
+
       const { data: insertedMessage, error: dbError } = await supabase
         .from('messages')
-        .insert({
-          deal_id,
-          dealer_id,
-          content: text || html.replace(/<[^>]*>/g, ''),
-          direction: 'outbound',
-          channel: 'email',
-          is_read: true,
-          mailgun_id: mailgunResult.id,
-          created_by: currentUserId
-        })
+        .insert(messageData)
         .select()
         .single()
 
       if (dbError) {
-        console.error('Database error:', dbError)
+        console.error('=== DATABASE ERROR ===')
+        console.error('Database error details:', dbError)
         return new Response(
-          JSON.stringify({ error: 'Failed to log message to database', details: dbError }),
+          JSON.stringify({ 
+            error: 'Email sent but failed to log to database', 
+            details: dbError.message 
+          }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
-      } else {
-        console.log('Message logged to database successfully:', insertedMessage)
       }
+
+      console.log('=== MESSAGE LOGGED SUCCESSFULLY ===')
+      console.log('Inserted message:', insertedMessage)
     } else {
-      console.error('Missing required data for database logging:', { 
-        deal_id: !!deal_id, 
-        dealer_id: !!dealer_id, 
-        currentUserId: !!currentUserId 
-      })
-      return new Response(
-        JSON.stringify({ error: 'Missing required data for message logging' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      console.error('=== MISSING DATA FOR DATABASE LOGGING ===')
+      console.error('deal_id:', deal_id)
+      console.error('dealer_id:', dealer_id) 
+      console.error('currentUserId:', currentUserId)
     }
 
+    console.log('=== FUNCTION COMPLETED SUCCESSFULLY ===')
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message_id: mailgunResult.id,
-        message: 'Email sent successfully' 
+        message_id: parsedResult.id,
+        message: 'Email sent and logged successfully' 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
-    console.error('Send email error:', error)
+    console.error('=== FUNCTION ERROR ===')
+    console.error('Error name:', error.name)
+    console.error('Error message:', error.message)
+    console.error('Error stack:', error.stack)
+    
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      JSON.stringify({ 
+        error: 'Internal server error', 
+        details: error.message,
+        stack: error.stack 
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
