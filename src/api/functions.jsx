@@ -1,3 +1,29 @@
+// Email service functions for HaggleHub
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export async function sendReply({ message_content, dealer_id, deal_id }) {
+  try {
+    console.log('Calling Edge Function with:', { message_content, dealer_id, deal_id });
+    
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        subject: 'Test from HaggleHub',
+        to: 'troy.b.johnson@gmail.com', // Your test email
+        html: `<p>${message_content}</p>`,
+        text: message_content,
+        from: 'HaggleHub <noreply@hagglehub.app>',
+        deal_id,
+        dealer_id
+      })
+    });
+
     console.log('Edge Function response status:', response.status);
     
     if (!response.ok) {
@@ -12,21 +38,8 @@
     return {
       data: result
     };
-        subject: 'Test from HaggleHub',
-        to: 'troy.b.johnson@gmail.com', // Your test email
-        html: `<p>${message_content}</p>`,
-      body: JSON.stringify({
-        text: message_content,
-      },
-        from: 'HaggleHub <noreply@hagglehub.app>',
-        'Content-Type': 'application/json',
-        deal_id,
-        'Authorization': `Bearer ${supabaseKey}`,
-        dealer_id
-      headers: {
-      })
-      method: 'POST',
-    });
-    const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
-
-    // Actually call the Supabase Edge Function
+  } catch (error) {
+    console.error('sendReply error:', error);
+    throw error;
+  }
+}
