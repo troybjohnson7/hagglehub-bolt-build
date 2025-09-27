@@ -200,13 +200,19 @@ Deno.serve(async (req: Request) => {
     console.log('Is fallback deal:', dealId === user.fallback_deal_id)
 
     console.log('=== CREATING MESSAGE RECORD ===')
+    // Clean the email content to remove quoted replies and signatures
+    const cleanedContent = cleanEmailContent(bodyPlain)
+    console.log('Original content length:', bodyPlain.length)
+    console.log('Cleaned content length:', cleanedContent.length)
+    console.log('Cleaned content:', cleanedContent)
+    
     // Create the message record
     const { data: createdMessage, error: messageError } = await supabase
       .from('messages')
       .insert({
         deal_id: dealId,
         dealer_id: dealer.id,
-        content: bodyPlain,
+        content: cleanedContent,
         direction: 'inbound',
         channel: 'email',
         is_read: false,
@@ -272,4 +278,61 @@ Deno.serve(async (req: Request) => {
       headers: corsHeaders
     })
   }
+})
+
+function cleanEmailContent(content: string): string {
+  if (!content) return content;
+  
+  // Split into lines for processing
+  const lines = content.split('\n');
+  const cleanedLines = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Stop at common reply indicators
+    if (
+      line.startsWith('On ') && (line.includes(' wrote:') || line.includes(' said:')) ||
+      line.startsWith('From:') ||
+      line.startsWith('Sent:') ||
+      line.startsWith('To:') ||
+      line.startsWith('Subject:') ||
+      line.startsWith('-----Original Message-----') ||
+      line.startsWith('________________________________') ||
+      line.match(/^>+\s*/) || // Quoted text starting with >
+      line.includes('gmail.com wrote:') ||
+      line.includes('yahoo.com wrote:') ||
+      line.includes('outlook.com wrote:') ||
+      line.includes('@') && line.includes('wrote:')
+    ) {
+      break;
+    }
+    
+    // Skip empty lines at the start
+    if (cleanedLines.length === 0 && line === '') {
+      continue;
+    }
+    
+    cleanedLines.push(lines[i]); // Keep original line with whitespace
+  }
+  
+  // Join back and trim
+  let cleaned = cleanedLines.join('\n').trim();
+  
+  // Remove common email signatures
+  const signaturePatterns = [
+    /\n\n--\s*\n[\s\S]*$/,  // Standard signature delimiter
+    /\n\nSent from my iPhone[\s\S]*$/i,
+    /\n\nSent from my Android[\s\S]*$/i,
+    /\n\nGet Outlook for iOS[\s\S]*$/i,
+    /\n\nThanks,?\s*\n[\s\S]*$/i,
+    /\n\nBest regards?,?\s*\n[\s\S]*$/i,
+    /\n\nSincerely,?\s*\n[\s\S]*$/i
+  ];
+  
+  for (const pattern of signaturePatterns) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+  
+  return cleaned.trim();
 })
