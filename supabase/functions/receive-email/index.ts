@@ -287,20 +287,21 @@ function cleanEmailContent(content: string): string {
   console.log('Original content:', content);
   
   // Remove quoted reply sections - look for common patterns
-  let cleaned = content;
   
   // Split by lines and process line by line
-  const lines = cleaned.split('\n');
-  const filteredLines = [];
-  
-  for (const line of lines) {
     const trimmedLine = line.trim();
     
     // Stop at quoted text markers
     if (line.trim().startsWith('>')) {
-      break;
     }
     
+    // Stop at "On [date]... wrote:" patterns
+    }
+    
+    // Stop at email headers
+    if (trimmedLine.startsWith('From:') || 
+        trimmedLine.startsWith('Sent:') || 
+        trimmedLine.startsWith('To:') || 
     // Stop at "On [date]... wrote:" patterns
     if (trimmedLine.startsWith('On ') && trimmedLine.includes('wrote:')) {
       break;
@@ -315,10 +316,6 @@ function cleanEmailContent(content: string): string {
     }
     
     filteredLines.push(line);
-  }
-  
-  cleaned = filteredLines.join('\n');
-  
   // Remove common email signatures
   const signaturePatterns = [
     /\n\n--\s*\n[\s\S]*$/,  // Standard signature delimiter
@@ -333,6 +330,8 @@ function cleanEmailContent(content: string): string {
   for (const pattern of signaturePatterns) {
     cleaned = cleaned.replace(pattern, '');
   }
+  
+  cleaned = filteredLines.join('\n');
   
   const finalCleaned = cleaned.trim();
   console.log('Cleaned content:', finalCleaned);
