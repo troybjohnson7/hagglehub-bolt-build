@@ -191,7 +191,7 @@ export default function MessagesPage() {
       toast.error('Failed to send message');
       setIsSending(false);
     }
-  }
+  };
 
   const handleSendMessage = async () => {
     await handleMessageSubmit(newMessage, 'outbound', 'email'); // Changed to 'email' so it actually sends
@@ -201,7 +201,7 @@ export default function MessagesPage() {
   const handleLogMessage = async (logContent) => {
     await handleMessageSubmit(logContent, 'inbound');
     setIsLogMessageOpen(false);
-  }
+  };
 
   const handleTemplateSelect = (template) => {
     setNewMessage(template);
@@ -267,9 +267,13 @@ export default function MessagesPage() {
     setNewMessage('');
     
     try {
-      await handleMessageSubmit(messageToSend);
+      await handleMessageSubmit(messageToSend, 'outbound', 'app');
       // Refresh messages to get the real message from database
-      await fetchMessages();
+      const messageData = await Message.filter({ dealer_id: selectedDealerId });
+      setMessages(messageData.sort((a, b) => new Date(a.created_date) - new Date(b.created_date)));
+      
+      const response = await InvokeLLM({
+        prompt,
         response_json_schema: {
           type: "object",
           properties: {
@@ -284,9 +288,6 @@ export default function MessagesPage() {
                 },
                 required: ["strategy_name", "explanation", "example_message"]
               }
-      // Remove temp message on error
-      setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
-      setNewMessage(messageToSend);
             }
           },
           required: ["suggestions"]
@@ -297,6 +298,9 @@ export default function MessagesPage() {
     } catch(e) {
       console.error(e);
       toast.error('Failed to generate AI suggestions.');
+      // Remove temp message on error
+      setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
+      setNewMessage(messageToSend);
     } finally {
       setIsSuggesting(false);
     }
@@ -498,7 +502,7 @@ function LogMessageForm({ onSubmit }) {
     e.preventDefault();
     onSubmit(content);
     setContent('');
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -513,5 +517,5 @@ function LogMessageForm({ onSubmit }) {
         Log Message
       </Button>
     </form>
-  )
+  );
 }
