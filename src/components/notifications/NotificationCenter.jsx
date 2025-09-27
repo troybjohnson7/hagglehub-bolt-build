@@ -176,8 +176,8 @@ export default function NotificationCenter() {
     }
 
     fetchNotifications();
-    // Check for notifications more frequently to update when messages are read
-    const interval = setInterval(fetchNotifications, 30000); // 30 seconds
+    // Check for notifications frequently to match dashboard speed
+    const interval = setInterval(fetchNotifications, 5000); // 5 seconds - much faster
     
     // Listen for messages being read to immediately update notifications
     const handleMessagesRead = () => {
