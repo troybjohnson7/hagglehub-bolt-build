@@ -53,6 +53,11 @@ export const sendReply = async ({ message_content, dealer_id, deal_id }) => {
   }
   
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://sodjajtwzboyeuqvztwk.supabase.co';
+  
+  // Get session for auth
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    return {
       data: {
         success: true,
         message: 'Mock email sent (Supabase config missing)',
@@ -124,5 +129,5 @@ export const sendReply = async ({ message_content, dealer_id, deal_id }) => {
     console.error('sendReply error:', error);
     throw error;
   }
-}
+};
 export const emailHandler = async (data) => ({ success: true, message: 'Mock email handled' });
