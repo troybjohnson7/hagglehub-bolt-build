@@ -94,10 +94,12 @@ export default function MessagesPage() {
             console.log(`Marking ${unreadMessages.length} messages as read for dealer ${selectedDealerId}`);
             await Promise.all(unreadMessages.map(m => Message.update(m.id, { is_read: true })));
             
-            // Trigger a storage event to notify other components (like notifications)
-            window.dispatchEvent(new CustomEvent('messagesRead', { 
+            // Trigger a custom event to notify other components (like notifications)
+            const event = new CustomEvent('messagesRead', { 
               detail: { dealerId: selectedDealerId, count: unreadMessages.length }
-            }));
+            });
+            window.dispatchEvent(event);
+            console.log('Dispatched messagesRead event for dealer:', selectedDealerId);
           }
 
         } catch (error) {

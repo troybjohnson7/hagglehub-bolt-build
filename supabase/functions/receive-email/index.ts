@@ -289,36 +289,35 @@ function cleanEmailContent(content: string): string {
   // Remove quoted reply sections - look for common patterns
   let cleaned = content;
   
-  // Pattern 1: "On [date] at [time] [name] <email> wrote:"
-  cleaned = cleaned.replace(/\s*On\s+[^<>]*<[^>]+>\s+wrote:\s*[\s\S]*$/i, '');
-  
-  // Pattern 2: "On [date] [name] wrote:"
-  cleaned = cleaned.replace(/\s*On\s+[^:]+wrote:\s*[\s\S]*$/i, '');
-  
-  // Pattern 3: Lines starting with > (quoted text)
+  // Split by lines and process line by line
   const lines = cleaned.split('\n');
   const filteredLines = [];
-  let foundQuotedSection = false;
   
   for (const line of lines) {
-    // If we hit a line starting with >, stop processing
+    const trimmedLine = line.trim();
+    
+    // Stop at quoted text markers
     if (line.trim().startsWith('>')) {
-      foundQuotedSection = true;
       break;
     }
     
-    // If we hit "wrote:" pattern, stop processing
-    if (line.includes('wrote:') && (line.includes('@') || line.includes('On '))) {
-      foundQuotedSection = true;
+    // Stop at "On [date]... wrote:" patterns
+    if (trimmedLine.startsWith('On ') && trimmedLine.includes('wrote:')) {
+      break;
+    }
+    
+    // Stop at email headers
+    if (trimmedLine.startsWith('From:') || 
+        trimmedLine.startsWith('Sent:') || 
+        trimmedLine.startsWith('To:') || 
+        trimmedLine.startsWith('Subject:')) {
       break;
     }
     
     filteredLines.push(line);
   }
   
-  if (foundQuotedSection) {
-    cleaned = filteredLines.join('\n');
-  }
+  cleaned = filteredLines.join('\n');
   
   // Remove common email signatures
   const signaturePatterns = [

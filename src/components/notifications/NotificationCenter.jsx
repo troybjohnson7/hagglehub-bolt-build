@@ -54,6 +54,9 @@ export default function NotificationCenter() {
 
         // Unread messages (excluding fallback deal)
         const regularUnreadMessages = messages.filter(m => !m.is_read && m.deal_id !== user?.fallback_deal_id);
+        console.log('Found unread messages:', regularUnreadMessages.length);
+        console.log('User fallback deal ID:', user?.fallback_deal_id);
+        
         if (regularUnreadMessages.length > 0) {
           const dealerIdsWithUnread = [...new Set(regularUnreadMessages.map(m => m.dealer_id))];
           const dealerNames = dealerIdsWithUnread.map(id => {
@@ -64,6 +67,7 @@ export default function NotificationCenter() {
           // Always link to the specific dealer conversation for unread messages
           const primaryDealerId = dealerIdsWithUnread[0];
           const link = createPageUrl(`Messages?dealer_id=${primaryDealerId}`);
+          console.log('Creating notification with link:', link);
 
           generatedNotifications.push({
             id: 'unread_messages',
@@ -159,6 +163,7 @@ export default function NotificationCenter() {
         });
 
         setNotifications(generatedNotifications.slice(0, 10));
+        console.log('Generated notifications:', generatedNotifications.length);
       } catch (error) {
         console.error('Failed to fetch notifications:', error);
         
@@ -177,7 +182,7 @@ export default function NotificationCenter() {
     // Listen for messages being read to immediately update notifications
     const handleMessagesRead = () => {
       console.log('Messages read event detected, refreshing notifications');
-      setTimeout(fetchNotifications, 1000); // Small delay to ensure DB is updated
+      setTimeout(fetchNotifications, 500); // Small delay to ensure DB is updated
     };
     
     window.addEventListener('messagesRead', handleMessagesRead);
