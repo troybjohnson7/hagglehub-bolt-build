@@ -28,6 +28,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from 'sonner';
 
 import MessageBubble from '../components/messages/MessageBubble';
@@ -36,6 +43,7 @@ import MessageTemplates from '../components/messages/MessageTemplates';
 import PriceExtractNotification from '../components/messages/PriceExtractNotification';
 import { sendReply } from "@/api/functions"; // Fixed import extension
 import { cleanupDuplicateDealers } from '@/utils/cleanup';
+import { User } from '@/api/entities';
 
 export default function MessagesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -54,6 +62,11 @@ export default function MessagesPage() {
   
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [isSuggestionModalOpen, setIsSuggestionModalOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const [vehicles, setVehicles] = useState([]);
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [assignToDealerId, setAssignToDealerId] = useState('');
 
   const messagesEndRef = useRef(null);
 
@@ -73,10 +86,16 @@ export default function MessagesPage() {
         const [dealerData] = await Promise.all([Dealer.list()]);
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        const [dealData] = await Promise.all([Deal.list()]);
+        const [dealData, userData, vehicleData] = await Promise.all([
+          Deal.list(),
+          User.me(),
+          Vehicle.list()
+        ]);
         
         setDealers(dealerData);
         setDeals(dealData);
+        setUser(userData);
+        setVehicles(vehicleData);
       } catch (error) {
         console.error("Failed to fetch initial data:", error);
         toast.error("Failed to load initial data. Please try again.");
@@ -334,6 +353,33 @@ export default function MessagesPage() {
     }
   };
 
+  const handleAssignMessage = async () => {
+    if (!selectedMessage || !assignToDealerId) return;
+    
+    try {
+      await Message.update(selectedMessage.id, { dealer_id: assignToDealerId });
+      
+      // Refresh messages for current dealer
+      if (selectedDealerId) {
+        const messageData = await Message.filter({ dealer_id: selectedDealerId });
+        setMessages(messageData.sort((a, b) => new Date(a.created_date) - new Date(b.created_date)));
+      }
+      
+      toast.success('Message assigned successfully!');
+      setShowAssignDialog(false);
+      setSelectedMessage(null);
+      setAssignToDealerId('');
+    } catch (error) {
+      console.error('Failed to assign message:', error);
+      toast.error('Failed to assign message');
+    }
+  };
+
+  const isGeneralInbox = selectedDealer?.name === 'General Inbox';
+  const nonGeneralDealers = dealers.filter(d => d.name !== 'General Inbox');
+  const currentDealForDealer = deals.find(d => d.dealer_id === selectedDealerId);
+  const vehicleForDeal = currentDealForDealer ? vehicles.find(v => v.id === currentDealForDealer.vehicle_id) : null;
+
   const selectedDealer = dealers.find(d => d.id === selectedDealerId);
   const currentDeal = deals.find(d => d.dealer_id === selectedDealerId);
 
@@ -370,18 +416,34 @@ export default function MessagesPage() {
       />
 
       <div className="bg-white border-b border-slate-200 p-4 flex items-center gap-4">
-        <select
-          value={selectedDealerId || ''}
-          onChange={(e) => setSelectedDealerId(e.target.value)}
-          className="flex-1 p-3 border border-slate-200 rounded-xl bg-white text-slate-900 font-medium focus:ring-lime-500 focus:border-lime-500"
-        >
-          <option value="">Select a dealer...</option>
-          {dealers.map(dealer => (
-            <option key={dealer.id} value={dealer.id}>
-              {dealer.name}
-            </option>
-          ))}
-        </select>
+        <div className="flex-1">
+          <select
+            value={selectedDealerId || ''}
+            onChange={(e) => setSelectedDealerId(e.target.value)}
+            className="w-full p-3 border border-slate-200 rounded-xl bg-white text-slate-900 font-medium focus:ring-lime-500 focus:border-lime-500"
+          >
+            <option value="">Select a dealer...</option>
+            {dealers.map(dealer => (
+              <option key={dealer.id} value={dealer.id}>
+                {dealer.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        {/* View Deal Button - only show if not General Inbox and has a deal */}
+        {selectedDealer && !isGeneralInbox && currentDealForDealer && (
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => window.location.href = createPageUrl(`DealDetails?deal_id=${currentDealForDealer.id}`)}
+            className="shrink-0 border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white"
+          >
+            <MessageCircle className="w-4 h-4 mr-2" />
+            View Deal
+          </Button>
+        )}
+        
         <Dialog open={isLogMessageOpen} onOpenChange={setIsLogMessageOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" size="icon" className="shrink-0" disabled={!selectedDealerId}>
@@ -407,11 +469,32 @@ export default function MessagesPage() {
             ) : messages.length === 0 ? (
               <div className="text-center text-slate-500 py-10">No messages yet. Send one to start!</div>
             ) : (
-              <AnimatePresence>
-                {messages.map((message, index) => (
-                  <MessageBubble key={message.id} message={message} dealer={selectedDealer} />
-                ))}
-              </AnimatePresence>
+              <div className="space-y-4">
+                <AnimatePresence>
+                  {messages.map((message, index) => (
+                    <div key={message.id} className="relative group">
+                      <MessageBubble message={message} dealer={selectedDealer} />
+                      
+                      {/* Show assign button for General Inbox messages */}
+                      {isGeneralInbox && message.direction === 'inbound' && (
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs bg-white border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white"
+                            onClick={() => {
+                              setSelectedMessage(message);
+                              setShowAssignDialog(true);
+                            }}
+                          >
+                            Assign
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </AnimatePresence>
+              </div>
             )}
             <div ref={messagesEndRef} />
           </div>
@@ -519,6 +602,56 @@ export default function MessagesPage() {
           <p className="text-slate-500">Select a dealer to view messages.</p>
         </div>
       )}
+      
+      {/* Message Assignment Dialog */}
+      <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Message to Dealer</DialogTitle>
+            <DialogDescription>
+              Move this message from General Inbox to a specific dealer conversation.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedMessage && (
+            <div className="py-4">
+              <div className="bg-slate-50 p-3 rounded-lg mb-4">
+                <p className="text-sm text-slate-600 font-medium">Message to assign:</p>
+                <p className="text-sm text-slate-800 mt-1">"{selectedMessage.content}"</p>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Assign to dealer:</label>
+                <Select value={assignToDealerId} onValueChange={setAssignToDealerId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a dealer..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {nonGeneralDealers.map(dealer => (
+                      <SelectItem key={dealer.id} value={dealer.id}>
+                        {dealer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAssignDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAssignMessage}
+              disabled={!assignToDealerId}
+              className="bg-brand-teal hover:bg-brand-teal-dark"
+            >
+              Assign Message
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }

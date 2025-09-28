@@ -10,7 +10,8 @@ export async function cleanupDuplicateDealers() {
     const systemDealers = dealers.filter(d => 
       d.name?.includes('Uncategorized') || 
       d.name?.includes('General Inbox') ||
-      d.name?.match(/\([a-z0-9]{7}\)/) // Match the pattern (9qb207z)
+      d.name?.match(/\([a-z0-9]{7}\)/) || // Match the pattern (9qb207z)
+      d.name?.match(/Uncategorized \([a-z0-9]{7}\)/) // Match "Uncategorized (abc123d)"
     );
     
     console.log('Found system dealers:', systemDealers.length);
@@ -22,6 +23,16 @@ export async function cleanupDuplicateDealers() {
     
     // Keep the first one, delete the rest
     const [keepDealer, ...deleteDealers] = systemDealers;
+    
+    // Rename the kept dealer to "General Inbox" if it's not already
+    if (keepDealer.name !== 'General Inbox') {
+      console.log('Renaming kept dealer to "General Inbox"');
+      await Dealer.update(keepDealer.id, { 
+        name: 'General Inbox',
+        notes: 'System inbox for messages that don\'t match any specific deals. You can organize these messages later.'
+      });
+    }
+    
     console.log('Keeping dealer:', keepDealer.name, keepDealer.id);
     console.log('Deleting dealers:', deleteDealers.map(d => `${d.name} (${d.id})`));
     
