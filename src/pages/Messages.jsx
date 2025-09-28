@@ -386,7 +386,7 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-slate-50">
+    <div className="fixed inset-0 top-16 flex flex-col bg-slate-50">
       <PriceExtractNotification 
         show={showPriceNotification} 
         price={extractedPrice}
@@ -397,8 +397,8 @@ export default function MessagesPage() {
         }}
       />
 
-      {/* FIXED HEADER - Dealer selector and actions */}
-      <div className="bg-white border-b border-slate-200 p-4 flex items-center gap-4 shadow-sm flex-shrink-0">
+      {/* Fixed Header - Dealer selector and actions */}
+      <div className="bg-white border-b border-slate-200 p-4 flex items-center gap-4 shadow-sm z-10">
         <div className="flex-1 max-w-xs">
           <select
             value={selectedDealerId || ''}
@@ -471,8 +471,8 @@ export default function MessagesPage() {
       
       {selectedDealer ? (
         <>
-          {/* SCROLLABLE MESSAGES AREA - This is the only part that scrolls */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+          {/* Scrollable Messages Area - Only this scrolls */}
+          <div className="flex-1 overflow-y-auto p-4 min-h-0">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
@@ -480,12 +480,10 @@ export default function MessagesPage() {
             ) : messages.length === 0 ? (
               <div className="text-center text-slate-500 py-10">No messages yet. Send one to start!</div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-4 pb-4">
                 <AnimatePresence>
                   {messages.map((message) => (
-                    <div key={message.id}>
-                      <MessageBubble message={message} dealer={selectedDealer} />
-                    </div>
+                    <MessageBubble key={message.id} message={message} dealer={selectedDealer} />
                   ))}
                 </AnimatePresence>
               </div>
@@ -493,9 +491,9 @@ export default function MessagesPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Actions - only show if not General Inbox */}
+          {/* Fixed Quick Actions - only show if not General Inbox */}
           {currentDeal && !isGeneralInbox && (
-            <div className="flex-shrink-0">
+            <div className="bg-white border-t border-slate-200">
               <QuickActions 
                 deal={currentDeal} 
                 onAction={(action, data) => {
@@ -507,8 +505,8 @@ export default function MessagesPage() {
             </div>
           )}
 
-          {/* FIXED MESSAGE INPUT AREA */}
-          <div className="bg-white border-t border-slate-200 p-4 flex-shrink-0">
+          {/* Fixed Message Input Area */}
+          <div className="bg-white border-t border-slate-200 p-4">
             <div className="flex gap-2 mb-2">
               <Dialog open={isSuggestionModalOpen} onOpenChange={setIsSuggestionModalOpen}>
                 <DialogTrigger asChild>
@@ -596,7 +594,7 @@ export default function MessagesPage() {
           </div>
         </>
       ) : (
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center bg-white">
           <p className="text-slate-500">Select a dealer to view messages.</p>
         </div>
       )}
