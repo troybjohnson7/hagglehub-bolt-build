@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Message } from '@/api/entities';
@@ -8,7 +7,7 @@ import { Vehicle } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Send, Sparkles, Loader2, MessageCircle, LogIn, Zap, DollarSign, CheckCircle2, Clock, MessageSquareReply } from 'lucide-react';
+import { Send, Sparkles, Loader2, MessageCircle, LogIn, MessageSquareReply } from 'lucide-react';
 import { InvokeLLM } from '@/api/integrations';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -36,17 +35,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from 'sonner';
+import { createPageUrl } from '@/utils';
 
 import MessageBubble from '../components/messages/MessageBubble';
 import QuickActions from '../components/messages/QuickActions';
 import MessageTemplates from '../components/messages/MessageTemplates';
 import PriceExtractNotification from '../components/messages/PriceExtractNotification';
-import { sendReply } from "@/api/functions"; // Fixed import extension
+import { sendReply } from "@/api/functions";
 import { cleanupDuplicateDealers } from '@/utils/cleanup';
 import { User } from '@/api/entities';
 
 export default function MessagesPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [messages, setMessages] = useState([]);
   const [dealers, setDealers] = useState([]);
   const [deals, setDeals] = useState([]);
@@ -241,7 +241,7 @@ export default function MessagesPage() {
   };
 
   const handleSendMessage = async () => {
-    await handleMessageSubmit(newMessage, 'outbound', 'email'); // Changed to 'email' so it actually sends
+    await handleMessageSubmit(newMessage, 'outbound', 'email');
     setNewMessage('');
   };
   
@@ -375,13 +375,11 @@ export default function MessagesPage() {
     }
   };
 
+  const selectedDealer = dealers.find(d => d.id === selectedDealerId);
+  const currentDeal = deals.find(d => d.dealer_id === selectedDealerId);
   const isGeneralInbox = selectedDealer?.name === 'General Inbox';
   const nonGeneralDealers = dealers.filter(d => d.name !== 'General Inbox');
   const currentDealForDealer = deals.find(d => d.dealer_id === selectedDealerId);
-  const vehicleForDeal = currentDealForDealer ? vehicles.find(v => v.id === currentDealForDealer.vehicle_id) : null;
-
-  const selectedDealer = dealers.find(d => d.id === selectedDealerId);
-  const currentDeal = deals.find(d => d.dealer_id === selectedDealerId);
 
   if (dealers.length === 0 && !isLoading) {
     return (
@@ -415,6 +413,7 @@ export default function MessagesPage() {
         }}
       />
 
+      {/* Header with dealer selector and action buttons */}
       <div className="bg-white border-b border-slate-200 p-4 flex items-center gap-4">
         <div className="flex-1">
           <select
@@ -461,6 +460,7 @@ export default function MessagesPage() {
 
       {selectedDealer ? (
         <>
+          {/* Messages area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
@@ -471,7 +471,7 @@ export default function MessagesPage() {
             ) : (
               <div className="space-y-4">
                 <AnimatePresence>
-                  {messages.map((message, index) => (
+                  {messages.map((message) => (
                     <div key={message.id} className="relative group">
                       <MessageBubble message={message} dealer={selectedDealer} />
                       
@@ -499,7 +499,8 @@ export default function MessagesPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {currentDeal && (
+          {/* Quick Actions - only show if not General Inbox */}
+          {currentDeal && !isGeneralInbox && (
             <QuickActions 
               deal={currentDeal} 
               onAction={(action, data) => {
@@ -510,6 +511,7 @@ export default function MessagesPage() {
             />
           )}
 
+          {/* Message input area */}
           <div className="bg-white border-t border-slate-200 p-4">
             <div className="flex gap-2 mb-2">
               <Dialog open={isSuggestionModalOpen} onOpenChange={setIsSuggestionModalOpen}>
