@@ -311,26 +311,7 @@ export default function MessagesPage() {
       Analyze everything and provide your top 2-3 strategic recommendations. Focus on building long-term leverage, uncovering dealer motivations, and moving the price closer to the user's target without creating animosity.
     `;
     
-    const tempMessage = {
-      id: `temp-${Date.now()}`,
-      content: newMessage,
-      direction: 'outbound',
-      created_date: new Date().toISOString(),
-      is_read: true,
-      contains_offer: false
-    };
-    
-    // Add message to UI immediately
-    setMessages(prev => [...prev, tempMessage]);
-    const messageToSend = newMessage;
-    setNewMessage('');
-    
     try {
-      await handleMessageSubmit(messageToSend, 'outbound', 'app');
-      // Refresh messages to get the real message from database
-      const messageData = await Message.filter({ dealer_id: selectedDealerId });
-      setMessages(messageData.sort((a, b) => new Date(a.created_date) - new Date(b.created_date)));
-      
       const response = await InvokeLLM({
         prompt,
         response_json_schema: {
@@ -357,9 +338,6 @@ export default function MessagesPage() {
     } catch(e) {
       console.error(e);
       toast.error('Failed to generate AI suggestions.');
-      // Remove temp message on error
-      setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
-      setNewMessage(messageToSend);
     } finally {
       setIsSuggesting(false);
     }
@@ -397,8 +375,8 @@ export default function MessagesPage() {
         }}
       />
 
-      {/* Fixed Header - Dealer selector and actions */}
-      <div className="bg-white border-b border-slate-200 p-4 flex items-center gap-4 shadow-sm z-10">
+      {/* FIXED Header - Dealer selector and actions */}
+      <div className="flex-shrink-0 bg-white border-b border-slate-200 p-4 flex items-center gap-4 shadow-sm z-10">
         <div className="flex-1 max-w-xs">
           <select
             value={selectedDealerId || ''}
@@ -471,7 +449,7 @@ export default function MessagesPage() {
       
       {selectedDealer ? (
         <>
-          {/* Scrollable Messages Area - Only this scrolls */}
+          {/* SCROLLABLE Messages Area - Only this scrolls */}
           <div className="flex-1 overflow-y-auto p-4 min-h-0">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
@@ -491,7 +469,7 @@ export default function MessagesPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Fixed Quick Actions - only show if not General Inbox */}
+          {/* FIXED Quick Actions - only show if not General Inbox */}
           {currentDeal && !isGeneralInbox && (
             <div className="flex-shrink-0 bg-white border-t border-slate-200">
               <QuickActions 
@@ -505,8 +483,9 @@ export default function MessagesPage() {
             </div>
           )}
 
-          {/* Fixed Message Input Area */}
+          {/* FIXED Message Input Area */}
           <div className="flex-shrink-0 bg-white border-t border-slate-200 p-4">
+            {/* AI Suggest and Templates buttons */}
             <div className="flex gap-2 mb-2">
               <Dialog open={isSuggestionModalOpen} onOpenChange={setIsSuggestionModalOpen}>
                 <DialogTrigger asChild>
@@ -571,6 +550,7 @@ export default function MessagesPage() {
               </Sheet>
             </div>
 
+            {/* Text input and Send button */}
             <div className="flex gap-2">
               <Textarea
                 placeholder="Type your reply..."
