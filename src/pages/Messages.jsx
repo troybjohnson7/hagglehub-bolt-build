@@ -414,12 +414,7 @@ export default function MessagesPage() {
   }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="h-screen bg-slate-50 flex flex-col overflow-hidden"
-    >
+    <div className="h-screen bg-slate-50 flex flex-col">
       <PriceExtractNotification 
         show={showPriceNotification} 
         price={extractedPrice}
@@ -430,13 +425,13 @@ export default function MessagesPage() {
         }}
       />
 
-      {/* Header with dealer selector and action buttons */}
-      <div className="bg-white border-b border-slate-200 p-4 flex items-center gap-4 flex-shrink-0 shadow-sm">
-        <div className="flex-1">
+      {/* Fixed Header with dealer selector and action buttons */}
+      <div className="bg-white border-b border-slate-200 p-4 flex items-center gap-4 shadow-sm">
+        <div className="flex-1 max-w-xs">
           <select
             value={selectedDealerId || ''}
             onChange={(e) => setSelectedDealerId(e.target.value)}
-            className="w-full max-w-xs p-3 border border-slate-200 rounded-xl bg-white text-slate-900 font-medium focus:ring-lime-500 focus:border-lime-500"
+            className="w-full p-3 border border-slate-200 rounded-xl bg-white text-slate-900 font-medium focus:ring-lime-500 focus:border-lime-500"
           >
             <option value="">Select a dealer...</option>
             {dealers.map(dealer => (
@@ -447,7 +442,7 @@ export default function MessagesPage() {
           </select>
         </div>
         
-        {/* Three dots menu with options */}
+        {/* Three dots menu */}
         {selectedDealer && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -456,16 +451,6 @@ export default function MessagesPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {/* View Deal option - only for non-General Inbox with active deal */}
-              {!isGeneralInbox && currentDealForDealer && (
-                <DropdownMenuItem 
-                  onClick={() => window.location.href = createPageUrl(`DealDetails?deal_id=${currentDealForDealer.id}`)}
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  View Deal
-                </DropdownMenuItem>
-              )}
-              
               {/* Create New Deal option */}
               <DropdownMenuItem 
                 onClick={() => window.location.href = createPageUrl('AddVehicle')}
@@ -481,6 +466,16 @@ export default function MessagesPage() {
                 >
                   <MessageSquareReply className="w-4 h-4 mr-2" />
                   Assign to Current Deal
+                </DropdownMenuItem>
+              )}
+              
+              {/* View Deal option - only for dealers with active deals */}
+              {!isGeneralInbox && currentDealForDealer && (
+                <DropdownMenuItem 
+                  onClick={() => window.location.href = createPageUrl(`DealDetails?deal_id=${currentDealForDealer.id}`)}
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  View Deal
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -502,60 +497,10 @@ export default function MessagesPage() {
         </Dialog>
       </div>
       
-      {/* Message Assignment Dialog */}
-      <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Assign Message to Dealer</DialogTitle>
-            <DialogDescription>
-              Move this message from General Inbox to a specific dealer conversation.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedMessage && (
-            <div className="py-4">
-              <div className="bg-slate-50 p-3 rounded-lg mb-4">
-                <p className="text-sm text-slate-600 font-medium">Message to assign:</p>
-                <p className="text-sm text-slate-800 mt-1">"{selectedMessage.content}"</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Assign to dealer:</label>
-                <Select value={assignToDealerId} onValueChange={setAssignToDealerId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a dealer..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {nonGeneralDealers.map(dealer => (
-                      <SelectItem key={dealer.id} value={dealer.id}>
-                        {dealer.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAssignDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleAssignMessage}
-              disabled={!assignToDealerId}
-              className="bg-brand-teal hover:bg-brand-teal-dark"
-            >
-              Assign Message
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {selectedDealer ? (
         <>
-          {/* Messages area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+          {/* Scrollable Messages area */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
@@ -588,8 +533,8 @@ export default function MessagesPage() {
             />
           )}
 
-          {/* Message input area */}
-          <div className="bg-white border-t border-slate-200 p-4 flex-shrink-0">
+          {/* Fixed Message input area */}
+          <div className="bg-white border-t border-slate-200 p-4">
             <div className="flex gap-2 mb-2">
               <Dialog open={isSuggestionModalOpen} onOpenChange={setIsSuggestionModalOpen}>
                 <DialogTrigger asChild>
@@ -677,60 +622,10 @@ export default function MessagesPage() {
           </div>
         </>
       ) : (
-        <div className="flex items-center justify-center h-full">
+        <div className="flex-1 flex items-center justify-center">
           <p className="text-slate-500">Select a dealer to view messages.</p>
         </div>
       )}
-      
-      {/* Message Assignment Dialog */}
-      <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Assign Message to Dealer</DialogTitle>
-            <DialogDescription>
-              Move this message from General Inbox to a specific dealer conversation.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedMessage && (
-            <div className="py-4">
-              <div className="bg-slate-50 p-3 rounded-lg mb-4">
-                <p className="text-sm text-slate-600 font-medium">Message to assign:</p>
-                <p className="text-sm text-slate-800 mt-1">"{selectedMessage.content}"</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Assign to dealer:</label>
-                <Select value={assignToDealerId} onValueChange={setAssignToDealerId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a dealer..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {nonGeneralDealers.map(dealer => (
-                      <SelectItem key={dealer.id} value={dealer.id}>
-                        {dealer.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAssignDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleAssignMessage}
-              disabled={!assignToDealerId}
-              className="bg-brand-teal hover:bg-brand-teal-dark"
-            >
-              Assign Message
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       
       {/* Message Assignment Dialog */}
       <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
@@ -868,7 +763,7 @@ export default function MessagesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </motion.div>
+    </div>
   );
 }
 
