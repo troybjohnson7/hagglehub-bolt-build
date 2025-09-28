@@ -36,7 +36,13 @@ import {
 } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { createPageUrl } from '@/utils';
-import { Plus } from 'lucide-react';
+import { Plus, MoreHorizontal } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import MessageBubble from '../components/messages/MessageBubble';
 import QuickActions from '../components/messages/QuickActions';
@@ -70,6 +76,8 @@ export default function MessagesPage() {
   const [assignToDealerId, setAssignToDealerId] = useState('');
   const [showDealOptions, setShowDealOptions] = useState(false);
   const [selectedMessageForDeal, setSelectedMessageForDeal] = useState(null);
+  const [showDealAssignDialog, setShowDealAssignDialog] = useState(false);
+  const [assignToDealId, setAssignToDealId] = useState('');
 
   const messagesEndRef = useRef(null);
 
@@ -423,12 +431,12 @@ export default function MessagesPage() {
       />
 
       {/* Header with dealer selector and action buttons */}
-      <div className="bg-white border-b border-slate-200 p-4 flex items-center gap-4">
+      <div className="bg-white border-b border-slate-200 p-4 flex items-center gap-4 sticky top-0 z-40 shadow-sm">
         <div className="flex-1">
           <select
             value={selectedDealerId || ''}
             onChange={(e) => setSelectedDealerId(e.target.value)}
-            className="w-full p-3 border border-slate-200 rounded-xl bg-white text-slate-900 font-medium focus:ring-lime-500 focus:border-lime-500"
+            className="w-full max-w-xs p-3 border border-slate-200 rounded-xl bg-white text-slate-900 font-medium focus:ring-lime-500 focus:border-lime-500"
           >
             <option value="">Select a dealer...</option>
             {dealers.map(dealer => (
@@ -439,56 +447,44 @@ export default function MessagesPage() {
           </select>
         </div>
         
-        {/* View Deal Button - only show if not General Inbox and has a deal */}
-        {selectedDealer && !isGeneralInbox && currentDealForDealer && (
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => window.location.href = createPageUrl(`DealDetails?deal_id=${currentDealForDealer.id}`)}
-            className="shrink-0 border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white"
-          >
-            <MessageCircle className="w-4 h-4 mr-2" />
-            View Deal
-          </Button>
-        )}
-        
-        {/* View Deal Button - only show if not General Inbox and has a deal */}
-        {selectedDealer && !isGeneralInbox && currentDealForDealer && (
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => window.location.href = createPageUrl(`DealDetails?deal_id=${currentDealForDealer.id}`)}
-            className="shrink-0 border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white"
-          >
-            <MessageCircle className="w-4 h-4 mr-2" />
-            View Deal
-          </Button>
-        )}
-        
-        {/* View Deal Button - only show if not General Inbox and has a deal */}
-        {selectedDealer && !isGeneralInbox && currentDealForDealer && (
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => window.location.href = createPageUrl(`DealDetails?deal_id=${currentDealForDealer.id}`)}
-            className="shrink-0 border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white flex items-center gap-2"
-          >
-            <MessageCircle className="w-4 h-4" />
-            View Deal
-          </Button>
-        )}
-        
-        {/* View Deal Button - only show if not General Inbox and has a deal */}
-        {selectedDealer && !isGeneralInbox && currentDealForDealer && (
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => window.location.href = createPageUrl(`DealDetails?deal_id=${currentDealForDealer.id}`)}
-            className="shrink-0 border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white flex items-center gap-2"
-          >
-            <MessageCircle className="w-4 h-4 mr-2" />
-            View Deal
-          </Button>
+        {/* Three dots menu with options */}
+        {selectedDealer && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="shrink-0">
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {/* View Deal option - only for non-General Inbox with active deal */}
+              {!isGeneralInbox && currentDealForDealer && (
+                <DropdownMenuItem 
+                  onClick={() => window.location.href = createPageUrl(`DealDetails?deal_id=${currentDealForDealer.id}`)}
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  View Deal
+                </DropdownMenuItem>
+              )}
+              
+              {/* Create New Deal option */}
+              <DropdownMenuItem 
+                onClick={() => window.location.href = createPageUrl('AddVehicle')}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create New Deal
+              </DropdownMenuItem>
+              
+              {/* Assign to Current Deal option - only if there are other deals */}
+              {deals.filter(d => d.dealer_id !== selectedDealerId).length > 0 && (
+                <DropdownMenuItem 
+                  onClick={() => setShowDealAssignDialog(true)}
+                >
+                  <MessageSquareReply className="w-4 h-4 mr-2" />
+                  Assign to Current Deal
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
         
         <Dialog open={isLogMessageOpen} onOpenChange={setIsLogMessageOpen}>
@@ -570,75 +566,8 @@ export default function MessagesPage() {
               <div className="space-y-4">
                 <AnimatePresence>
                   {messages.map((message) => (
-                    <div key={message.id} className="relative group">
+                    <div key={message.id}>
                       <MessageBubble message={message} dealer={selectedDealer} />
-                      
-                      {/* Show assign button for General Inbox messages */}
-                      {isGeneralInbox && message.direction === 'inbound' && (
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-xs bg-white border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white shadow-lg"
-                            onClick={() => {
-                              setSelectedMessage(message);
-                              setShowAssignDialog(true);
-                            }}
-                          >
-                            Assign
-                          </Button>
-                        </div>
-                      )}
-                      {/* Show assign button for General Inbox messages */}
-                      {isGeneralInbox && message.direction === 'inbound' && (
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-xs bg-white border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white shadow-md"
-                            onClick={() => {
-                              setSelectedMessage(message);
-                              setShowAssignDialog(true);
-                            }}
-                          >
-                            Assign
-                          </Button>
-                        </div>
-                      )}
-                      
-                      {/* Show assign button for General Inbox messages */}
-                      {isGeneralInbox && message.direction === 'inbound' && (
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-xs bg-white border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white shadow-md"
-                            onClick={() => {
-                              setSelectedMessage(message);
-                              setShowAssignDialog(true);
-                            }}
-                          >
-                            Assign
-                          </Button>
-                        </div>
-                      )}
-                      
-                      {/* Show assign button for General Inbox messages */}
-                      {isGeneralInbox && message.direction === 'inbound' && (
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-xs bg-white border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white shadow-md"
-                            onClick={() => {
-                              setSelectedMessage(message);
-                              setShowAssignDialog(true);
-                            }}
-                          >
-                            Assign
-                          </Button>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </AnimatePresence>
@@ -848,6 +777,93 @@ export default function MessagesPage() {
               className="bg-brand-teal hover:bg-brand-teal-dark"
             >
               Assign Message
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Deal Assignment Dialog */}
+      <Dialog open={showDealAssignDialog} onOpenChange={setShowDealAssignDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Messages to Deal</DialogTitle>
+            <DialogDescription>
+              Move all messages from this dealer to an existing deal.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">Assign to deal:</label>
+              <Select value={assignToDealId} onValueChange={setAssignToDealId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a deal..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {deals.filter(d => d.dealer_id !== selectedDealerId).map(deal => {
+                    const vehicle = vehicles.find(v => v.id === deal.vehicle_id);
+                    const dealDealer = dealers.find(d => d.id === deal.dealer_id);
+                    return (
+                      <SelectItem key={deal.id} value={deal.id}>
+                        {vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : 'Unknown Vehicle'} 
+                        {dealDealer ? ` - ${dealDealer.name}` : ''}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDealAssignDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={async () => {
+                if (!assignToDealId) return;
+                
+                try {
+                  // Get the target deal and its dealer
+                  const targetDeal = deals.find(d => d.id === assignToDealId);
+                  if (!targetDeal) return;
+                  
+                  // Move all messages from current dealer to target dealer
+                  const currentMessages = await Message.filter({ dealer_id: selectedDealerId });
+                  await Promise.all(
+                    currentMessages.map(msg => 
+                      Message.update(msg.id, { 
+                        dealer_id: targetDeal.dealer_id,
+                        deal_id: targetDeal.id 
+                      })
+                    )
+                  );
+                  
+                  // Delete the current dealer if it has no other data
+                  await Dealer.delete(selectedDealerId);
+                  
+                  // Refresh data
+                  const [updatedDealers, updatedMessages] = await Promise.all([
+                    Dealer.list(),
+                    Message.filter({ dealer_id: targetDeal.dealer_id })
+                  ]);
+                  
+                  setDealers(updatedDealers);
+                  setMessages(updatedMessages.sort((a, b) => new Date(a.created_date) - new Date(b.created_date)));
+                  setSelectedDealerId(targetDeal.dealer_id);
+                  
+                  toast.success('Messages assigned successfully!');
+                  setShowDealAssignDialog(false);
+                  setAssignToDealId('');
+                } catch (error) {
+                  console.error('Failed to assign messages:', error);
+                  toast.error('Failed to assign messages');
+                }
+              }}
+              disabled={!assignToDealId}
+              className="bg-brand-teal hover:bg-brand-teal-dark"
+            >
+              Assign Messages
             </Button>
           </DialogFooter>
         </DialogContent>
