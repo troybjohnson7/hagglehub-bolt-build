@@ -431,7 +431,7 @@ export default function MessagesPage() {
       />
 
       {/* Header with dealer selector and action buttons */}
-      <div className="bg-white border-b border-slate-200 p-4 flex items-center gap-4 sticky top-0 z-40 shadow-sm">
+      <div className="bg-white border-b border-slate-200 p-4 flex items-center gap-4 sticky top-16 z-30 shadow-sm">
         <div className="flex-1">
           <select
             value={selectedDealerId || ''}
