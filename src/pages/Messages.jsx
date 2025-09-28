@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { createPageUrl } from '@/utils';
+import { Plus } from 'lucide-react';
 
 import MessageBubble from '../components/messages/MessageBubble';
 import QuickActions from '../components/messages/QuickActions';
