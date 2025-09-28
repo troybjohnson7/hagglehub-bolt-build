@@ -418,7 +418,7 @@ export default function MessagesPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="min-h-screen bg-slate-50 flex flex-col"
+      className="h-screen bg-slate-50 flex flex-col overflow-hidden"
     >
       <PriceExtractNotification 
         show={showPriceNotification} 
@@ -431,7 +431,7 @@ export default function MessagesPage() {
       />
 
       {/* Header with dealer selector and action buttons */}
-      <div className="bg-white border-b border-slate-200 p-4 flex items-center gap-4 sticky top-16 z-30 shadow-sm">
+      <div className="bg-white border-b border-slate-200 p-4 flex items-center gap-4 flex-shrink-0 shadow-sm">
         <div className="flex-1">
           <select
             value={selectedDealerId || ''}
@@ -555,7 +555,7 @@ export default function MessagesPage() {
       {selectedDealer ? (
         <>
           {/* Messages area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
@@ -589,7 +589,7 @@ export default function MessagesPage() {
           )}
 
           {/* Message input area */}
-          <div className="bg-white border-t border-slate-200 p-4">
+          <div className="bg-white border-t border-slate-200 p-4 flex-shrink-0">
             <div className="flex gap-2 mb-2">
               <Dialog open={isSuggestionModalOpen} onOpenChange={setIsSuggestionModalOpen}>
                 <DialogTrigger asChild>
