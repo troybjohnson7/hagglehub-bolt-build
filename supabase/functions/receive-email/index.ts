@@ -51,66 +51,6 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  console.log('=== ENSURING VALID FALLBACK DEAL ===')
-  // Ensure the fallback deal exists, create if missing
-  if (user.fallback_deal_id) {
-    const { data: fallbackDeal, error: fallbackError } = await supabase
-      .from('deals')
-      .select('id')
-      .eq('id', user.fallback_deal_id)
-      .single()
-    
-    if (fallbackError || !fallbackDeal) {
-      console.log('Fallback deal missing, creating new one...')
-      
-      // Find or create General Inbox dealer
-      let generalInboxDealer = dealers.find(d => d.name === 'General Inbox')
-      if (!generalInboxDealer) {
-        const { data: newDealer, error: dealerError } = await supabase
-          .from('dealers')
-          .insert({
-            name: 'General Inbox',
-            notes: 'System inbox for messages that don\'t match any specific deals.',
-            created_by: user.id
-          })
-          .select()
-          .single()
-        
-        if (dealerError) {
-          console.error('Failed to create General Inbox dealer:', dealerError)
-          throw new Error('Could not create fallback dealer')
-        }
-        generalInboxDealer = newDealer
-      }
-      
-      // Create new fallback deal
-      const { data: newFallbackDeal, error: newDealError } = await supabase
-        .from('deals')
-        .insert({
-          dealer_id: generalInboxDealer.id,
-          vehicle_id: null,
-          status: 'negotiating',
-          created_by: user.id
-        })
-        .select()
-        .single()
-      
-      if (newDealError) {
-        console.error('Failed to create fallback deal:', newDealError)
-        throw new Error('Could not create fallback deal')
-      }
-      
-      // Update user with new fallback deal ID
-      await supabase
-        .from('users')
-        .update({ fallback_deal_id: newFallbackDeal.id })
-        .eq('id', user.id)
-      
-      user.fallback_deal_id = newFallbackDeal.id
-      console.log('Created new fallback deal:', newFallbackDeal.id)
-    }
-  }
-
   try {
     console.log('=== CREATING SUPABASE CLIENT WITH SERVICE ROLE ===')
     const { createClient } = await import('npm:@supabase/supabase-js@2')
@@ -185,7 +125,87 @@ Deno.serve(async (req: Request) => {
     const user = users[0]
     console.log('Found user:', user.id, 'with identifier:', user.email_identifier)
 
-    console.log('=== FINDING OR CREATING DEALER ===')
+    console.log('=== ENSURING VALID FALLBACK DEAL ===')
+    let fallbackDealId = user.fallback_deal_id
+    
+    // Check if fallback deal exists
+    if (fallbackDealId) {
+      const { data: fallbackDeal, error: fallbackError } = await supabase
+        .from('deals')
+        .select('id, dealer_id')
+        .eq('id', fallbackDealId)
+        .single()
+      
+      if (fallbackError || !fallbackDeal) {
+        console.log('Fallback deal missing, will create new one')
+        fallbackDealId = null
+      } else {
+        console.log('Fallback deal exists:', fallbackDeal.id)
+      }
+    }
+    
+    // Create fallback deal if missing
+    if (!fallbackDealId) {
+      console.log('Creating new fallback deal...')
+      
+      // Find or create General Inbox dealer
+      let { data: generalInboxDealers } = await supabase
+        .from('dealers')
+        .select('id, name')
+        .eq('name', 'General Inbox')
+        .eq('created_by', user.id)
+        .limit(1)
+      
+      let generalInboxDealer = generalInboxDealers?.[0]
+      
+      if (!generalInboxDealer) {
+        console.log('Creating General Inbox dealer...')
+        const { data: newDealer, error: dealerError } = await supabase
+          .from('dealers')
+          .insert({
+            name: 'General Inbox',
+            notes: 'System inbox for messages that don\'t match any specific deals.',
+            created_by: user.id
+          })
+          .select()
+          .single()
+        
+        if (dealerError) {
+          console.error('Failed to create General Inbox dealer:', dealerError)
+          throw new Error('Could not create fallback dealer')
+        }
+        generalInboxDealer = newDealer
+        console.log('Created General Inbox dealer:', generalInboxDealer.id)
+      }
+      
+      // Create new fallback deal
+      const { data: newFallbackDeal, error: newDealError } = await supabase
+        .from('deals')
+        .insert({
+          dealer_id: generalInboxDealer.id,
+          vehicle_id: null,
+          status: 'negotiating',
+          created_by: user.id
+        })
+        .select()
+        .single()
+      
+      if (newDealError) {
+        console.error('Failed to create fallback deal:', newDealError)
+        throw new Error('Could not create fallback deal')
+      }
+      
+      // Update user with new fallback deal ID
+      await supabase
+        .from('users')
+        .update({ fallback_deal_id: newFallbackDeal.id })
+        .eq('id', user.id)
+      
+      fallbackDealId = newFallbackDeal.id
+      console.log('Created new fallback deal:', fallbackDealId)
+    }
+
+    console.log('=== FINDING OR CREATING DEALER FOR SENDER ===')
     // Try to find existing dealer by sender email
     let dealer = null
     const { data: existingDealers } = await supabase
@@ -245,12 +265,12 @@ Deno.serve(async (req: Request) => {
 
     console.log('=== FINDING DEAL FOR MESSAGE ===')
     // Use advanced matching logic to find the correct deal
-    const matchResult = await findMatchingDeal(supabase, emailData, user.id, dealer.id, user.fallback_deal_id)
+    const matchResult = await findMatchingDeal(supabase, emailData, user.id, dealer.id, fallbackDealId)
     const matchedDeal = matchResult.deal
     
-    let dealId = matchedDeal ? matchedDeal.id : user.fallback_deal_id
-    console.log('Matched deal ID:', dealId)
-    console.log('Is fallback deal:', dealId === user.fallback_deal_id)
+    let dealId = matchedDeal ? matchedDeal.id : fallbackDealId
+    console.log('Final deal ID to use:', dealId)
+    console.log('Is fallback deal:', dealId === fallbackDealId)
     console.log('Match method:', matchedDeal ? 'VIN/Stock/Dealer' : 'Fallback')
     
     // Ensure we have a valid deal ID
@@ -274,11 +294,11 @@ Deno.serve(async (req: Request) => {
     console.log('Cleaned content length:', cleanedContent.length)
     console.log('Cleaned content:', cleanedContent)
     
-    // Create the message record
+    // Create the message record - ALWAYS use fallback deal for new emails
     const { data: createdMessage, error: messageError } = await supabase
       .from('messages')
       .insert({
-        deal_id: dealId,
+        deal_id: fallbackDealId, // Always use fallback deal for incoming emails
         dealer_id: dealer.id,
         content: cleanedContent,
         direction: 'inbound',
@@ -300,34 +320,6 @@ Deno.serve(async (req: Request) => {
 
     console.log('=== MESSAGE CREATED SUCCESSFULLY ===')
     console.log('Created message ID:', createdMessage.id)
-
-    console.log('=== UPDATING DEAL IF NEEDED ===')
-    // Update deal with new offer if price was extracted and it's not the fallback deal
-    if (extractedPrice && dealId && dealId !== user.fallback_deal_id) {
-      console.log('Checking if deal needs price update...')
-      const { data: currentDeal } = await supabase
-        .from('deals')
-        .select('current_offer')
-        .eq('id', dealId)
-        .single()
-
-      if (currentDeal && (!currentDeal.current_offer || extractedPrice !== currentDeal.current_offer)) {
-        console.log('Updating deal with new price:', extractedPrice)
-        const { error: updateError } = await supabase
-          .from('deals')
-          .update({ 
-            current_offer: extractedPrice,
-            status: 'negotiating'
-          })
-          .eq('id', dealId)
-          
-        if (updateError) {
-          console.error('Failed to update deal:', updateError)
-        } else {
-          console.log('Deal updated successfully')
-        }
-      }
-    }
 
     console.log('=== FUNCTION COMPLETED SUCCESSFULLY ===')
     console.log(`Processed inbound email from ${sender} to ${recipient}`)
@@ -501,10 +493,10 @@ async function findMatchingDeal(supabase: any, emailData: Partial<InboundEmail>,
     
     // Update dealer with new contact info if we found any
     const dealerUpdates = {};
-    if (extractedPhone && extractedPhone !== dealerId.phone) {
+    if (extractedPhone) {
       dealerUpdates.phone = extractedPhone;
     }
-    if (sender && sender !== dealerId.contact_email) {
+    if (sender) {
       dealerUpdates.contact_email = sender;
     }
     
@@ -529,13 +521,6 @@ async function findMatchingDeal(supabase: any, emailData: Partial<InboundEmail>,
       matchedDeal = deals[0]; // Use most recent active deal
       console.log('Matched to most recent active deal with dealer:', matchedDeal.id);
     }
-  }
-  
-  // Step 4: If no match found, check if we should create a new deal
-  if (!matchedDeal && (extractedVin || extractedStock)) {
-    console.log('Step 4: VIN/Stock found but no matching deal - could create new deal');
-    // For now, we'll use fallback deal but log this for potential enhancement
-    console.log('Using fallback deal for new vehicle inquiry');
   }
   
   console.log('Final matched deal:', matchedDeal?.id || 'none');
