@@ -444,6 +444,19 @@ export default function MessagesPage() {
             onClick={() => window.location.href = createPageUrl(`DealDetails?deal_id=${currentDealForDealer.id}`)}
             className="shrink-0 border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white flex items-center gap-2"
           >
+            <MessageCircle className="w-4 h-4" />
+            View Deal
+          </Button>
+        )}
+        
+        {/* View Deal Button - only show if not General Inbox and has a deal */}
+        {selectedDealer && !isGeneralInbox && currentDealForDealer && (
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => window.location.href = createPageUrl(`DealDetails?deal_id=${currentDealForDealer.id}`)}
+            className="shrink-0 border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white flex items-center gap-2"
+          >
             <MessageCircle className="w-4 h-4 mr-2" />
             View Deal
           </Button>
@@ -480,6 +493,23 @@ export default function MessagesPage() {
                   {messages.map((message) => (
                     <div key={message.id} className="relative group">
                       <MessageBubble message={message} dealer={selectedDealer} />
+                      
+                      {/* Show assign button for General Inbox messages */}
+                      {isGeneralInbox && message.direction === 'inbound' && (
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs bg-white border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white shadow-md"
+                            onClick={() => {
+                              setSelectedMessage(message);
+                              setShowAssignDialog(true);
+                            }}
+                          >
+                            Assign
+                          </Button>
+                        </div>
+                      )}
                       
                       {/* Show assign button for General Inbox messages */}
                       {isGeneralInbox && message.direction === 'inbound' && (
@@ -610,6 +640,56 @@ export default function MessagesPage() {
           <p className="text-slate-500">Select a dealer to view messages.</p>
         </div>
       )}
+      
+      {/* Message Assignment Dialog */}
+      <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Message to Dealer</DialogTitle>
+            <DialogDescription>
+              Move this message from General Inbox to a specific dealer conversation.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedMessage && (
+            <div className="py-4">
+              <div className="bg-slate-50 p-3 rounded-lg mb-4">
+                <p className="text-sm text-slate-600 font-medium">Message to assign:</p>
+                <p className="text-sm text-slate-800 mt-1">"{selectedMessage.content}"</p>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Assign to dealer:</label>
+                <Select value={assignToDealerId} onValueChange={setAssignToDealerId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a dealer..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {nonGeneralDealers.map(dealer => (
+                      <SelectItem key={dealer.id} value={dealer.id}>
+                        {dealer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAssignDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAssignMessage}
+              disabled={!assignToDealerId}
+              className="bg-brand-teal hover:bg-brand-teal-dark"
+            >
+              Assign Message
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {/* Message Assignment Dialog */}
       <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
