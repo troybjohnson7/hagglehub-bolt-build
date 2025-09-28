@@ -143,13 +143,14 @@ Deno.serve(async (req: Request) => {
     } else {
       // Create new dealer from sender info
       const senderDomain = sender.split('@')[1] || 'unknown.com'
-      const dealerName = senderDomain.replace(/\.(com|net|org)$/, '').replace(/^www\./, '')
+      let dealerName = senderDomain.replace(/\.(com|net|org)$/, '').replace(/^www\./, '')
+      dealerName = dealerName.charAt(0).toUpperCase() + dealerName.slice(1)
       console.log('Creating new dealer from domain:', dealerName)
       
       const { data: newDealer, error: dealerError } = await supabase
         .from('dealers')
         .insert({
-          name: dealerName.charAt(0).toUpperCase() + dealerName.slice(1) + ' (Auto-created)',
+          name: dealerName,
           contact_email: sender,
           created_by: user.id
         })

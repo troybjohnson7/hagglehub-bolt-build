@@ -35,8 +35,8 @@ export default function OnboardingPage() {
                 // Step 1: Create a fallback "Uncategorized" dealer for the user
                 setStatus('Creating fallback records...');
                 const fallbackDealer = await Dealer.create({
-                    name: `Uncategorized (${userWithEmail.email_identifier})`,
-                    notes: "This is a system-generated dealer for uncategorized messages."
+                    name: "General Inbox",
+                    notes: "System inbox for messages that don't match any specific deals. You can organize these messages later."
                 });
                 
                 // Step 2: Create a fallback "Uncategorized" deal associated with that dealer
