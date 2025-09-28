@@ -216,6 +216,11 @@ export default function Dashboard() {
               <p className="text-slate-500 mt-2 max-w-md mx-auto">
                 You have no active deals right now. Click "Add New Deal" to start tracking your next vehicle negotiation.
               </p>
+             
+             {/* Show Universal Deal Email even when no deals */}
+             <div className="mt-8 max-w-md mx-auto">
+               <UserEmailManager user={user} />
+             </div>
           </div>
         </div>
       </div>
