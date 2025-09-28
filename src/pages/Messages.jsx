@@ -71,11 +71,6 @@ export default function MessagesPage() {
   const [isSuggestionModalOpen, setIsSuggestionModalOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [vehicles, setVehicles] = useState([]);
-  const [showAssignDialog, setShowAssignDialog] = useState(false);
-  const [selectedMessage, setSelectedMessage] = useState(null);
-  const [assignToDealerId, setAssignToDealerId] = useState('');
-  const [showDealOptions, setShowDealOptions] = useState(false);
-  const [selectedMessageForDeal, setSelectedMessageForDeal] = useState(null);
   const [showDealAssignDialog, setShowDealAssignDialog] = useState(false);
   const [assignToDealId, setAssignToDealId] = useState('');
 
@@ -224,12 +219,7 @@ export default function MessagesPage() {
         // Extract price if it's an inbound message
         let extractedPrice = null;
         if (direction === 'inbound') {
-          extract
-        }
-      }
-    }
-  }
-}edPrice = extractPriceFromMessage(content);
+          extractedPrice = extractPriceFromMessage(content);
         }
 
         const messageData = {
@@ -375,32 +365,9 @@ export default function MessagesPage() {
     }
   };
 
-  const handleAssignMessage = async () => {
-    if (!selectedMessage || !assignToDealerId) return;
-    
-    try {
-      await Message.update(selectedMessage.id, { dealer_id: assignToDealerId });
-      
-      // Refresh messages for current dealer
-      if (selectedDealerId) {
-        const messageData = await Message.filter({ dealer_id: selectedDealerId });
-        setMessages(messageData.sort((a, b) => new Date(a.created_date) - new Date(b.created_date)));
-      }
-      
-      toast.success('Message assigned successfully!');
-      setShowAssignDialog(false);
-      setSelectedMessage(null);
-      setAssignToDealerId('');
-    } catch (error) {
-      console.error('Failed to assign message:', error);
-      toast.error('Failed to assign message');
-    }
-  };
-
   const selectedDealer = dealers.find(d => d.id === selectedDealerId);
   const currentDeal = deals.find(d => d.dealer_id === selectedDealerId);
   const isGeneralInbox = selectedDealer?.name === 'General Inbox';
-  const nonGeneralDealers = dealers.filter(d => d.name !== 'General Inbox');
   const currentDealForDealer = deals.find(d => d.dealer_id === selectedDealerId);
 
   if (dealers.length === 0 && !isLoading) {
@@ -419,7 +386,7 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-50 flex flex-col" style={{ top: '64px' }}>
+    <div className="h-screen flex flex-col bg-slate-50">
       <PriceExtractNotification 
         show={showPriceNotification} 
         price={extractedPrice}
@@ -719,11 +686,6 @@ export default function MessagesPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-        </Dialog>
       </Dialog>
     </div>
   );
