@@ -414,7 +414,7 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="h-screen bg-slate-50 flex flex-col">
+    <div className="fixed inset-0 bg-slate-50 flex flex-col" style={{ top: '64px' }}>
       <PriceExtractNotification 
         show={showPriceNotification} 
         price={extractedPrice}
@@ -425,8 +425,8 @@ export default function MessagesPage() {
         }}
       />
 
-      {/* Fixed Header with dealer selector and action buttons */}
-      <div className="bg-white border-b border-slate-200 p-4 flex items-center gap-4 shadow-sm">
+      {/* FIXED HEADER - Dealer selector and actions */}
+      <div className="bg-white border-b border-slate-200 p-4 flex items-center gap-4 shadow-sm flex-shrink-0">
         <div className="flex-1 max-w-xs">
           <select
             value={selectedDealerId || ''}
@@ -499,8 +499,8 @@ export default function MessagesPage() {
       
       {selectedDealer ? (
         <>
-          {/* Scrollable Messages area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* SCROLLABLE MESSAGES AREA - This is the only part that scrolls */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
@@ -523,18 +523,20 @@ export default function MessagesPage() {
 
           {/* Quick Actions - only show if not General Inbox */}
           {currentDeal && !isGeneralInbox && (
-            <QuickActions 
-              deal={currentDeal} 
-              onAction={(action, data) => {
-                if (action === 'send_message') {
-                  handleMessageSubmit(data.message, 'outbound', 'app');
-                }
-              }}
-            />
+            <div className="flex-shrink-0">
+              <QuickActions 
+                deal={currentDeal} 
+                onAction={(action, data) => {
+                  if (action === 'send_message') {
+                    handleMessageSubmit(data.message, 'outbound', 'app');
+                  }
+                }}
+              />
+            </div>
           )}
 
-          {/* Fixed Message input area */}
-          <div className="bg-white border-t border-slate-200 p-4">
+          {/* FIXED MESSAGE INPUT AREA */}
+          <div className="bg-white border-t border-slate-200 p-4 flex-shrink-0">
             <div className="flex gap-2 mb-2">
               <Dialog open={isSuggestionModalOpen} onOpenChange={setIsSuggestionModalOpen}>
                 <DialogTrigger asChild>
@@ -627,56 +629,6 @@ export default function MessagesPage() {
         </div>
       )}
       
-      {/* Message Assignment Dialog */}
-      <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Assign Message to Dealer</DialogTitle>
-            <DialogDescription>
-              Move this message from General Inbox to a specific dealer conversation.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedMessage && (
-            <div className="py-4">
-              <div className="bg-slate-50 p-3 rounded-lg mb-4">
-                <p className="text-sm text-slate-600 font-medium">Message to assign:</p>
-                <p className="text-sm text-slate-800 mt-1">"{selectedMessage.content}"</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Assign to dealer:</label>
-                <Select value={assignToDealerId} onValueChange={setAssignToDealerId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a dealer..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {nonGeneralDealers.map(dealer => (
-                      <SelectItem key={dealer.id} value={dealer.id}>
-                        {dealer.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAssignDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleAssignMessage}
-              disabled={!assignToDealerId}
-              className="bg-brand-teal hover:bg-brand-teal-dark"
-            >
-              Assign Message
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
       {/* Deal Assignment Dialog */}
       <Dialog open={showDealAssignDialog} onOpenChange={setShowDealAssignDialog}>
         <DialogContent>
@@ -761,7 +713,7 @@ export default function MessagesPage() {
               Assign Messages
             </Button>
           </DialogFooter>
-        </DialogContent>
+        </Dialog>
       </Dialog>
     </div>
   );
