@@ -713,6 +713,11 @@ export default function MessagesPage() {
               Assign Messages
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
         </Dialog>
       </Dialog>
     </div>
