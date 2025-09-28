@@ -35,6 +35,7 @@ import QuickActions from '../components/messages/QuickActions';
 import MessageTemplates from '../components/messages/MessageTemplates';
 import PriceExtractNotification from '../components/messages/PriceExtractNotification';
 import { sendReply } from "@/api/functions"; // Fixed import extension
+import { cleanupDuplicateDealers } from '@/utils/cleanup';
 
 export default function MessagesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -59,6 +60,16 @@ export default function MessagesPage() {
   useEffect(() => {
     async function fetchData() {
       try {
+        // Run cleanup on first load to remove any duplicate dealers
+        try {
+          const cleanupResult = await cleanupDuplicateDealers();
+          if (cleanupResult.cleaned > 0) {
+            console.log(`Cleaned up ${cleanupResult.cleaned} duplicate dealers`);
+          }
+        } catch (cleanupError) {
+          console.log('Cleanup failed, continuing anyway:', cleanupError);
+        }
+        
         const [dealerData] = await Promise.all([Dealer.list()]);
         await new Promise(resolve => setTimeout(resolve, 100));
         

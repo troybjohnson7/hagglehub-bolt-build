@@ -1,11 +1,8 @@
-
-
-
-export function createPageUrl(pageName: string) {
+export function createPageUrl(pageName) {
     console.log('createPageUrl called with:', pageName);
     
     // Handle specific page name mappings
-    const pageMap: { [key: string]: string } = {
+    const pageMap = {
         'AddVehicle': '/add-vehicle',
         'DealDetails': '/deal-details',
         'EditDeal': '/edit-deal',
