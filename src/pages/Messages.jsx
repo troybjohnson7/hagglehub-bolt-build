@@ -572,11 +572,11 @@ export default function MessagesPage() {
                       
                       {/* Show assign button for General Inbox messages */}
                       {isGeneralInbox && message.direction === 'inbound' && (
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-xs bg-white border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white shadow-md"
+                            className="text-xs bg-white border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white shadow-lg"
                             onClick={() => {
                               setSelectedMessage(message);
                               setShowAssignDialog(true);
