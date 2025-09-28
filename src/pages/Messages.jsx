@@ -67,6 +67,8 @@ export default function MessagesPage() {
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [assignToDealerId, setAssignToDealerId] = useState('');
+  const [showDealOptions, setShowDealOptions] = useState(false);
+  const [selectedMessageForDeal, setSelectedMessageForDeal] = useState(null);
 
   const messagesEndRef = useRef(null);
 
