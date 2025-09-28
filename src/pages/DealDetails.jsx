@@ -26,11 +26,24 @@ import {
 import {
   ArrowLeft,
   Edit,
+  Trash2,
   MessageSquare
 } from 'lucide-react';
 import {
   motion
 } from 'framer-motion';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from 'sonner';
 
 import VehicleSummary from '../components/deal_details/VehicleSummary';
 import PricingCard from '../components/deal_details/PricingCard';
@@ -50,6 +63,7 @@ export default function DealDetailsPage() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!dealId) {
@@ -114,6 +128,51 @@ export default function DealDetailsPage() {
     // fetchData(); 
   };
 
+  const handleDeleteDeal = async () => {
+    setIsDeleting(true);
+    try {
+      // First, delete all messages associated with this deal
+      const dealMessages = messages.filter(m => m.deal_id === deal.id);
+      if (dealMessages.length > 0) {
+        await Promise.all(dealMessages.map(m => Message.delete(m.id)));
+      }
+
+      // Delete the deal
+      await Deal.delete(deal.id);
+
+      // Check if this vehicle is used by any other deals
+      if (vehicle) {
+        const allDeals = await Deal.list();
+        const vehicleInUse = allDeals.some(d => d.vehicle_id === vehicle.id && d.id !== deal.id);
+        
+        // If no other deals use this vehicle, delete it
+        if (!vehicleInUse) {
+          await Vehicle.delete(vehicle.id);
+          console.log('Deleted unused vehicle:', vehicle.id);
+        }
+      }
+
+      // Check if this dealer is used by any other deals
+      if (dealer) {
+        const allDeals = await Deal.list();
+        const dealerInUse = allDeals.some(d => d.dealer_id === dealer.id && d.id !== deal.id);
+        
+        // If no other deals use this dealer, delete it
+        if (!dealerInUse) {
+          await Dealer.delete(dealer.id);
+          console.log('Deleted unused dealer:', dealer.id);
+        }
+      }
+
+      toast.success('Deal deleted successfully!');
+      navigate(createPageUrl("Dashboard"));
+    } catch (error) {
+      console.error('Failed to delete deal:', error);
+      toast.error('Failed to delete deal. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
   if (isLoading || !deal) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50 flex items-center justify-center">
@@ -145,14 +204,57 @@ export default function DealDetailsPage() {
             Back to Dashboard
           </Link>
           
-          {isActiveStatus && (
-            <Button
-              onClick={() => setShowCompleteModal(true)}
-              className="bg-brand-lime hover:bg-brand-lime-dark text-brand-teal font-bold"
-            >
-              Complete Deal
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {isActiveStatus && (
+              <Button
+                onClick={() => setShowCompleteModal(true)}
+                className="bg-brand-lime hover:bg-brand-lime-dark text-brand-teal font-bold"
+              >
+                Complete Deal
+              </Button>
+            )}
+            
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Deal
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Deal</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete this deal for the{' '}
+                    {vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : 'vehicle'}?
+                    <br /><br />
+                    This will also delete:
+                    <ul className="list-disc list-inside mt-2 text-sm">
+                      <li>All messages for this deal</li>
+                      <li>The vehicle (if not used in other deals)</li>
+                      <li>The dealer (if not used in other deals)</li>
+                    </ul>
+                    <br />
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteDeal}
+                    className="bg-red-600 hover:bg-red-700"
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? 'Deleting...' : 'Delete Deal'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
