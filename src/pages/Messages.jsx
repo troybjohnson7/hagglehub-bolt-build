@@ -224,7 +224,12 @@ export default function MessagesPage() {
         // Extract price if it's an inbound message
         let extractedPrice = null;
         if (direction === 'inbound') {
-          extractedPrice = extractPriceFromMessage(content);
+          extract
+        }
+      }
+    }
+  }
+}edPrice = extractPriceFromMessage(content);
         }
 
         const messageData = {
