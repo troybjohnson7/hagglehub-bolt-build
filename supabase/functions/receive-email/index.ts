@@ -185,13 +185,19 @@ Deno.serve(async (req: Request) => {
 
     console.log('=== FINDING DEAL FOR MESSAGE ===')
     // Use advanced matching logic to find the correct deal
-    const matchResult = await findMatchingDeal(supabase, emailData, user.id, dealer.id)
+    const matchResult = await findMatchingDeal(supabase, emailData, user.id, dealer.id, user.fallback_deal_id)
     const matchedDeal = matchResult.deal
     
     let dealId = matchedDeal ? matchedDeal.id : user.fallback_deal_id
     console.log('Matched deal ID:', dealId)
     console.log('Is fallback deal:', dealId === user.fallback_deal_id)
     console.log('Match method:', matchedDeal ? 'VIN/Stock/Dealer' : 'Fallback')
+    
+    // Ensure we have a valid deal ID
+    if (!dealId) {
+      console.error('No deal ID available - neither matched nor fallback')
+      return new Response('Error: No deal available', { status: 500 })
+    }
     
     // If we found VIN or stock info but no matching vehicle, log it for potential manual review
     if (!matchedDeal && (matchResult.extractedVin || matchResult.extractedStock)) {
@@ -348,10 +354,11 @@ function cleanEmailContent(content: string): string {
 }
 
 // Advanced message matching logic similar to Base44 processor
-async function findMatchingDeal(supabase: any, emailData: Partial<InboundEmail>, userId: string, dealerId: string) {
+async function findMatchingDeal(supabase: any, emailData: Partial<InboundEmail>, userId: string, dealerId: string, fallbackDealId: string) {
   console.log('=== FINDING MATCHING DEAL ===');
   console.log('User ID:', userId);
   console.log('Dealer ID:', dealerId);
+  console.log('Fallback Deal ID:', fallbackDealId);
   
   const { sender, subject, 'body-plain': bodyPlain } = emailData;
   
@@ -462,6 +469,13 @@ async function findMatchingDeal(supabase: any, emailData: Partial<InboundEmail>,
       matchedDeal = deals[0]; // Use most recent active deal
       console.log('Matched to most recent active deal with dealer:', matchedDeal.id);
     }
+  }
+  
+  // Step 4: If no match found, check if we should create a new deal
+  if (!matchedDeal && (extractedVin || extractedStock)) {
+    console.log('Step 4: VIN/Stock found but no matching deal - could create new deal');
+    // For now, we'll use fallback deal but log this for potential enhancement
+    console.log('Using fallback deal for new vehicle inquiry');
   }
   
   console.log('Final matched deal:', matchedDeal?.id || 'none');

@@ -455,6 +455,19 @@ export default function MessagesPage() {
             variant="outline" 
             size="sm"
             onClick={() => window.location.href = createPageUrl(`DealDetails?deal_id=${currentDealForDealer.id}`)}
+            className="shrink-0 border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white"
+          >
+            <MessageCircle className="w-4 h-4 mr-2" />
+            View Deal
+          </Button>
+        )}
+        
+        {/* View Deal Button - only show if not General Inbox and has a deal */}
+        {selectedDealer && !isGeneralInbox && currentDealForDealer && (
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => window.location.href = createPageUrl(`DealDetails?deal_id=${currentDealForDealer.id}`)}
             className="shrink-0 border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white flex items-center gap-2"
           >
             <MessageCircle className="w-4 h-4" />
@@ -557,6 +570,22 @@ export default function MessagesPage() {
                     <div key={message.id} className="relative group">
                       <MessageBubble message={message} dealer={selectedDealer} />
                       
+                      {/* Show assign button for General Inbox messages */}
+                      {isGeneralInbox && message.direction === 'inbound' && (
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs bg-white border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white shadow-md"
+                            onClick={() => {
+                              setSelectedMessage(message);
+                              setShowAssignDialog(true);
+                            }}
+                          >
+                            Assign
+                          </Button>
+                        </div>
+                      )}
                       {/* Show assign button for General Inbox messages */}
                       {isGeneralInbox && message.direction === 'inbound' && (
                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
