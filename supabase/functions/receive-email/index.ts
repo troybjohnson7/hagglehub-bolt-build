@@ -51,6 +51,66 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  console.log('=== ENSURING VALID FALLBACK DEAL ===')
+  // Ensure the fallback deal exists, create if missing
+  if (user.fallback_deal_id) {
+    const { data: fallbackDeal, error: fallbackError } = await supabase
+      .from('deals')
+      .select('id')
+      .eq('id', user.fallback_deal_id)
+      .single()
+    
+    if (fallbackError || !fallbackDeal) {
+      console.log('Fallback deal missing, creating new one...')
+      
+      // Find or create General Inbox dealer
+      let generalInboxDealer = dealers.find(d => d.name === 'General Inbox')
+      if (!generalInboxDealer) {
+        const { data: newDealer, error: dealerError } = await supabase
+          .from('dealers')
+          .insert({
+            name: 'General Inbox',
+            notes: 'System inbox for messages that don\'t match any specific deals.',
+            created_by: user.id
+          })
+          .select()
+          .single()
+        
+        if (dealerError) {
+          console.error('Failed to create General Inbox dealer:', dealerError)
+          throw new Error('Could not create fallback dealer')
+        }
+        generalInboxDealer = newDealer
+      }
+      
+      // Create new fallback deal
+      const { data: newFallbackDeal, error: newDealError } = await supabase
+        .from('deals')
+        .insert({
+          dealer_id: generalInboxDealer.id,
+          vehicle_id: null,
+          status: 'negotiating',
+          created_by: user.id
+        })
+        .select()
+        .single()
+      
+      if (newDealError) {
+        console.error('Failed to create fallback deal:', newDealError)
+        throw new Error('Could not create fallback deal')
+      }
+      
+      // Update user with new fallback deal ID
+      await supabase
+        .from('users')
+        .update({ fallback_deal_id: newFallbackDeal.id })
+        .eq('id', user.id)
+      
+      user.fallback_deal_id = newFallbackDeal.id
+      console.log('Created new fallback deal:', newFallbackDeal.id)
+    }
+  }
+
   try {
     console.log('=== CREATING SUPABASE CLIENT WITH SERVICE ROLE ===')
     const { createClient } = await import('npm:@supabase/supabase-js@2')
