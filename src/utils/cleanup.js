@@ -11,14 +11,25 @@ export async function cleanupDuplicateDealers() {
       d.name?.includes('Uncategorized') || 
       d.name?.includes('General Inbox') ||
       d.name?.match(/\([a-z0-9]{7}\)/) || // Match the pattern (9qb207z)
-      d.name?.match(/Uncategorized \([a-z0-9]{7}\)/) // Match "Uncategorized (abc123d)"
+      d.name?.match(/Uncategorized \([a-z0-9]{7}\)/) || // Match "Uncategorized (abc123d)"
+      d.name === 'Uncategorized (9qb207z)' // Exact match for the specific one
     );
     
     console.log('Found system dealers:', systemDealers.length);
+    console.log('System dealers found:', systemDealers.map(d => d.name));
     
     if (systemDealers.length <= 1) {
-      console.log('No duplicates to clean up');
-      return { cleaned: 0 };
+      // Even if only one, rename it if it's not "General Inbox"
+      if (systemDealers.length === 1 && systemDealers[0].name !== 'General Inbox') {
+        console.log('Renaming single system dealer to General Inbox');
+        await Dealer.update(systemDealers[0].id, { 
+          name: 'General Inbox',
+          notes: 'System inbox for messages that don\'t match any specific deals. You can organize these messages later.'
+        });
+        return { cleaned: 0, renamed: 1 };
+      }
+      console.log('No cleanup needed');
+      return { cleaned: 0, renamed: 0 };
     }
     
     // Keep the first one, delete the rest

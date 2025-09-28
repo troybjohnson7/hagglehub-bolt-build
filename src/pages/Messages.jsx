@@ -79,6 +79,12 @@ export default function MessagesPage() {
           if (cleanupResult.cleaned > 0) {
             console.log(`Cleaned up ${cleanupResult.cleaned} duplicate dealers`);
           }
+          if (cleanupResult.renamed > 0) {
+            console.log(`Renamed ${cleanupResult.renamed} dealers to General Inbox`);
+            // Refresh dealers list after cleanup
+            const updatedDealers = await Dealer.list();
+            setDealers(updatedDealers);
+          }
         } catch (cleanupError) {
           console.log('Cleanup failed, continuing anyway:', cleanupError);
         }
@@ -436,7 +442,7 @@ export default function MessagesPage() {
             variant="outline" 
             size="sm"
             onClick={() => window.location.href = createPageUrl(`DealDetails?deal_id=${currentDealForDealer.id}`)}
-            className="shrink-0 border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white"
+            className="shrink-0 border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white flex items-center gap-2"
           >
             <MessageCircle className="w-4 h-4 mr-2" />
             View Deal
@@ -477,11 +483,11 @@ export default function MessagesPage() {
                       
                       {/* Show assign button for General Inbox messages */}
                       {isGeneralInbox && message.direction === 'inbound' && (
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-xs bg-white border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white"
+                            className="text-xs bg-white border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white shadow-md"
                             onClick={() => {
                               setSelectedMessage(message);
                               setShowAssignDialog(true);
