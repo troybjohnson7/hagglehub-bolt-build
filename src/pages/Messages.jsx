@@ -403,7 +403,7 @@ export default function MessagesPage() {
             <DropdownMenuContent align="end">
               {/* Create New Deal option */}
               <DropdownMenuItem 
-                onClick={() => window.location.href = createPageUrl('AddVehicle')}
+                onClick={handleCreateDealFromMessages}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Create New Deal
