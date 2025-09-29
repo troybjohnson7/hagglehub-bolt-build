@@ -349,17 +349,30 @@ export default function MessagesPage() {
   const currentDealForDealer = deals.find(d => d.dealer_id === selectedDealerId);
 
   const handleCreateDealFromMessages = async () => {
-    if (!selectedDealer || messages.length === 0) {
-      // Fallback to regular add vehicle page if no context
+    console.log('Creating deal from messages...');
+    console.log('Selected dealer:', selectedDealer);
+    console.log('Messages count:', messages.length);
+    
+    if (!selectedDealer) {
+      toast.error('No dealer selected');
+      return;
+    }
+
+    if (messages.length === 0) {
+      console.log('No messages, redirecting to manual entry');
       window.location.href = createPageUrl('AddVehicle');
       return;
     }
 
     try {
+      toast.info('Analyzing conversation...');
+      
       // Combine all message content for analysis
       const conversationText = messages
         .map(m => `${m.direction === 'inbound' ? 'Dealer' : 'Customer'}: ${m.content}`)
         .join('\n');
+
+      console.log('Conversation text:', conversationText);
 
       // Use AI to extract vehicle and pricing information from the conversation
       const result = await InvokeLLM({
@@ -412,9 +425,13 @@ Known Dealer Info:
         }
       });
 
+      console.log('AI parsing result:', result);
+
       // Navigate to AddVehicle page with parsed data in URL params
       const parsedDataParam = encodeURIComponent(JSON.stringify(result));
-      window.location.href = `${createPageUrl('AddVehicle')}?parsed_data=${parsedDataParam}&from_messages=true`;
+      const targetUrl = `${createPageUrl('AddVehicle')}?parsed_data=${parsedDataParam}&from_messages=true`;
+      console.log('Navigating to:', targetUrl);
+      window.location.href = targetUrl;
       
     } catch (error) {
       console.error('Failed to parse conversation:', error);

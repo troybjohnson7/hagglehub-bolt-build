@@ -29,6 +29,7 @@ import { useSearchParams } from 'react-router-dom';
 
 // Main component orchestrating the flow
 export default function AddVehiclePage() {
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState('initial'); // 'initial', 'parsed', 'trackingForm', 'leadForm', 'submittingLead', 'leadResult'
   const [urlInput, setUrlInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -36,6 +37,24 @@ export default function AddVehiclePage() {
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [limitMessage, setLimitMessage] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
+
+  // Check for parsed data from messages on component mount
+  useEffect(() => {
+    const parsedDataParam = searchParams.get('parsed_data');
+    const fromMessages = searchParams.get('from_messages');
+    
+    if (parsedDataParam && fromMessages) {
+      try {
+        const decodedData = JSON.parse(decodeURIComponent(parsedDataParam));
+        console.log('Received parsed data from messages:', decodedData);
+        setParsedData(decodedData);
+        setStep('parsed');
+      } catch (error) {
+        console.error('Failed to parse data from URL:', error);
+        toast.error('Failed to parse conversation data');
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     async function fetchUser() {
