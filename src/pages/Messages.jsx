@@ -186,8 +186,6 @@ function parseConversationDirectly(conversationText, dealer) {
             });
             window.dispatchEvent(event);
             console.log('Dispatched messagesRead event for dealer:', selectedDealerId);
-          }
-
         } catch (error) {
           console.error("Failed to fetch messages:", error);
         } finally {
