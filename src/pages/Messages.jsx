@@ -52,8 +52,8 @@ import { sendReply } from "@/api/functions";
 import { cleanupDuplicateDealers } from '@/utils/cleanup';
 import { User } from '@/api/entities';
 
-// Direct parsing function that actually works
-function parseConversationDirectly(conversationText, dealer) {
+// Enhanced parsing function with proper email extraction and vehicle parsing
+function parseConversationDirectly(conversationText, dealer, messages) {
   console.log('=== STARTING DIRECT PARSING ===');
   console.log('Conversation text:', conversationText);
   console.log('Dealer info:', dealer);
@@ -61,11 +61,11 @@ function parseConversationDirectly(conversationText, dealer) {
   
   const result = {
     vehicle: {
-      year: 2025,
-      make: 'Toyota',
-      model: 'Tundra',
+      year: null,
+      make: '',
+      model: '',
       trim: '',
-      vin: '5TFHY5F1XKX839771',
+      vin: '',
       stock_number: '',
       mileage: null,
       condition: 'used',
@@ -74,30 +74,27 @@ function parseConversationDirectly(conversationText, dealer) {
       listing_url: ''
     },
     dealer: {
-      name: 'Toyota of Cedar Park',
-      contact_email: 'brian@toyotaofcedarpark.com',
-      phone: '(512) 778-0711',
-      address: '5600 183A Toll Rd, Cedar Park, TX 78641',
+      name: dealer.name || '',
+      contact_email: dealer.contact_email || '',
+      phone: dealer.phone || '',
+      address: dealer.address || '',
       website: dealer.website || '',
-      sales_rep_name: 'Brian'
+      sales_rep_name: ''
     },
     pricing: {
       asking_price: null
     }
   };
 
-  // STEP 1: Extract sender email from messages (most reliable)
+  // STEP 1: Extract actual sender email from inbound messages
   console.log('=== EXTRACTING SENDER EMAIL ===');
   const inboundMessages = messages.filter(m => m.direction === 'inbound');
   if (inboundMessages.length > 0) {
-    // Look for email patterns in message metadata or content
     for (const message of inboundMessages) {
-      // Check if message content contains email signatures
       const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
       const emailMatches = message.content.match(emailPattern);
       
       if (emailMatches) {
-        // Filter out customer emails (Gmail, Yahoo, etc.) and HaggleHub emails
         const dealerEmails = emailMatches.filter(email => 
           !email.includes('gmail.com') && 
           !email.includes('yahoo.com') && 
@@ -115,15 +112,15 @@ function parseConversationDirectly(conversationText, dealer) {
       }
     }
   }
+
   // STEP 2: Extract VIN (17 characters, most reliable identifier)
-  // STEP 1: Extract VIN first (most reliable identifier)
   const vinPattern = /\b[A-HJ-NPR-Z0-9]{17}\b/g;
   const vinMatches = conversationText.match(vinPattern);
   if (vinMatches && vinMatches.length > 0) {
     result.vehicle.vin = vinMatches[0].toUpperCase();
     console.log('✅ Found VIN:', result.vehicle.vin);
     
-    // Decode year from Toyota VIN (10th character)
+    // Decode year from Toyota VIN (character 10)
     if (result.vehicle.vin.startsWith('5TF')) { // Toyota truck VIN prefix
       const vinYearChar = result.vehicle.vin.charAt(9);
       const toyotaYearMap = {
@@ -136,92 +133,102 @@ function parseConversationDirectly(conversationText, dealer) {
     }
   }
 
-  // STEP 3: Extract vehicle make and model (SEPARATE from VIN)
-  // Multiple strategies for vehicle extraction
-  const vehicleExtractionStrategies = [
-    // Strategy 1: Look for specific Toyota Tundra mentions
-    function() {
-      const toyotaTundraMatch = conversationText.match(/Toyota\s+Tundra/gi);
-      if (toyotaTundraMatch) {
-        result.vehicle.make = 'Toyota';
-        result.vehicle.model = 'Tundra';
-        console.log('✅ Strategy 1: Found Toyota Tundra');
-        return true;
-      }
-      return false;
-    },
-    
-    // Strategy 2: Extract from VIN if it's a Toyota truck
-    function() {
-      if (result.vehicle.vin && result.vehicle.vin.startsWith('5TF')) {
-        result.vehicle.make = 'Toyota';
-        // 5TF prefix indicates Toyota truck - likely Tundra, Tacoma, or 4Runner
-        // Check conversation for specific model mentions
-        if (conversationText.toLowerCase().includes('tundra')) {
-          result.vehicle.model = 'Tundra';
-        } else if (conversationText.toLowerCase().includes('tacoma')) {
-          result.vehicle.model = 'Tacoma';
-        } else if (conversationText.toLowerCase().includes('4runner')) {
-          result.vehicle.model = '4Runner';
-        } else {
-          result.vehicle.model = 'Tundra'; // Default for 5TF prefix
-        }
-        console.log('✅ Strategy 2: Decoded from Toyota VIN:', result.vehicle.make, result.vehicle.model);
-        return true;
-      }
-      return false;
-    },
-    
-    // Strategy 3: General automotive brand + model pattern
-    function() {
-      const vehiclePattern = /\b(Toyota|Honda|Ford|Chevrolet|Chevy|Nissan|Hyundai|Kia|BMW|Mercedes|Audi|Lexus|Acura|Infiniti|Cadillac|Buick|GMC|Ram|Dodge|Jeep|Chrysler|Subaru|Mazda|Mitsubishi|Volvo|Jaguar|Land Rover|Porsche|Tesla|Genesis)\s+([A-Za-z0-9\-]+(?:\s+[A-Za-z0-9\-]+)?)/gi;
-      const vehicleMatches = [...conversationText.matchAll(vehiclePattern)];
-  // STEP 4: Extract sales rep name
-        const [, make, model] = vehicleMatches[0];
-        result.vehicle.make = make;
-        result.vehicle.model = model;
-        console.log('✅ Strategy 3: Found vehicle pattern:', make, model);
-        return true;
-      }
-      return false;
-    }
-  ];
+  // STEP 3: Extract vehicle make and model (separate from VIN)
+  console.log('=== EXTRACTING VEHICLE MAKE/MODEL ===');
   
-  // Try each strategy until one succeeds
-  for (const strategy of vehicleExtractionStrategies) {
-    if (strategy()) break;
+  // Strategy 1: Look for specific Toyota Tundra mentions
+  const toyotaTundraMatch = conversationText.match(/Toyota\s+Tundra/gi);
+  if (toyotaTundraMatch) {
+    result.vehicle.make = 'Toyota';
+    result.vehicle.model = 'Tundra';
+    console.log('✅ Found Toyota Tundra');
+  }
+  
+  // Strategy 2: Extract from VIN if it's a Toyota truck
+  if (!result.vehicle.make && result.vehicle.vin && result.vehicle.vin.startsWith('5TF')) {
+    result.vehicle.make = 'Toyota';
+    if (conversationText.toLowerCase().includes('tundra')) {
+      result.vehicle.model = 'Tundra';
+    } else if (conversationText.toLowerCase().includes('tacoma')) {
+      result.vehicle.model = 'Tacoma';
+    } else if (conversationText.toLowerCase().includes('4runner')) {
+      result.vehicle.model = '4Runner';
+    } else {
+      result.vehicle.model = 'Tundra'; // Default for 5TF prefix
+    }
+    console.log('✅ Decoded from Toyota VIN:', result.vehicle.make, result.vehicle.model);
+  }
+  
+  // Strategy 3: General automotive brand + model pattern
+  if (!result.vehicle.make) {
+    const vehiclePattern = /\b(Toyota|Honda|Ford|Chevrolet|Chevy|Nissan|Hyundai|Kia|BMW|Mercedes|Audi|Lexus|Acura|Infiniti|Cadillac|Buick|GMC|Ram|Dodge|Jeep|Chrysler|Subaru|Mazda|Mitsubishi|Volvo|Jaguar|Land Rover|Porsche|Tesla|Genesis)\s+([A-Za-z0-9\-]+(?:\s+[A-Za-z0-9\-]+)?)/gi;
+    const vehicleMatches = [...conversationText.matchAll(vehiclePattern)];
+    if (vehicleMatches.length > 0) {
+      const [, make, model] = vehicleMatches[0];
+      result.vehicle.make = make;
+      result.vehicle.model = model;
+      console.log('✅ Found vehicle pattern:', make, model);
+    }
   }
 
-  // STEP 5: Extract dealer name
+  // STEP 4: Extract year from VIN if not already set
   if (result.vehicle.vin) {
-    // For Toyota VINs, 10th character indicates year
     const vinYear = result.vehicle.vin.charAt(9);
     const yearMap = {
       'L': 2020, 'M': 2021, 'N': 2022, 'P': 2023, 'R': 2024, 'S': 2025, 'T': 2026
     };
-    if (yearMap[vinYear]) {
+    if (yearMap[vinYear] && !result.vehicle.year) {
       result.vehicle.year = yearMap[vinYear];
       console.log('✅ Decoded year from VIN:', result.vehicle.year);
     }
   }
 
-  // STEP 4: Extract sales rep name (Brian)
+  // STEP 5: Extract sales rep name
+  const salesRepPatterns = [
+    /\b(Brian|Sarah|Mike|Jennifer|John|David|Lisa|Karen|Steve|Mark|Chris|Amy|Tom|Jessica|Kevin|Michelle|Robert|Linda|James|Patricia|Michael|Barbara|William|Elizabeth|Richard|Maria|Joseph|Susan|Thomas|Margaret|Charles|Dorothy|Daniel|Nancy|Matthew|Betty|Anthony|Helen|Donald|Sandra|Paul|Donna|Joshua|Carol|Kenneth|Ruth|Andrew|Sharon|Ryan|Michelle|Gary|Laura|Nicholas|Kimberly|Eric|Deborah|Stephen|Dorothy|Jonathan|Lisa|Larry|Nancy|Justin|Karen|Scott|Betty|Brandon|Helen|Benjamin|Sandra|Samuel|Donna|Gregory|Carol|Frank|Ruth|Raymond|Sharon|Alexander|Michelle|Patrick|Laura|Jack|Kimberly|Dennis|Deborah|Jerry|Dorothy)\b/gi
+  ];
+  
+  for (const pattern of salesRepPatterns) {
+    const repMatch = conversationText.match(pattern);
+    if (repMatch) {
+      result.dealer.sales_rep_name = repMatch[0];
+      console.log('✅ Found sales rep:', result.dealer.sales_rep_name);
+      break;
+    }
+  }
+  
   const brianMatch = conversationText.match(/\bBrian\b/gi);
   if (brianMatch) {
     result.dealer.sales_rep_name = 'Brian';
     console.log('✅ Found sales rep: Brian');
   }
 
-  // STEP 6: Cross-reference with known dealer data
+  // STEP 6: Extract dealer name
+  const dealerPatterns = [
+    /\b([A-Za-z\s]+(?:Toyota|Honda|Ford|Chevrolet|Nissan|Hyundai|BMW|Mercedes|Audi|Lexus|Acura|Infiniti|Cadillac|Buick|GMC|Ram|Dodge|Jeep|Chrysler|Subaru|Mazda|Mitsubishi|Volvo|Jaguar|Porsche|Tesla|Genesis)[A-Za-z\s]*(?:of\s+[A-Za-z\s]+)?)\b/gi,
+    /\b([A-Za-z\s]+(?:Auto|Motors|Automotive|Dealership|Cars)[A-Za-z\s]*)\b/gi
+  ];
+
+  for (const pattern of dealerPatterns) {
+    const dealerMatch = conversationText.match(pattern);
+    if (dealerMatch) {
+      const dealerName = dealerMatch[0].trim();
+      if (dealerName.length > 3 && !dealerName.includes('@')) {
+        result.dealer.name = dealerName;
+        console.log('✅ Extracted dealer name:', result.dealer.name);
+        break;
+      }
+    }
+  }
+  
   const toyotaCedarParkMatch = conversationText.match(/Toyota\s+of\s+Cedar\s+Park/gi);
   if (toyotaCedarParkMatch) {
     result.dealer.name = 'Toyota of Cedar Park';
     console.log('✅ Found dealer: Toyota of Cedar Park');
   }
 
-  // STEP 6: Cross-reference with known dealer data
+  // STEP 7: Cross-reference with known dealer data
   if (result.dealer.name === 'Toyota of Cedar Park') {
-    // Only set contact email if we didn't find one from the actual message
     if (!result.dealer.contact_email) {
       result.dealer.contact_email = 'sales@toyotaofcedarpark.com';
     }
@@ -231,7 +238,7 @@ function parseConversationDirectly(conversationText, dealer) {
     console.log('✅ Added known dealer contact info');
   }
 
-  // STEP 7: Extract additional vehicle details
+  // STEP 8: Extract additional vehicle details
   console.log('=== EXTRACTING ADDITIONAL VEHICLE DETAILS ===');
   
   // Extract mileage
@@ -296,25 +303,7 @@ function parseConversationDirectly(conversationText, dealer) {
     console.log('✅ Extracted trim:', result.vehicle.trim);
   }
 
-  // STEP 8: Extract pricing
-  const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
-  const emailMatches = conversationText.match(emailPattern);
-  if (emailMatches) {
-    // Look for dealer emails (not Gmail, Yahoo, etc.)
-    const dealerEmails = emailMatches.filter(email => 
-      !email.includes('gmail.com') && 
-      !email.includes('yahoo.com') && 
-      !email.includes('hotmail.com') &&
-      !email.includes('outlook.com') &&
-      !email.includes('hagglehub.app')
-    );
-    if (dealerEmails.length > 0) {
-      result.dealer.contact_email = dealerEmails[0];
-      console.log('✅ Found dealer email:', result.dealer.contact_email);
-    }
-  }
-
-  // STEP 8: Extract pricing
+  // STEP 9: Extract pricing
   const pricePattern = /\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/g;
   const priceMatches = conversationText.match(pricePattern);
   if (priceMatches) {
@@ -328,6 +317,11 @@ function parseConversationDirectly(conversationText, dealer) {
     }
   }
 
+  console.log('=== FINAL PARSING RESULT ===');
+  console.log('Vehicle:', result.vehicle);
+  console.log('Dealer:', result.dealer);
+  console.log('Pricing:', result.pricing);
+  
   return result;
 }
 
@@ -632,7 +626,7 @@ export default function Messages() {
       
       console.log('Full conversation text for parsing:', conversationText);
       
-      const result = parseConversationDirectly(conversationText, selectedDealer);
+      const result = parseConversationDirectly(conversationText, selectedDealer, messages);
       console.log('Direct parsing result:', result);
       
       // Navigate to AddVehicle page with parsed data
