@@ -1,7 +1,42 @@
 import { Dealer, Deal, Message } from '@/api/entities';
 
 // Utility function to clean up duplicate "Uncategorized" or "General Inbox" dealers
-export async function cleanupDuplicateDealers() {
+export function cleanupDuplicateDealers(dealers) {
+  // This function now just filters and renames dealers in memory
+  // Returns the cleaned dealers array
+  
+  const systemDealers = dealers.filter(d => 
+    d.name?.includes('Uncategorized') || 
+    d.name?.includes('General Inbox') ||
+    d.name?.match(/\([a-z0-9]{7}\)/) || // Match the pattern (9qb207z)
+    d.name?.match(/Uncategorized \([a-z0-9]{7}\)/) || // Match "Uncategorized (abc123d)"
+    d.name === 'Uncategorized (9qb207z)' // Exact match for the specific one
+  );
+  
+  if (systemDealers.length <= 1) {
+    // Even if only one, rename it if it's not "General Inbox"
+    if (systemDealers.length === 1 && systemDealers[0].name !== 'General Inbox') {
+      systemDealers[0].name = 'General Inbox';
+      systemDealers[0].notes = 'System inbox for messages that don\'t match any specific deals. You can organize these messages later.';
+    }
+    return dealers;
+  }
+  
+  // Keep the first one, mark others for removal
+  const [keepDealer, ...duplicates] = systemDealers;
+  
+  // Rename the kept dealer to "General Inbox" if it's not already
+  if (keepDealer.name !== 'General Inbox') {
+    keepDealer.name = 'General Inbox';
+    keepDealer.notes = 'System inbox for messages that don\'t match any specific deals. You can organize these messages later.';
+  }
+  
+  // Return dealers array with duplicates removed
+  return dealers.filter(d => !duplicates.some(dup => dup.id === d.id));
+}
+
+// Async function for actual database cleanup (separate from the sync filter function)
+export async function performDealerCleanup() {
   try {
     console.log('Starting dealer cleanup...');
     
