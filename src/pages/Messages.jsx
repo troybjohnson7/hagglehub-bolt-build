@@ -376,98 +376,65 @@ export default function MessagesPage() {
 
       // Use AI to extract vehicle and pricing information from the conversation
       const result = await InvokeLLM({
-        prompt: `You are an expert data extraction AI. Analyze this entire conversation between a customer and car dealer to extract ALL available vehicle, dealer, and pricing information. Be thorough and look for:
+        prompt: `EXTRACT VEHICLE AND DEALER INFORMATION FROM THIS CONVERSATION:
 
-VEHICLE DETAILS TO FIND:
-- Year, Make, Model, Trim level
-- VIN number (17 characters, format: 1HGBH41JXMN109186)
-- Stock number/Stock ID (usually alphanumeric)
-- Mileage (look for numbers followed by "miles", "mi", "k miles", etc.)
-- Condition (new, used, certified pre-owned)
-- Exterior color, Interior color
-- Engine type, transmission, drivetrain
-- Features mentioned (sunroof, leather, navigation, etc.)
+You are a precise data extraction AI. Extract EXACT information from this car dealer conversation. Look for specific details and extract them EXACTLY as written.
 
-DEALER DETAILS TO FIND:
-- Dealer name (business name)
-- Sales representative name
-- Phone numbers (any format)
-- Email addresses
-- Physical address or location
-- Website URLs mentioned
-
-PRICING INFORMATION TO FIND:
-- Asking price/List price/MSRP
-- Current offer/Quote given
-- Trade-in value mentioned
-- Financing terms
-- Monthly payment amounts
-- Down payment requirements
-- Any fees mentioned (doc fees, etc.)
-
-IMPORTANT: Extract EXACT values mentioned in the conversation. If a VIN is mentioned, capture it exactly. If specific prices are quoted, capture those exact amounts. Look through the entire conversation history carefully.
-
-Conversation:
+CONVERSATION TEXT:
 ${conversationText}
 
-Known Dealer Info:
+CURRENT DEALER INFO:
 - Name: ${selectedDealer.name}
-- Email: ${selectedDealer.contact_email || 'Not provided'}
-- Phone: ${selectedDealer.phone || 'Not provided'}
-- Address: ${selectedDealer.address || 'Not provided'}`,
+- Email: ${selectedDealer.contact_email || 'Unknown'}
+- Phone: ${selectedDealer.phone || 'Unknown'}
+- Address: ${selectedDealer.address || 'Unknown'}
+
+EXTRACTION RULES:
+1. VEHICLE MAKE/MODEL: Look for car brand and model names (Toyota Tundra, Honda Civic, etc.)
+2. VIN: Find 17-character alphanumeric codes (like 5TFHY5F1XKX839771)
+3. YEAR: Look for 4-digit years (2020, 2021, etc.)
+4. STOCK NUMBER: Find stock/inventory numbers mentioned
+5. MILEAGE: Numbers followed by "miles", "mi", "k", etc.
+6. PRICES: Dollar amounts mentioned ($25,000, $30k, etc.)
+7. SALES REP: Names of people from the dealer
+8. CONTACT INFO: Phone numbers, emails, addresses mentioned
+
+Extract ONLY what is explicitly mentioned. If something isn't clearly stated, leave it null.`,
         response_json_schema: {
           type: "object",
           properties: {
             vehicle: {
               type: "object",
               properties: { 
-                year: { type: "number" }, 
+                year: { type: ["number", "null"] }, 
                 make: { type: "string" }, 
                 model: { type: "string" }, 
-                trim: { type: "string" }, 
+                trim: { type: ["string", "null"] }, 
                 vin: { type: "string" }, 
-                stock_number: { type: "string" }, 
-                mileage: { type: "number" }, 
-                condition: { type: "string" }, 
-                exterior_color: { type: "string" }, 
-                interior_color: { type: "string" },
-                engine: { type: "string" },
-                transmission: { type: "string" },
-                drivetrain: { type: "string" },
-                features: { type: "array", items: { type: "string" } },
-                listing_url: { type: "string" }
+                stock_number: { type: ["string", "null"] }, 
+                mileage: { type: ["number", "null"] }, 
+                condition: { type: ["string", "null"] }, 
+                exterior_color: { type: ["string", "null"] }, 
+                interior_color: { type: ["string", "null"] },
+                listing_url: { type: ["string", "null"] }
               }
             },
             dealer: {
               type: "object", 
               properties: { 
                 name: { type: "string" }, 
-                contact_email: { type: "string" }, 
-                phone: { type: "string" }, 
-                address: { type: "string" }, 
-                website: { type: "string" },
-                sales_rep_name: { type: "string" },
-                notes: { type: "string" }
+                contact_email: { type: ["string", "null"] }, 
+                phone: { type: ["string", "null"] }, 
+                address: { type: ["string", "null"] }, 
+                website: { type: ["string", "null"] },
+                sales_rep_name: { type: ["string", "null"] }
               }
             },
             pricing: {
               type: "object",
               properties: { 
-                asking_price: { type: "number" },
-                current_offer: { type: "number" },
-                trade_in_value: { type: "number" },
-                monthly_payment: { type: "number" },
-                down_payment: { type: "number" },
-                financing_terms: { type: "string" },
-                fees_mentioned: { type: "object" }
-              }
-            },
-            extraction_confidence: {
-              type: "object",
-              properties: {
-                vehicle_details: { type: "string", enum: ["high", "medium", "low"] },
-                pricing_info: { type: "string", enum: ["high", "medium", "low"] },
-                dealer_info: { type: "string", enum: ["high", "medium", "low"] }
+                asking_price: { type: ["number", "null"] },
+                current_offer: { type: ["number", "null"] }
               }
             }
           }
@@ -476,8 +443,23 @@ Known Dealer Info:
 
       console.log('AI parsing result:', result);
 
-      // Navigate to AddVehicle page with parsed data in URL params
-      const parsedDataParam = encodeURIComponent(JSON.stringify(result));
+      // Merge with existing dealer data
+      const enhancedResult = {
+        ...result,
+        dealer: {
+          name: selectedDealer.name,
+          contact_email: selectedDealer.contact_email || result.dealer?.contact_email,
+          phone: selectedDealer.phone || result.dealer?.phone,
+          address: selectedDealer.address || result.dealer?.address,
+          website: selectedDealer.website || result.dealer?.website,
+          sales_rep_name: result.dealer?.sales_rep_name
+        }
+      };
+
+      console.log('Enhanced result with dealer data:', enhancedResult);
+
+      // Navigate to AddVehicle page with enhanced parsed data
+      const parsedDataParam = encodeURIComponent(JSON.stringify(enhancedResult));
       const targetUrl = `${createPageUrl('AddVehicle')}?parsed_data=${parsedDataParam}&from_messages=true`;
       console.log('Navigating to:', targetUrl);
       window.location.href = targetUrl;
