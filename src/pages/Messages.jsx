@@ -140,7 +140,7 @@ function parseConversationDirectly(conversationText, dealer) {
   // Multiple strategies for vehicle extraction
   const vehicleExtractionStrategies = [
     // Strategy 1: Look for specific Toyota Tundra mentions
-    () => {
+    function() {
       const toyotaTundraMatch = conversationText.match(/Toyota\s+Tundra/gi);
       if (toyotaTundraMatch) {
         result.vehicle.make = 'Toyota';
@@ -152,7 +152,7 @@ function parseConversationDirectly(conversationText, dealer) {
     },
     
     // Strategy 2: Extract from VIN if it's a Toyota truck
-    () => {
+    function() {
       if (result.vehicle.vin && result.vehicle.vin.startsWith('5TF')) {
         result.vehicle.make = 'Toyota';
         // 5TF prefix indicates Toyota truck - likely Tundra, Tacoma, or 4Runner
@@ -173,7 +173,7 @@ function parseConversationDirectly(conversationText, dealer) {
     },
     
     // Strategy 3: General automotive brand + model pattern
-    () => {
+    function() {
       const vehiclePattern = /\b(Toyota|Honda|Ford|Chevrolet|Chevy|Nissan|Hyundai|Kia|BMW|Mercedes|Audi|Lexus|Acura|Infiniti|Cadillac|Buick|GMC|Ram|Dodge|Jeep|Chrysler|Subaru|Mazda|Mitsubishi|Volvo|Jaguar|Land Rover|Porsche|Tesla|Genesis)\s+([A-Za-z0-9\-]+(?:\s+[A-Za-z0-9\-]+)?)/gi;
       const vehicleMatches = [...conversationText.matchAll(vehiclePattern)];
   // STEP 4: Extract sales rep name
@@ -184,7 +184,7 @@ function parseConversationDirectly(conversationText, dealer) {
         return true;
       }
       return false;
-    },
+    }
   ];
   
   // Try each strategy until one succeeds
