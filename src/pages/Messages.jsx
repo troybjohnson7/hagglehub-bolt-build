@@ -376,7 +376,36 @@ export default function MessagesPage() {
 
       // Use AI to extract vehicle and pricing information from the conversation
       const result = await InvokeLLM({
-        prompt: `Extract structured vehicle, dealer, and pricing information from this conversation between a customer and car dealer. Focus on finding specific vehicle details, pricing information, and dealer contact info mentioned in the messages.
+        prompt: `You are an expert data extraction AI. Analyze this entire conversation between a customer and car dealer to extract ALL available vehicle, dealer, and pricing information. Be thorough and look for:
+
+VEHICLE DETAILS TO FIND:
+- Year, Make, Model, Trim level
+- VIN number (17 characters, format: 1HGBH41JXMN109186)
+- Stock number/Stock ID (usually alphanumeric)
+- Mileage (look for numbers followed by "miles", "mi", "k miles", etc.)
+- Condition (new, used, certified pre-owned)
+- Exterior color, Interior color
+- Engine type, transmission, drivetrain
+- Features mentioned (sunroof, leather, navigation, etc.)
+
+DEALER DETAILS TO FIND:
+- Dealer name (business name)
+- Sales representative name
+- Phone numbers (any format)
+- Email addresses
+- Physical address or location
+- Website URLs mentioned
+
+PRICING INFORMATION TO FIND:
+- Asking price/List price/MSRP
+- Current offer/Quote given
+- Trade-in value mentioned
+- Financing terms
+- Monthly payment amounts
+- Down payment requirements
+- Any fees mentioned (doc fees, etc.)
+
+IMPORTANT: Extract EXACT values mentioned in the conversation. If a VIN is mentioned, capture it exactly. If specific prices are quoted, capture those exact amounts. Look through the entire conversation history carefully.
 
 Conversation:
 ${conversationText}
@@ -401,7 +430,12 @@ Known Dealer Info:
                 mileage: { type: "number" }, 
                 condition: { type: "string" }, 
                 exterior_color: { type: "string" }, 
-                interior_color: { type: "string" } 
+                interior_color: { type: "string" },
+                engine: { type: "string" },
+                transmission: { type: "string" },
+                drivetrain: { type: "string" },
+                features: { type: "array", items: { type: "string" } },
+                listing_url: { type: "string" }
               }
             },
             dealer: {
@@ -411,14 +445,29 @@ Known Dealer Info:
                 contact_email: { type: "string" }, 
                 phone: { type: "string" }, 
                 address: { type: "string" }, 
-                website: { type: "string" } 
+                website: { type: "string" },
+                sales_rep_name: { type: "string" },
+                notes: { type: "string" }
               }
             },
             pricing: {
               type: "object",
               properties: { 
                 asking_price: { type: "number" },
-                current_offer: { type: "number" }
+                current_offer: { type: "number" },
+                trade_in_value: { type: "number" },
+                monthly_payment: { type: "number" },
+                down_payment: { type: "number" },
+                financing_terms: { type: "string" },
+                fees_mentioned: { type: "object" }
+              }
+            },
+            extraction_confidence: {
+              type: "object",
+              properties: {
+                vehicle_details: { type: "string", enum: ["high", "medium", "low"] },
+                pricing_info: { type: "string", enum: ["high", "medium", "low"] },
+                dealer_info: { type: "string", enum: ["high", "medium", "low"] }
               }
             }
           }
