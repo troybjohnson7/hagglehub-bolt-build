@@ -632,7 +632,7 @@ export default function Messages() {
       
       console.log('Full conversation text for parsing:', conversationText);
       
-      const result = parseConversationDirectly(conversationText, selectedDealer, messages);
+      const result = parseConversationDirectly(conversationText, selectedDealer);
       console.log('Direct parsing result:', result);
       
       // Navigate to AddVehicle page with parsed data
@@ -658,7 +658,10 @@ export default function Messages() {
       >
         <MessageCircle className="w-12 h-12 text-slate-400 mb-4" />
         <h2 className="text-xl font-semibold text-slate-700">No Conversations</h2>
-        <p className="text-slate-500">You haven't started any conversations yet. Add a new deal to begin.</p>
+        <p className="text-slate-500">You
+    )
+  }
+} haven't started any conversations yet. Add a new deal to begin.</p>
       </motion.div>
     );
   }
