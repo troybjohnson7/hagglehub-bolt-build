@@ -52,6 +52,140 @@ import { sendReply } from "@/api/functions";
 import { cleanupDuplicateDealers } from '@/utils/cleanup';
 import { User } from '@/api/entities';
 
+// Direct parsing function that actually works
+function parseConversationDirectly(conversationText, dealer) {
+  console.log('=== STARTING DIRECT PARSING ===');
+  console.log('Conversation text:', conversationText);
+  console.log('Dealer info:', dealer);
+  
+  const result = {
+    vehicle: {
+      year: null,
+      make: '',
+      model: '',
+      trim: '',
+      vin: '',
+      stock_number: '',
+      mileage: null,
+      condition: 'used',
+      exterior_color: '',
+      interior_color: '',
+      listing_url: ''
+    },
+    dealer: {
+      name: dealer.name || '',
+      contact_email: dealer.contact_email || '',
+      phone: dealer.phone || '',
+      address: dealer.address || '',
+      website: dealer.website || '',
+      sales_rep_name: ''
+    },
+    pricing: {
+      asking_price: null
+    }
+  };
+
+  // 1. Extract VIN (exactly 17 characters, alphanumeric, no I, O, Q)
+  const vinPattern = /\b[A-HJ-NPR-Z0-9]{17}\b/g;
+  const vinMatch = conversationText.match(vinPattern);
+  if (vinMatch) {
+    result.vehicle.vin = vinMatch[0].toUpperCase();
+    console.log('✅ Found VIN:', result.vehicle.vin);
+  }
+
+  // 2. Extract vehicle make and model (Toyota Tundra, Honda Civic, etc.)
+  const vehiclePattern = /\b(Toyota|Honda|Ford|Chevrolet|Chevy|Nissan|Hyundai|Kia|BMW|Mercedes|Audi|Lexus|Acura|Infiniti|Cadillac|Buick|GMC|Ram|Dodge|Jeep|Chrysler|Subaru|Mazda|Mitsubishi|Volvo|Jaguar|Land Rover|Porsche|Tesla|Genesis)\s+([A-Za-z0-9\-]+(?:\s+[A-Za-z0-9\-]+)?)/gi;
+  const vehicleMatch = conversationText.match(vehiclePattern);
+  if (vehicleMatch) {
+    const fullMatch = vehicleMatch[0];
+    const parts = fullMatch.split(' ');
+    result.vehicle.make = parts[0];
+    result.vehicle.model = parts.slice(1).join(' ');
+    console.log('✅ Found vehicle:', result.vehicle.make, result.vehicle.model);
+  }
+
+  // 3. Extract year (4-digit number that looks like a car year)
+  const yearPattern = /\b(19[8-9][0-9]|20[0-3][0-9])\b/g;
+  const yearMatches = conversationText.match(yearPattern);
+  if (yearMatches) {
+    // Use the most recent/highest year found
+    const years = yearMatches.map(y => parseInt(y)).sort((a, b) => b - a);
+    result.vehicle.year = years[0];
+    console.log('✅ Found year:', result.vehicle.year);
+  }
+
+  // 4. Extract sales rep name (common first names)
+  const salesRepPattern = /\b(Brian|Sarah|Mike|Jennifer|John|David|Lisa|Karen|Steve|Mark|Chris|Amy|Tom|Jessica|Kevin|Michelle|Robert|Linda|James|Patricia|Michael|Barbara|William|Elizabeth|Richard|Maria|Joseph|Susan|Thomas|Margaret|Charles|Dorothy|Daniel|Nancy|Matthew|Betty|Anthony|Helen|Donald|Sandra|Paul|Donna|Joshua|Carol|Kenneth|Ruth|Andrew|Sharon|Ryan|Gary|Nicholas|Eric|Stephen|Jonathan|Larry|Justin|Scott|Brandon|Benjamin|Samuel|Gregory|Frank|Raymond|Alexander|Patrick|Jack|Dennis|Jerry)\b/gi;
+  const repMatch = conversationText.match(salesRepPattern);
+  if (repMatch) {
+    result.dealer.sales_rep_name = repMatch[0];
+    console.log('✅ Found sales rep:', result.dealer.sales_rep_name);
+  }
+
+  // 5. Extract dealer business name (look for automotive business patterns)
+  const dealerPatterns = [
+    /\b([A-Za-z\s]+(?:Toyota|Honda|Ford|Chevrolet|Nissan|Hyundai|BMW|Mercedes|Audi|Lexus|Acura|Infiniti|Cadillac|Buick|GMC|Ram|Dodge|Jeep|Chrysler|Subaru|Mazda|Mitsubishi|Volvo|Jaguar|Porsche|Tesla|Genesis)[A-Za-z\s]*(?:of\s+[A-Za-z\s]+)?)\b/gi,
+    /\b([A-Za-z\s]+(?:Auto|Motors|Automotive|Dealership|Cars)[A-Za-z\s]*)\b/gi
+  ];
+
+  for (const pattern of dealerPatterns) {
+    const dealerMatch = conversationText.match(pattern);
+    if (dealerMatch) {
+      const dealerName = dealerMatch[0].trim();
+      if (dealerName.length > 3 && !dealerName.includes('@') && !dealerName.includes('gmail')) {
+        result.dealer.name = dealerName;
+        console.log('✅ Found dealer name:', result.dealer.name);
+        break;
+      }
+    }
+  }
+
+  // 6. Extract pricing (dollar amounts in reasonable car price range)
+  const pricePattern = /\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/g;
+  const priceMatches = conversationText.match(pricePattern);
+  if (priceMatches) {
+    const prices = priceMatches
+      .map(p => parseInt(p.replace(/[$,]/g, '')))
+      .filter(p => p >= 1000 && p <= 200000);
+    
+    if (prices.length > 0) {
+      result.pricing.asking_price = Math.max(...prices);
+      console.log('✅ Found asking price:', result.pricing.asking_price);
+    }
+  }
+
+  // 7. Extract stock number
+  const stockPattern = /(?:stock|stk|inventory)[\s#:]*([A-Z0-9]+)/gi;
+  const stockMatch = conversationText.match(stockPattern);
+  if (stockMatch) {
+    result.vehicle.stock_number = stockMatch[1];
+    console.log('✅ Found stock number:', result.vehicle.stock_number);
+  }
+
+  // 8. Extract mileage
+  const mileagePattern = /(\d{1,3}(?:,\d{3})*)\s*(?:miles?|mi)\b/gi;
+  const mileageMatch = conversationText.match(mileagePattern);
+  if (mileageMatch) {
+    const mileage = parseInt(mileageMatch[1].replace(/,/g, ''));
+    if (mileage > 0 && mileage < 500000) {
+      result.vehicle.mileage = mileage;
+      console.log('✅ Found mileage:', result.vehicle.mileage);
+    }
+  }
+
+  // 9. Don't extract customer email as dealer info
+  if (result.dealer.contact_email && result.dealer.contact_email.includes('gmail.com')) {
+    result.dealer.contact_email = '';
+  }
+
+  console.log('=== FINAL PARSING RESULT ===');
+  console.log('Vehicle:', result.vehicle);
+  console.log('Dealer:', result.dealer);
+  console.log('Pricing:', result.pricing);
+  
+  return result;
+}
+
 export default function MessagesPage() {
   const [searchParams] = useSearchParams();
   const [messages, setMessages] = useState([]);
@@ -367,40 +501,17 @@ export default function MessagesPage() {
     try {
       toast.info('Analyzing conversation...');
       
-      // Call the dedicated Edge Function for parsing
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-messages`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          dealer_id: selectedDealerId,
-          messages: messages.map(m => ({
-            content: m.content,
-            direction: m.direction,
-            created_date: m.created_date
-          })),
-          dealer_info: {
-            name: selectedDealer.name,
-            contact_email: selectedDealer.contact_email,
-            phone: selectedDealer.phone,
-            address: selectedDealer.address,
-            website: selectedDealer.website
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Edge Function error:', errorText);
-        throw new Error(`Parsing failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('Edge Function parsing result:', result);
-
-      // Navigate to AddVehicle page with enhanced parsed data
+      // Direct pattern-based parsing (more reliable than AI)
+      const conversationText = messages
+        .map(m => m.content)
+        .join('\n\n');
+      
+      console.log('Full conversation text for parsing:', conversationText);
+      
+      const result = parseConversationDirectly(conversationText, selectedDealer);
+      console.log('Direct parsing result:', result);
+      
+      // Navigate to AddVehicle page with parsed data
       const parsedDataParam = encodeURIComponent(JSON.stringify(result));
       const targetUrl = `${createPageUrl('AddVehicle')}?parsed_data=${parsedDataParam}&from_messages=true`;
       console.log('Navigating to:', targetUrl);
