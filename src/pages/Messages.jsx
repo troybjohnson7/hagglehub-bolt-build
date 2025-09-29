@@ -52,7 +52,7 @@ import { sendReply } from "@/api/functions";
 import { cleanupDuplicateDealers } from '@/utils/cleanup';
 import { User } from '@/api/entities';
 
-// Direct parsing function that actually works
+// Direct parsing function that extracts real data from conversation
 function parseConversationDirectly(conversationText, dealer) {
   console.log('=== STARTING DIRECT PARSING ===');
   console.log('Conversation text:', conversationText);
@@ -61,10 +61,10 @@ function parseConversationDirectly(conversationText, dealer) {
   const result = {
     vehicle: {
       year: null,
-      make: 'Toyota',
-      model: 'Tundra',
+      make: '',
+      model: '',
       trim: '',
-      vin: '5TFHY5F1XKX839771',
+      vin: '',
       stock_number: '',
       mileage: null,
       condition: 'used',
@@ -73,178 +73,56 @@ function parseConversationDirectly(conversationText, dealer) {
       listing_url: ''
     },
     dealer: {
-      name: 'Toyota of Cedar Park',
+      name: dealer.name || '',
       contact_email: '',
-      phone: '(512) 778-0711',
-      address: '5600 183A Toll Rd, Cedar Park, TX 78641',
+      phone: dealer.phone || '',
+      address: dealer.address || '',
       website: dealer.website || '',
-      sales_rep_name: 'Brian'
+      sales_rep_name: ''
     },
     pricing: {
       asking_price: null
     }
   };
 
-  // STEP 1: Extract actual sender email from inbound messages
+  // STEP 1: Extract actual sender email from conversation
   console.log('=== EXTRACTING SENDER EMAIL ===');
-  // Look for email addresses in conversation content
   const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
   const emailMatches = conversationText.match(emailPattern);
   
   if (emailMatches) {
-    // Filter out customer emails and HaggleHub emails to find dealer email
-    const dealerEmails = emailMatches.filter(email => 
-      !email.includes('gmail.com') && 
-      !email.includes('yahoo.com') && 
-      !email.includes('hotmail.com') &&
-      !email.includes('outlook.com') &&
+    // Look for troy.b.johnson@gmail.com specifically or any real email
+    const realEmails = emailMatches.filter(email => 
       !email.includes('hagglehub.app') &&
-      !email.includes('icloud.com') &&
       !email.includes('noreply') &&
       !email.includes('no-reply')
     );
     
-    if (dealerEmails.length > 0) {
-      result.dealer.contact_email = dealerEmails[0];
-      console.log('✅ Found dealer email:', result.dealer.contact_email);
+    if (realEmails.length > 0) {
+      result.dealer.contact_email = realEmails[0];
+      console.log('✅ Found real sender email:', result.dealer.contact_email);
     }
   }
-  
-  // If no email found in conversation, check if it's brian@toyotaofcedarpark.com
-  if (!result.dealer.contact_email && dealer.name === 'Toyota of Cedar Park') {
-    result.dealer.contact_email = 'brian@toyotaofcedarpark.com';
-    console.log('✅ Using known Toyota of Cedar Park email');
-  }
+
   // STEP 2: Extract VIN (17 characters, most reliable identifier)
-  // STEP 1: Extract VIN first (most reliable identifier)
+  console.log('=== EXTRACTING VIN ===');
   const vinPattern = /\b[A-HJ-NPR-Z0-9]{17}\b/g;
   const vinMatches = conversationText.match(vinPattern);
   if (vinMatches && vinMatches.length > 0) {
     result.vehicle.vin = vinMatches[0].toUpperCase();
     console.log('✅ Found VIN:', result.vehicle.vin);
-    
-    // Decode year from Toyota VIN (10th character - index 9)
-    if (result.vehicle.vin.startsWith('5TF')) {
-      const vinYearChar = result.vehicle.vin.charAt(9);
-      console.log('VIN year character:', vinYearChar);
-      
-      // Toyota VIN year mapping - K = 2019
-      const toyotaYearMap = {
-        'H': 2017, 'J': 2018, 'K': 2019, 'L': 2020, 'M': 2021, 
-        'N': 2022, 'P': 2023, 'R': 2024, 'S': 2025, 'T': 2026
-      };
-      
-      if (toyotaYearMap[vinYearChar]) {
-        result.vehicle.year = toyotaYearMap[vinYearChar];
-        console.log('✅ Decoded year from Toyota VIN:', result.vehicle.year);
-      }
-    }
   }
 
-  // STEP 3: Extract vehicle make and model (SEPARATE from VIN)
-  // Multiple strategies for vehicle extraction
-  const vehicleExtractionStrategies = [
-    // Strategy 1: Look for specific Toyota Tundra mentions
-    () => {
-      const toyotaTundraMatch = conversationText.match(/Toyota\s+Tundra/gi);
-      if (toyotaTundraMatch) {
-        result.vehicle.make = 'Toyota';
-        result.vehicle.model = 'Tundra';
-        console.log('✅ Strategy 1: Found Toyota Tundra');
-        return true;
-      }
-      return false;
-    },
-    
-    // Strategy 2: Extract from VIN if it's a Toyota truck
-    () => {
-      if (result.vehicle.vin && result.vehicle.vin.startsWith('5TF')) {
-        result.vehicle.make = 'Toyota';
-        // 5TF prefix indicates Toyota truck - likely Tundra, Tacoma, or 4Runner
-        // Check conversation for specific model mentions
-        if (conversationText.toLowerCase().includes('tundra')) {
-          result.vehicle.model = 'Tundra';
-        } else if (conversationText.toLowerCase().includes('tacoma')) {
-          result.vehicle.model = 'Tacoma';
-  console.log('=== EXTRACTING VEHICLE MAKE/MODEL ===');
-  
-  // Strategy 1: Look for specific Toyota Tundra mentions
-  const toyotaTundraMatch = conversationText.match(/Toyota\s+Tundra/gi);
-  if (toyotaTundraMatch) {
-    result.vehicle.make = 'Toyota';
-    result.vehicle.model = 'Tundra';
-    console.log('✅ Strategy 1: Found Toyota Tundra');
-  }
-  // Strategy 2: Extract from VIN if it's a Toyota truck
-  else if (result.vehicle.vin && result.vehicle.vin.startsWith('5TF')) {
-    result.vehicle.make = 'Toyota';
-    // 5TF prefix indicates Toyota truck - check conversation for specific model
-    if (conversationText.toLowerCase().includes('tundra')) {
-      result.vehicle.model = 'Tundra';
-    } else if (conversationText.toLowerCase().includes('tacoma')) {
-      result.vehicle.model = 'Tacoma';
-    } else if (conversationText.toLowerCase().includes('4runner')) {
-      result.vehicle.model = '4Runner';
-    } else {
-      result.vehicle.model = 'Tundra'; // Default for 5TF prefix
-    }
-    console.log('✅ Strategy 2: Decoded from Toyota VIN:', result.vehicle.make, result.vehicle.model);
-  }
-  // Strategy 3: General automotive brand + model pattern
-  else {
-    const vehiclePattern = /\b(Toyota|Honda|Ford|Chevrolet|Chevy|Nissan|Hyundai|Kia|BMW|Mercedes|Audi|Lexus|Acura|Infiniti|Cadillac|Buick|GMC|Ram|Dodge|Jeep|Chrysler|Subaru|Mazda|Mitsubishi|Volvo|Jaguar|Land Rover|Porsche|Tesla|Genesis)\s+([A-Za-z0-9\-]+(?:\s+[A-Za-z0-9\-]+)?)/gi;
-    const vehicleMatches = [...conversationText.matchAll(vehiclePattern)];
-    if (vehicleMatches.length > 0) {
-      const [, make, model] = vehicleMatches[0];
-      result.vehicle.make = make;
-      result.vehicle.model = model;
-      console.log('✅ Strategy 3: Found vehicle pattern:', make, model);
-    }
-  }
-
-  // STEP 4: Extract sales rep name (Brian)
-  console.log('=== EXTRACTING SALES REP ===');
-  const brianMatch = conversationText.match(/\bBrian\b/gi);
-  if (brianMatch) {
-    result.dealer.sales_rep_name = 'Brian';
-    console.log('✅ Found sales rep: Brian');
-  }
-
-  // STEP 5: Extract dealer name
-  console.log('=== EXTRACTING DEALER NAME ===');
-  const toyotaCedarParkMatch = conversationText.match(/Toyota\s+of\s+Cedar\s+Park/gi);
-  if (toyotaCedarParkMatch) {
-    result.dealer.name = 'Toyota of Cedar Park';
-    console.log('✅ Found dealer: Toyota of Cedar Park');
-  }
-
-  // STEP 6: Set known dealer contact info only if no email was found
-  if (result.dealer.name === 'Toyota of Cedar Park') {
-    if (!result.dealer.contact_email) {
-      result.dealer.contact_email = 'brian@toyotaofcedarpark.com';
-      console.log('✅ Using known Toyota of Cedar Park email');
-    }
-    result.dealer.phone = '(512) 778-0711';
-    result.dealer.address = '5600 183A Toll Rd, Cedar Park, TX 78641';
-    result.dealer.website = 'https://www.toyotaofcedarpark.com';
-  }
-
-  // STEP 7: Extract year from conversation or URL
+  // STEP 3: Extract vehicle year from conversation first
   console.log('=== EXTRACTING VEHICLE YEAR ===');
-  // Look for 4-digit years in conversation
   const yearPattern = /\b(201[0-9]|202[0-9])\b/g;
   const yearMatches = conversationText.match(yearPattern);
   if (yearMatches) {
-    // Use the most common year or the first one found
     result.vehicle.year = parseInt(yearMatches[0]);
     console.log('✅ Found year in conversation:', result.vehicle.year);
-  }
-  
-  // If no year found in conversation, try VIN decoding
-  if (!result.vehicle.year && result.vehicle.vin && result.vehicle.vin.startsWith('5TF')) {
+  } else if (result.vehicle.vin && result.vehicle.vin.startsWith('5TF')) {
+    // Fallback: Decode year from Toyota VIN (10th character)
     const vinYearChar = result.vehicle.vin.charAt(9);
-    console.log('VIN year character:', vinYearChar);
-    
     const toyotaYearMap = {
       'H': 2017, 'J': 2018, 'K': 2019, 'L': 2020, 'M': 2021, 
       'N': 2022, 'P': 2023, 'R': 2024, 'S': 2025, 'T': 2026
@@ -256,8 +134,57 @@ function parseConversationDirectly(conversationText, dealer) {
     }
   }
 
-  // STEP 8: Extract additional vehicle details
-  console.log('=== EXTRACTING ADDITIONAL VEHICLE DETAILS ===');
+  // STEP 4: Extract vehicle make and model
+  console.log('=== EXTRACTING VEHICLE MAKE/MODEL ===');
+  
+  // Look for Toyota Tundra specifically
+  const toyotaTundraMatch = conversationText.match(/Toyota\s+Tundra/gi);
+  if (toyotaTundraMatch) {
+    result.vehicle.make = 'Toyota';
+    result.vehicle.model = 'Tundra';
+    console.log('✅ Found Toyota Tundra in conversation');
+  } else if (result.vehicle.vin && result.vehicle.vin.startsWith('5TF')) {
+    // Toyota truck VIN - check for specific model mentions
+    result.vehicle.make = 'Toyota';
+    if (conversationText.toLowerCase().includes('tundra')) {
+      result.vehicle.model = 'Tundra';
+    } else if (conversationText.toLowerCase().includes('tacoma')) {
+      result.vehicle.model = 'Tacoma';
+    } else if (conversationText.toLowerCase().includes('4runner')) {
+      result.vehicle.model = '4Runner';
+    } else {
+      result.vehicle.model = 'Tundra'; // Default for 5TF prefix
+    }
+    console.log('✅ Decoded from Toyota VIN:', result.vehicle.make, result.vehicle.model);
+  } else {
+    // General vehicle pattern matching
+    const vehiclePattern = /\b(Toyota|Honda|Ford|Chevrolet|Chevy|Nissan|Hyundai|Kia|BMW|Mercedes|Audi|Lexus|Acura|Infiniti|Cadillac|Buick|GMC|Ram|Dodge|Jeep|Chrysler|Subaru|Mazda|Mitsubishi|Volvo|Jaguar|Land Rover|Porsche|Tesla|Genesis)\s+([A-Za-z0-9\-]+(?:\s+[A-Za-z0-9\-]+)?)/gi;
+    const vehicleMatches = [...conversationText.matchAll(vehiclePattern)];
+    if (vehicleMatches.length > 0) {
+      const [, make, model] = vehicleMatches[0];
+      result.vehicle.make = make;
+      result.vehicle.model = model;
+      console.log('✅ Found vehicle pattern:', make, model);
+    }
+  }
+
+  // STEP 5: Extract pricing information
+  console.log('=== EXTRACTING PRICING ===');
+  const pricePattern = /\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/g;
+  const priceMatches = conversationText.match(pricePattern);
+  if (priceMatches) {
+    const prices = priceMatches
+      .map(p => parseInt(p.replace(/[$,]/g, '')))
+      .filter(p => p >= 5000 && p <= 200000);
+    
+    if (prices.length > 0) {
+      result.pricing.asking_price = Math.max(...prices);
+      console.log('✅ Found asking price:', result.pricing.asking_price);
+    }
+  }
+
+  // STEP 6: Extract additional vehicle details
+  console.log('=== EXTRACTING ADDITIONAL DETAILS ===');
   
   // Extract mileage
   const mileagePatterns = [
@@ -295,6 +222,17 @@ function parseConversationDirectly(conversationText, dealer) {
     }
   }
 
+  // Extract trim levels
+  const trimPatterns = [
+    /\b(Limited|Sport|Base|Premium|Luxury|SE|LE|XLE|SR5|TRD|Hybrid|AWD|4WD|FWD|RWD|Turbo|V6|V8|Diesel|Electric|CrewMax|Double Cab|Regular Cab)\b/gi
+  ];
+
+  const trimMatch = conversationText.match(trimPatterns);
+  if (trimMatch) {
+    result.vehicle.trim = trimMatch[0];
+    console.log('✅ Extracted trim:', result.vehicle.trim);
+  }
+
   // Extract colors
   const colorPatterns = [
     /(?:exterior|outside|color)[\s:]*([A-Za-z\s]+?)(?:\s|$|,|\.|;)/gi,
@@ -310,29 +248,26 @@ function parseConversationDirectly(conversationText, dealer) {
     }
   }
 
-  // Extract trim levels
-  const trimPatterns = [
-    /\b(Limited|Sport|Base|Premium|Luxury|SE|LE|XLE|SR5|TRD|Hybrid|AWD|4WD|FWD|RWD|Turbo|V6|V8|Diesel|Electric|CrewMax|Double Cab|Regular Cab)\b/gi
-  ];
-
-  const trimMatch = conversationText.match(trimPatterns);
-  if (trimMatch) {
-    result.vehicle.trim = trimMatch[0];
-    console.log('✅ Extracted trim:', result.vehicle.trim);
-  }
-
-  // STEP 9: Extract pricing
-  console.log('=== EXTRACTING PRICING ===');
-  const pricePattern = /\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/g;
-  const priceMatches = conversationText.match(pricePattern);
-  if (priceMatches) {
-    const prices = priceMatches
-      .map(p => parseInt(p.replace(/[$,]/g, '')))
-      .filter(p => p >= 5000 && p <= 200000); // Reasonable car price range
+  // STEP 7: Extract URLs for additional parsing
+  console.log('=== EXTRACTING URLS ===');
+  const urlPattern = /https?:\/\/[^\s]+/g;
+  const urlMatches = conversationText.match(urlPattern);
+  if (urlMatches) {
+    result.vehicle.listing_url = urlMatches[0];
+    console.log('✅ Found listing URL:', result.vehicle.listing_url);
     
-    if (prices.length > 0) {
-      result.pricing.asking_price = Math.max(...prices);
-      console.log('✅ Found asking price:', result.pricing.asking_price);
+    // Parse vehicle info from Toyota of Cedar Park URL
+    if (urlMatches[0].includes('toyotaofcedarpark.com')) {
+      const pathMatch = urlMatches[0].match(/\/inventory\/used-(\d{4})-([^-]+)-([^-]+)(?:-[^-]*)*-([^-]+)-[^-]+-[^-]+-([^\/]+)\//);
+      if (pathMatch) {
+        const [, year, make, model, trim, vin] = pathMatch;
+        result.vehicle.year = parseInt(year);
+        result.vehicle.make = make.charAt(0).toUpperCase() + make.slice(1);
+        result.vehicle.model = model.charAt(0).toUpperCase() + model.slice(1);
+        result.vehicle.trim = trim.toUpperCase();
+        result.vehicle.vin = vin.toUpperCase();
+        console.log('✅ Parsed from Toyota URL:', result.vehicle);
+      }
     }
   }
 
