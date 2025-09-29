@@ -579,6 +579,115 @@ export default function MessagesPage() {
         </div>
       )}
       
+      {/* FIXED Input Area - Only show when dealer is selected */}
+      {selectedDealer && (
+        <>
+          {/* Quick Actions - only show if not General Inbox */}
+          {currentDeal && !isGeneralInbox && (
+            <div className="flex-shrink-0 bg-white border-t border-slate-200">
+              <QuickActions 
+                deal={currentDeal} 
+                onAction={(action, data) => {
+                  if (action === 'send_message') {
+                    handleMessageSubmit(data.message, 'outbound', 'app');
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {/* Message Input Area */}
+          <div className="flex-shrink-0 bg-white border-t border-slate-200 p-4">
+            {/* AI Suggest and Templates buttons */}
+            <div className="flex gap-2 mb-2">
+              <Dialog open={isSuggestionModalOpen} onOpenChange={setIsSuggestionModalOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleAISuggestion}
+                    disabled={isSuggesting || !currentDeal}
+                    className="text-xs border-lime-300 text-lime-700 hover:bg-lime-50"
+                  >
+                    {isSuggesting ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                    AI Suggest
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>AI Negotiation Strategies</DialogTitle>
+                    <DialogDescription>Here are a few strategic options for your next move. Choose one to use it.</DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+                    {aiSuggestions.length > 0 ? (
+                      aiSuggestions.map((suggestion, index) => (
+                        <div key={index} className="p-4 border rounded-lg bg-slate-50">
+                          <h4 className="font-semibold text-sm text-slate-800">{suggestion.strategy_name}</h4>
+                          <p className="text-xs text-slate-600 mt-1 mb-2">{suggestion.explanation}</p>
+                          <blockquote className="border-l-2 border-lime-400 pl-3 text-sm text-slate-700 font-medium bg-white p-2 rounded-r-md">
+                            {suggestion.example_message}
+                          </blockquote>
+                          <Button
+                            size="sm"
+                            className="mt-3 text-xs"
+                            onClick={() => {
+                              setNewMessage(suggestion.example_message);
+                              setIsSuggestionModalOpen(false);
+                            }}
+                          >
+                            Use this message
+                          </Button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-center text-slate-500">No suggestions generated yet, or an error occurred.</p>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Sheet open={showTemplates} onOpenChange={setShowTemplates}>
+                <SheetTrigger asChild>
+                  <Button size="sm" variant="outline" className="text-xs">
+                    <MessageSquareReply className="w-3 h-3 mr-1" />
+                    Templates
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="max-h-[80vh]">
+                  <SheetHeader>
+                    <SheetTitle>Message Templates</SheetTitle>
+                    <SheetDescription>Choose a professional template to get started</SheetDescription>
+                  </SheetHeader>
+                  <MessageTemplates onSelect={handleTemplateSelect} deal={currentDeal} />
+                </SheetContent>
+              </Sheet>
+            </div>
+
+            {/* Text input and Send button */}
+            <div className="flex gap-2">
+              <Textarea
+                placeholder="Type your reply..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
+                className="flex-1 min-h-[44px] text-sm focus:ring-lime-500 focus:border-lime-500"
+                rows={2}
+              />
+              <div className="flex flex-col gap-2">
+                <Button 
+                  size="icon" 
+                  onClick={handleSendMessage} 
+                  disabled={isSending || !newMessage.trim()}
+                  className="bg-teal-700 hover:bg-teal-800 shrink-0"
+                >
+                  {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+      
       {/* Deal Assignment Dialog */}
       <Dialog open={showDealAssignDialog} onOpenChange={setShowDealAssignDialog}>
         <DialogContent>
