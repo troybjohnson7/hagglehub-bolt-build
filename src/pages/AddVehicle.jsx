@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
+import { useSearchParams } from 'react-router-dom';
 
 // Main component orchestrating the flow
 export default function AddVehiclePage() {

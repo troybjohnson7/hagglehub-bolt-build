@@ -348,6 +348,81 @@ export default function MessagesPage() {
   const isGeneralInbox = selectedDealer?.name === 'General Inbox';
   const currentDealForDealer = deals.find(d => d.dealer_id === selectedDealerId);
 
+  const handleCreateDealFromMessages = async () => {
+    if (!selectedDealer || messages.length === 0) {
+      // Fallback to regular add vehicle page if no context
+      window.location.href = createPageUrl('AddVehicle');
+      return;
+    }
+
+    try {
+      // Combine all message content for analysis
+      const conversationText = messages
+        .map(m => `${m.direction === 'inbound' ? 'Dealer' : 'Customer'}: ${m.content}`)
+        .join('\n');
+
+      // Use AI to extract vehicle and pricing information from the conversation
+      const result = await InvokeLLM({
+        prompt: `Extract structured vehicle, dealer, and pricing information from this conversation between a customer and car dealer. Focus on finding specific vehicle details, pricing information, and dealer contact info mentioned in the messages.
+
+Conversation:
+${conversationText}
+
+Known Dealer Info:
+- Name: ${selectedDealer.name}
+- Email: ${selectedDealer.contact_email || 'Not provided'}
+- Phone: ${selectedDealer.phone || 'Not provided'}
+- Address: ${selectedDealer.address || 'Not provided'}`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            vehicle: {
+              type: "object",
+              properties: { 
+                year: { type: "number" }, 
+                make: { type: "string" }, 
+                model: { type: "string" }, 
+                trim: { type: "string" }, 
+                vin: { type: "string" }, 
+                stock_number: { type: "string" }, 
+                mileage: { type: "number" }, 
+                condition: { type: "string" }, 
+                exterior_color: { type: "string" }, 
+                interior_color: { type: "string" } 
+              }
+            },
+            dealer: {
+              type: "object", 
+              properties: { 
+                name: { type: "string" }, 
+                contact_email: { type: "string" }, 
+                phone: { type: "string" }, 
+                address: { type: "string" }, 
+                website: { type: "string" } 
+              }
+            },
+            pricing: {
+              type: "object",
+              properties: { 
+                asking_price: { type: "number" },
+                current_offer: { type: "number" }
+              }
+            }
+          }
+        }
+      });
+
+      // Navigate to AddVehicle page with parsed data in URL params
+      const parsedDataParam = encodeURIComponent(JSON.stringify(result));
+      window.location.href = `${createPageUrl('AddVehicle')}?parsed_data=${parsedDataParam}&from_messages=true`;
+      
+    } catch (error) {
+      console.error('Failed to parse conversation:', error);
+      toast.error('Failed to analyze conversation. Redirecting to manual entry.');
+      window.location.href = createPageUrl('AddVehicle');
+    }
+  };
+
   if (dealers.length === 0 && !isLoading) {
     return (
       <motion.div 
