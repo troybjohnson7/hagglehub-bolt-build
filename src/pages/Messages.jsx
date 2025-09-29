@@ -184,7 +184,7 @@ function parseConversationDirectly(conversationText, dealer) {
         return true;
       }
       return false;
-    }
+    },
   ];
   
   // Try each strategy until one succeeds
