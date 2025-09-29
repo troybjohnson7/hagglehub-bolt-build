@@ -376,30 +376,45 @@ export default function MessagesPage() {
 
       // Use AI to extract vehicle and pricing information from the conversation
       const result = await InvokeLLM({
-        prompt: `EXTRACT VEHICLE AND DEALER INFORMATION FROM THIS CONVERSATION:
+        prompt: `You are an expert at extracting vehicle and dealer information from car dealer conversations.
 
-You are a precise data extraction AI. Extract EXACT information from this car dealer conversation. Look for specific details and extract them EXACTLY as written.
+ANALYZE THIS CONVERSATION AND EXTRACT SPECIFIC DETAILS:
 
-CONVERSATION TEXT:
 ${conversationText}
 
-CURRENT DEALER INFO:
-- Name: ${selectedDealer.name}
-- Email: ${selectedDealer.contact_email || 'Unknown'}
-- Phone: ${selectedDealer.phone || 'Unknown'}
-- Address: ${selectedDealer.address || 'Unknown'}
+EXTRACTION INSTRUCTIONS:
 
-EXTRACTION RULES:
-1. VEHICLE MAKE/MODEL: Look for car brand and model names (Toyota Tundra, Honda Civic, etc.)
-2. VIN: Find 17-character alphanumeric codes (like 5TFHY5F1XKX839771)
-3. YEAR: Look for 4-digit years (2020, 2021, etc.)
-4. STOCK NUMBER: Find stock/inventory numbers mentioned
-5. MILEAGE: Numbers followed by "miles", "mi", "k", etc.
-6. PRICES: Dollar amounts mentioned ($25,000, $30k, etc.)
-7. SALES REP: Names of people from the dealer
-8. CONTACT INFO: Phone numbers, emails, addresses mentioned
+1. VEHICLE INFORMATION:
+   - Look for car brands (Toyota, Honda, Ford, etc.) followed by model names (Tundra, Civic, F-150, etc.)
+   - Find 4-digit years (2020, 2021, 2022, etc.)
+   - Extract VIN numbers (17-character codes like 5TFHY5F1XKX839771)
+   - Find stock numbers, inventory IDs
+   - Look for mileage (numbers + "miles", "mi", "k")
+   - Extract colors mentioned
+   - Find trim levels (Limited, Sport, Base, etc.)
 
-Extract ONLY what is explicitly mentioned. If something isn't clearly stated, leave it null.`,
+2. DEALER INFORMATION:
+   - Extract dealer business names (Toyota of Cedar Park, Honda Downtown, etc.)
+   - Find sales representative names (Brian, Sarah, Mike, etc.)
+   - Extract phone numbers in any format
+   - Find email addresses
+   - Extract physical addresses or locations
+
+3. PRICING INFORMATION:
+   - Find asking prices, MSRP values
+   - Extract current offers or quotes
+   - Look for monthly payment amounts
+   - Find trade-in values mentioned
+
+IMPORTANT: Extract information EXACTLY as it appears in the conversation. Don't make assumptions or fill in missing details.
+
+EXAMPLE FROM YOUR CONVERSATION:
+If you see "Toyota Tundra 5TFHY5F1XKX839771" and "Brian Toyota of Cedar Park", extract:
+- Vehicle Make: "Toyota"
+- Vehicle Model: "Tundra" 
+- VIN: "5TFHY5F1XKX839771"
+- Sales Rep: "Brian"
+- Dealer Name: "Toyota of Cedar Park"`,
         response_json_schema: {
           type: "object",
           properties: {
