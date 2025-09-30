@@ -157,13 +157,10 @@ function parseConversationDirectly(conversationText, dealer) {
     }
     console.log('✅ Decoded from Toyota VIN:', result.vehicle.make, result.vehicle.model);
   } else {
-    // Look for years in conversation, prioritizing 2019
+    // General vehicle pattern matching
     const vehiclePattern = /\b(Toyota|Honda|Ford|Chevrolet|Chevy|Nissan|Hyundai|Kia|BMW|Mercedes|Audi|Lexus|Acura|Infiniti|Cadillac|Buick|GMC|Ram|Dodge|Jeep|Chrysler|Subaru|Mazda|Mitsubishi|Volvo|Jaguar|Land Rover|Porsche|Tesla|Genesis)\s+([A-Za-z0-9\-]+(?:\s+[A-Za-z0-9\-]+)?)/gi;
     const vehicleMatches = [...conversationText.matchAll(vehiclePattern)];
     if (vehicleMatches.length > 0) {
-      // If multiple years found, prefer 2019 if present
-      const years = yearMatches.map(y => parseInt(y));
-      result.vehicle.year = years.includes(2019) ? 2019 : years[0];
       const [, make, model] = vehicleMatches[0];
       result.vehicle.make = make;
       result.vehicle.model = model;
