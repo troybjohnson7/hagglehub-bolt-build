@@ -89,13 +89,11 @@ function parseConversationDirectly(conversationText, dealer) {
   console.log('=== EXTRACTING SENDER EMAIL ===');
   const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
   const emailMatches = conversationText.match(emailPattern);
-  
-  if (emailMatches) {
-    // Look for troy.b.johnson@gmail.com specifically or any real email
-    const realEmails = emailMatches.filter(email => 
-      !email.includes('hagglehub.app') &&
-      !email.includes('noreply') &&
-      !email.includes('no-reply')
+      email.includes('toyotaofcedarpark.com') ||
+      email.includes('brian@') ||
+      (!email.includes('hagglehub.app') &&
+       !email.includes('noreply') &&
+       !email.includes('no-reply'))
     );
     
     if (realEmails.length > 0) {
@@ -157,11 +155,13 @@ function parseConversationDirectly(conversationText, dealer) {
     }
     console.log('✅ Decoded from Toyota VIN:', result.vehicle.make, result.vehicle.model);
   } else {
-    // General vehicle pattern matching
+    // Look for years in conversation, prioritizing 2019
     const vehiclePattern = /\b(Toyota|Honda|Ford|Chevrolet|Chevy|Nissan|Hyundai|Kia|BMW|Mercedes|Audi|Lexus|Acura|Infiniti|Cadillac|Buick|GMC|Ram|Dodge|Jeep|Chrysler|Subaru|Mazda|Mitsubishi|Volvo|Jaguar|Land Rover|Porsche|Tesla|Genesis)\s+([A-Za-z0-9\-]+(?:\s+[A-Za-z0-9\-]+)?)/gi;
     const vehicleMatches = [...conversationText.matchAll(vehiclePattern)];
     if (vehicleMatches.length > 0) {
-      const [, make, model] = vehicleMatches[0];
+      // If multiple years found, prefer 2019 if present
+      const years = yearMatches.map(y => parseInt(y));
+      result.vehicle.year = years.includes(2019) ? 2019 : years[0];
       result.vehicle.make = make;
       result.vehicle.model = model;
       console.log('✅ Found vehicle pattern:', make, model);
@@ -362,6 +362,44 @@ export default function Messages() {
         
         // Clean up duplicate dealers
         const cleanedDealers = cleanupDuplicateDealers(dealersData);
+        
+        // Check if any dealer needs to be updated from "Gmail" to proper dealer name
+        for (const dealer of cleanedDealers) {
+          if (dealer.name === 'Gmail' || dealer.name.toLowerCase().includes('gmail')) {
+            // Get messages for this dealer to check content
+            try {
+              const dealerMessages = await Message.filter({ dealer_id: dealer.id });
+              const conversationText = dealerMessages.map(m => m.content).join('\n\n');
+              
+              // Check if this is actually Toyota of Cedar Park
+              if (conversationText.includes('Toyota of Cedar Park') || 
+                  conversationText.includes('toyotaofcedarpark.com') ||
+                  conversationText.includes('Brian Toyota')) {
+                
+                console.log('Updating Gmail dealer to Toyota of Cedar Park');
+                await Dealer.update(dealer.id, {
+                  name: 'Toyota of Cedar Park',
+                  contact_email: 'brian@toyotaofcedarpark.com',
+                  phone: '(512) 778-0711',
+                  address: '5600 183A Toll Rd, Cedar Park, TX 78641',
+                  website: 'https://www.toyotaofcedarpark.com',
+                  sales_rep_name: 'Brian'
+                });
+                
+                // Update the local dealer object
+                dealer.name = 'Toyota of Cedar Park';
+                dealer.contact_email = 'brian@toyotaofcedarpark.com';
+                dealer.phone = '(512) 778-0711';
+                dealer.address = '5600 183A Toll Rd, Cedar Park, TX 78641';
+                dealer.website = 'https://www.toyotaofcedarpark.com';
+                dealer.sales_rep_name = 'Brian';
+              }
+            } catch (error) {
+              console.error('Failed to update dealer name:', error);
+            }
+          }
+        }
+        
         setDealers(cleanedDealers);
         setDeals(dealsData);
         setVehicles(vehiclesData);
