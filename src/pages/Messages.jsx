@@ -89,7 +89,6 @@ function parseConversationDirectly(conversationText, dealer) {
   console.log('=== EXTRACTING SENDER EMAIL ===');
   const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
   const emailMatches = conversationText.match(emailPattern);
-  
   if (emailMatches) {
     const realEmails = emailMatches.filter(email => 
       email.includes('toyotaofcedarpark.com') ||
@@ -165,6 +164,7 @@ function parseConversationDirectly(conversationText, dealer) {
       // If multiple years found, prefer 2019 if present
       const years = yearMatches.map(y => parseInt(y));
       result.vehicle.year = years.includes(2019) ? 2019 : years[0];
+      const [, make, model] = vehicleMatches[0];
       result.vehicle.make = make;
       result.vehicle.model = model;
       console.log('✅ Found vehicle pattern:', make, model);
