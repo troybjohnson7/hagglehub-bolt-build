@@ -268,6 +268,57 @@ function parseConversationDirectly(conversationText, dealer) {
         result.vehicle.vin = vin.toUpperCase();
         console.log('✅ Parsed from Toyota URL:', result.vehicle);
       }
+      
+      // Set Toyota of Cedar Park dealer info when URL is found
+      result.dealer.name = 'Toyota of Cedar Park';
+      result.dealer.website = 'https://www.toyotaofcedarpark.com';
+      result.dealer.phone = '(512) 778-0711';
+      result.dealer.address = '5600 183A Toll Rd, Cedar Park, TX 78641';
+      console.log('✅ Set Toyota of Cedar Park dealer info from URL');
+    }
+  }
+  
+  // STEP 8: Extract dealer name from email content and signatures
+  console.log('=== EXTRACTING DEALER NAME FROM CONTENT ===');
+  
+  // Look for Toyota of Cedar Park specifically in content
+  const toyotaCedarParkPattern = /Toyota\s+of\s+Cedar\s+Park/gi;
+  if (conversationText.match(toyotaCedarParkPattern)) {
+    result.dealer.name = 'Toyota of Cedar Park';
+    result.dealer.website = 'https://www.toyotaofcedarpark.com';
+    result.dealer.phone = '(512) 778-0711';
+    result.dealer.address = '5600 183A Toll Rd, Cedar Park, TX 78641';
+    console.log('✅ Found Toyota of Cedar Park in conversation content');
+  }
+  
+  // Look for other dealer patterns in email signatures and content
+  const dealerPatterns = [
+    /([A-Za-z\s]+(?:Toyota|Honda|Ford|Chevrolet|Nissan|Hyundai|BMW|Mercedes|Audi|Lexus|Acura|Infiniti|Cadillac|Buick|GMC|Ram|Dodge|Jeep|Chrysler|Subaru|Mazda|Mitsubishi|Volvo|Jaguar|Porsche|Tesla|Genesis)[A-Za-z\s]*(?:of\s+[A-Za-z\s]+)?)/gi,
+    /([A-Za-z\s]+(?:Auto|Motors|Automotive|Dealership|Cars)[A-Za-z\s]*)/gi,
+    /([A-Za-z\s]+Dealer[A-Za-z\s]*)/gi
+  ];
+  
+  // Only use pattern matching if we haven't already found a specific dealer
+  if (!result.dealer.name || result.dealer.name === dealer.name) {
+    for (const pattern of dealerPatterns) {
+      const dealerMatches = conversationText.match(pattern);
+      if (dealerMatches) {
+        for (const match of dealerMatches) {
+          const dealerName = match.trim();
+          // Filter out common false positives and ensure reasonable length
+          if (dealerName.length > 5 && 
+              dealerName.length < 50 && 
+              !dealerName.includes('@') && 
+              !dealerName.includes('http') &&
+              !dealerName.toLowerCase().includes('gmail') &&
+              !dealerName.toLowerCase().includes('yahoo')) {
+            result.dealer.name = dealerName;
+            console.log('✅ Extracted dealer name from pattern:', dealerName);
+            break;
+          }
+        }
+        if (result.dealer.name !== dealer.name) break;
+      }
     }
   }
 
