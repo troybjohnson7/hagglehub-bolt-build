@@ -89,6 +89,9 @@ function parseConversationDirectly(conversationText, dealer) {
   console.log('=== EXTRACTING SENDER EMAIL ===');
   const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
   const emailMatches = conversationText.match(emailPattern);
+  
+  if (emailMatches) {
+    const realEmails = emailMatches.filter(email => 
       email.includes('toyotaofcedarpark.com') ||
       email.includes('brian@') ||
       (!email.includes('hagglehub.app') &&
