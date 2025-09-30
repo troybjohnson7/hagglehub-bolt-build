@@ -89,6 +89,7 @@ function parseConversationDirectly(conversationText, dealer) {
   console.log('=== EXTRACTING SENDER EMAIL ===');
   const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
   const emailMatches = conversationText.match(emailPattern);
+  
   if (emailMatches) {
     const realEmails = emailMatches.filter(email => 
       email.includes('toyotaofcedarpark.com') ||
@@ -157,11 +158,13 @@ function parseConversationDirectly(conversationText, dealer) {
     }
     console.log('✅ Decoded from Toyota VIN:', result.vehicle.make, result.vehicle.model);
   } else {
-    // General vehicle pattern matching
+    // Look for years in conversation, prioritizing 2019
     const vehiclePattern = /\b(Toyota|Honda|Ford|Chevrolet|Chevy|Nissan|Hyundai|Kia|BMW|Mercedes|Audi|Lexus|Acura|Infiniti|Cadillac|Buick|GMC|Ram|Dodge|Jeep|Chrysler|Subaru|Mazda|Mitsubishi|Volvo|Jaguar|Land Rover|Porsche|Tesla|Genesis)\s+([A-Za-z0-9\-]+(?:\s+[A-Za-z0-9\-]+)?)/gi;
     const vehicleMatches = [...conversationText.matchAll(vehiclePattern)];
     if (vehicleMatches.length > 0) {
-      const [, make, model] = vehicleMatches[0];
+      // If multiple years found, prefer 2019 if present
+      const years = yearMatches.map(y => parseInt(y));
+      result.vehicle.year = years.includes(2019) ? 2019 : years[0];
       result.vehicle.make = make;
       result.vehicle.model = model;
       console.log('✅ Found vehicle pattern:', make, model);
