@@ -155,6 +155,11 @@ export default function DealDetailsPage() {
     fetchData();
   }, [fetchData]);
 
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Scroll to bottom when new messages are added
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -387,7 +392,7 @@ export default function DealDetailsPage() {
   const isActiveStatus = ['quote_requested', 'negotiating', 'final_offer', 'accepted'].includes(deal.status);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50 px-4 py-2">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50 px-2 py-1">
       <PriceExtractNotification 
         show={showPriceNotification} 
         price={extractedPrice}
@@ -405,7 +410,7 @@ export default function DealDetailsPage() {
       />
 
       <div className="max-w-7xl mx-auto">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-2 flex items-center justify-between">
           <Link to={createPageUrl("Dashboard")} className="flex items-center text-sm text-slate-600 hover:text-brand-teal font-medium">
             <ArrowLeft className="w-4 h-4 mr-1" />
             Back to Dashboard
@@ -465,50 +470,44 @@ export default function DealDetailsPage() {
         </div>
         
         {/* Compact Top Row - Vehicle and Pricing Overview */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
-          {vehicle && (
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">{`${vehicle.year} ${vehicle.make} ${vehicle.model}`}</h2>
-                  {vehicle.trim && <p className="text-sm text-slate-600">{vehicle.trim}</p>}
-                  <div className="flex gap-4 mt-2 text-xs text-slate-500">
-                    {vehicle.vin && <span>VIN: {vehicle.vin}</span>}
-                    {vehicle.mileage && <span>{vehicle.mileage.toLocaleString()} mi</span>}
-                  </div>
-                </div>
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 mb-2">
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-2">
+            <h2 className="text-base font-bold text-slate-900">{vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : 'Vehicle'}</h2>
+            {vehicle?.trim && <p className="text-xs text-slate-600">{vehicle.trim}</p>}
+            <div className="flex gap-3 mt-1 text-xs text-slate-500">
+              {vehicle?.vin && <span>VIN: {vehicle.vin.slice(-6)}</span>}
+              {vehicle?.mileage && <span>{vehicle.mileage.toLocaleString()} mi</span>}
             </div>
-          )}
-          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-3">
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Pricing Overview</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-600">Asking Price:</span>
-                <span className="font-semibold">{deal.asking_price ? `$${deal.asking_price.toLocaleString()}` : 'N/A'}</span>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-2">
+            <h3 className="text-base font-bold text-slate-900 mb-1">Pricing</h3>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="text-center">
+                <p className="text-slate-500">Asking</p>
+                <p className="font-semibold">{deal.asking_price ? `$${Math.round(deal.asking_price/1000)}k` : 'N/A'}</p>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Current Offer:</span>
-                <span className="font-semibold text-blue-600">{deal.current_offer ? `$${deal.current_offer.toLocaleString()}` : 'N/A'}</span>
+              <div className="text-center">
+                <p className="text-slate-500">Offer</p>
+                <p className="font-semibold text-blue-600">{deal.current_offer ? `$${Math.round(deal.current_offer/1000)}k` : 'N/A'}</p>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Target Price:</span>
-                <span className="font-semibold text-green-600">{deal.target_price ? `$${deal.target_price.toLocaleString()}` : 'N/A'}</span>
+              <div className="text-center">
+                <p className="text-slate-500">Target</p>
+                <p className="font-semibold text-green-600">{deal.target_price ? `$${Math.round(deal.target_price/1000)}k` : 'N/A'}</p>
               </div>
             </div>
           </div>
         </div>
         
         {/* Main Content Row - Optimized for viewport */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
           {/* Left Column - Messages */}
           <div className="lg:col-span-2">
             {/* Messages Section with Input */}
-            <div className="bg-white rounded-xl shadow-lg border border-slate-200 h-[calc(100vh-280px)] flex flex-col">
+            <div className="bg-white rounded-xl shadow-lg border border-slate-200 h-[calc(100vh-200px)] flex flex-col">
               {/* Messages Header */}
-              <div className="p-2 border-b border-slate-200 flex-shrink-0">
+              <div className="p-1.5 border-b border-slate-200 flex-shrink-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                     <MessageSquare className="w-4 h-4 text-slate-700" />
                     Conversation
                   </h3>
@@ -521,7 +520,7 @@ export default function DealDetailsPage() {
               </div>
 
               {/* Messages Display - Scrollable */}
-              <div className="flex-1 p-2 overflow-y-auto">
+              <div className="flex-1 p-1.5 overflow-y-auto">
                 {messages.length === 0 ? (
                   <div className="text-center text-slate-500 py-4">
                     <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-2" />
@@ -536,7 +535,7 @@ export default function DealDetailsPage() {
                     </AnimatePresence>
                     {/* Quick Actions */}
                     {deal && (
-                      <div className="flex-shrink-0 mt-2">
+                      <div className="flex-shrink-0 mt-1">
                         <QuickActions 
                           deal={deal} 
                           onAction={(action, data) => {
@@ -553,9 +552,9 @@ export default function DealDetailsPage() {
               </div>
 
               {/* Message Input Area */}
-              <div className="p-2 border-t border-slate-200 flex-shrink-0">
+              <div className="p-1.5 border-t border-slate-200 flex-shrink-0">
                 {/* AI Suggest and Templates buttons */}
-                <div className="flex gap-1 mb-2">
+                <div className="flex gap-1 mb-1">
                   <Dialog open={isSuggestionModalOpen} onOpenChange={setIsSuggestionModalOpen}>
                     <Button
                       size="sm"
@@ -616,20 +615,20 @@ export default function DealDetailsPage() {
                   </Sheet>
                 </div>
                 {/* Text input and Send button */}
-                <div className="flex gap-1">
+                <div className="flex gap-1.5">
                   <Textarea
                     placeholder="Type your reply..."
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
-                    className="flex-1 min-h-[36px] text-sm focus:ring-lime-500 focus:border-lime-500"
+                    className="flex-1 min-h-[32px] text-sm focus:ring-lime-500 focus:border-lime-500 resize-none"
                     rows={1}
                   />
                   <Button 
                     size="icon" 
                     onClick={handleSendMessage} 
                     disabled={isSending || !newMessage.trim()}
-                    className="bg-teal-700 hover:bg-teal-800 shrink-0 h-9 w-9"
+                    className="bg-teal-700 hover:bg-teal-800 shrink-0 h-8 w-8"
                   >
                     {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </Button>
@@ -638,7 +637,7 @@ export default function DealDetailsPage() {
             </div>
           </div>
           {/* Right Column - Negotiation Coach and Dealer Info */}
-          <div className="lg:col-span-1 space-y-3">
+          <div className="lg:col-span-1 space-y-2">
             <NegotiationCoach deal={deal} vehicle={vehicle} messages={messages} />
             {dealer && <DealerInfoCard dealer={dealer} />}
           </div>
