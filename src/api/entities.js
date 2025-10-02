@@ -344,6 +344,26 @@ class SupabaseIntegrations {
     }
 
     // For AI suggestions and other prompts, return realistic responses
+    if (response_json_schema?.properties?.insights) {
+      return {
+        summary: "Your deals are progressing well. Here are some key insights based on current market conditions and negotiation strategies.",
+        insights: [
+          {
+            title: "Strong Negotiation Position",
+            explanation: "Your target prices are realistic based on current market data and seasonal trends.",
+            next_step: "Continue with your current negotiation strategy and maintain regular contact.",
+            type: "positive"
+          },
+          {
+            title: "Market Timing Advantage",
+            explanation: "Current market conditions favor buyers, giving you additional leverage in negotiations.",
+            next_step: "Consider making a slightly more aggressive offer if you haven't heard back recently.",
+            type: "positive"
+          }
+        ]
+      };
+    }
+
     if (response_json_schema?.properties?.suggestions) {
       return {
         suggestions: [
