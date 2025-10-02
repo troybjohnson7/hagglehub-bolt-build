@@ -387,7 +387,7 @@ export default function DealDetailsPage() {
   const isActiveStatus = ['quote_requested', 'negotiating', 'final_offer', 'accepted'].includes(deal.status);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50 px-4 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50 px-4 py-4">
       <PriceExtractNotification 
         show={showPriceNotification} 
         price={extractedPrice}
@@ -405,7 +405,7 @@ export default function DealDetailsPage() {
       />
 
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between">
           <Link to={createPageUrl("Dashboard")} className="flex items-center text-sm text-slate-600 hover:text-brand-teal font-medium">
             <ArrowLeft className="w-4 h-4 mr-1" />
             Back to Dashboard
@@ -464,20 +464,20 @@ export default function DealDetailsPage() {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* Left Column - Vehicle and Messages */}
-          <div className="lg:col-span-2 space-y-6 lg:space-y-8">
-            {vehicle && <VehicleSummary vehicle={vehicle} deal={deal} />}
-            
-            {/* Mobile: Show Negotiation Coach right after vehicle */}
-            <div className="block lg:hidden">
-              <NegotiationCoach deal={deal} vehicle={vehicle} messages={messages} />
-            </div>
-            
+        {/* Top Row - Vehicle and Pricing Overview */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          {vehicle && <VehicleSummary vehicle={vehicle} deal={deal} />}
+          <PricingCard deal={deal} onDealUpdate={setDeal} />
+        </div>
+        
+        {/* Main Content Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Left Column - Messages */}
+          <div className="lg:col-span-2">
             {/* Messages Section with Input */}
-            <div className="bg-white rounded-xl shadow-lg border border-slate-200">
+            <div className="bg-white rounded-xl shadow-lg border border-slate-200 h-[calc(100vh-400px)] flex flex-col">
               {/* Messages Header */}
-              <div className="p-4 border-b border-slate-200">
+              <div className="p-3 border-b border-slate-200 flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                     <MessageSquare className="w-5 h-5 text-slate-700" />
@@ -491,41 +491,38 @@ export default function DealDetailsPage() {
                 </div>
               </div>
 
-              {/* Messages Display */}
-              <div className="p-4 max-h-96 overflow-y-auto">
+              {/* Messages Display - Scrollable */}
+              <div className="flex-1 p-3 overflow-y-auto">
                 {messages.length === 0 ? (
                   <div className="text-center text-slate-500 py-8">
                     <MessageSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                     <p>No messages yet. Send one to start the conversation!</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <AnimatePresence>
                       {messages.map((message) => (
                         <MessageBubble key={message.id} message={message} dealer={dealer} />
                       ))}
                     </AnimatePresence>
-                    <div ref={messagesEndRef} />
-                  </div>
-                )}
-              </div>
-
               {/* Quick Actions */}
               {deal && (
-                <QuickActions 
-                  deal={deal} 
-                  onAction={(action, data) => {
-                    if (action === 'send_message') {
-                     setNewMessage(data.message);
-                    }
-                  }}
-                />
+                <div className="flex-shrink-0">
+                  <QuickActions 
+                    deal={deal} 
+                    onAction={(action, data) => {
+                      if (action === 'send_message') {
+                       setNewMessage(data.message);
+                      }
+                    }}
+                  />
+                </div>
               )}
-
+                    <div ref={messagesEndRef} />
               {/* Message Input Area */}
-              <div className="p-4 border-t border-slate-200">
+              <div className="p-3 border-t border-slate-200 flex-shrink-0">
                 {/* AI Suggest and Templates buttons */}
-                <div className="flex gap-2 mb-3">
+                <div className="flex gap-2 mb-2">
                   <Dialog open={isSuggestionModalOpen} onOpenChange={setIsSuggestionModalOpen}>
                     <Button
                       size="sm"
@@ -569,7 +566,7 @@ export default function DealDetailsPage() {
                       </div>
                     </DialogContent>
                   </Dialog>
-
+                  </div>
                   <Sheet open={showTemplates} onOpenChange={setShowTemplates}>
                     <SheetTrigger asChild>
                       <Button size="sm" variant="outline" className="text-xs">
@@ -586,7 +583,7 @@ export default function DealDetailsPage() {
                     </SheetContent>
                   </Sheet>
                 </div>
-
+                )}
                 {/* Text input and Send button */}
                 <div className="flex gap-2">
                   <Textarea
@@ -609,16 +606,10 @@ export default function DealDetailsPage() {
               </div>
             </div>
           </div>
-
-          {/* Right Column - Pricing, Dealer, and Desktop Coach */}
-          <div className="lg:col-span-1 space-y-6 lg:space-y-8">
-            <PricingCard deal={deal} onDealUpdate={setDeal} />
-            
-            {/* Desktop: Show Negotiation Coach in sidebar */}
-            <div className="hidden lg:block">
-              <NegotiationCoach deal={deal} vehicle={vehicle} messages={messages} />
-            </div>
-            
+              </div>
+          {/* Right Column - Negotiation Coach and Dealer Info */}
+          <div className="lg:col-span-1 space-y-4">
+            <NegotiationCoach deal={deal} vehicle={vehicle} messages={messages} />
             {dealer && <DealerInfoCard dealer={dealer} />}
           </div>
         </div>
