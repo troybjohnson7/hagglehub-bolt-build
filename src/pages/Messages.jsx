@@ -368,13 +368,12 @@ export default function Messages() {
           .filter(deal => ['quote_requested', 'negotiating', 'final_offer', 'accepted'].includes(deal.status))
           .map(deal => deal.dealer_id);
         
-        // Show dealers that have messages OR active deals
+        // Show dealers that have messages (regardless of deal status)
         const messagesData = await Message.list();
         const dealerIdsWithMessages = [...new Set(messagesData.map(msg => msg.dealer_id))];
         
+        // Show all dealers that have messages
         const filteredDealers = dealersData.filter(dealer => 
-          dealer.name === 'General Inbox' || 
-          activeDealerIds.includes(dealer.id) ||
           dealerIdsWithMessages.includes(dealer.id)
         );
         

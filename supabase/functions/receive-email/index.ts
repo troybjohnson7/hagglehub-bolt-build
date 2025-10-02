@@ -125,85 +125,6 @@ Deno.serve(async (req: Request) => {
     const user = users[0]
     console.log('Found user:', user.id, 'with identifier:', user.email_identifier)
 
-    console.log('=== ENSURING VALID FALLBACK DEAL ===')
-    let fallbackDealId = user.fallback_deal_id
-    
-    // Check if fallback deal exists
-    if (fallbackDealId) {
-      const { data: fallbackDeal, error: fallbackError } = await supabase
-        .from('deals')
-        .select('id, dealer_id')
-        .eq('id', fallbackDealId)
-        .single()
-      
-      if (fallbackError || !fallbackDeal) {
-        console.log('Fallback deal missing, will create new one')
-        fallbackDealId = null
-      } else {
-        console.log('Fallback deal exists:', fallbackDeal.id)
-      }
-    }
-    
-    // Create fallback deal if missing
-    if (!fallbackDealId) {
-      console.log('Creating new fallback deal...')
-      
-      // Find or create General Inbox dealer
-      let { data: generalInboxDealers } = await supabase
-        .from('dealers')
-        .select('id, name')
-        .eq('name', 'General Inbox')
-        .eq('created_by', user.id)
-        .limit(1)
-      
-      let generalInboxDealer = generalInboxDealers?.[0]
-      
-      if (!generalInboxDealer) {
-        console.log('Creating General Inbox dealer...')
-        const { data: newDealer, error: dealerError } = await supabase
-          .from('dealers')
-          .insert({
-            name: 'General Inbox',
-            notes: 'System inbox for messages that don\'t match any specific deals.',
-            created_by: user.id
-          })
-          .select()
-          .single()
-        
-        if (dealerError) {
-          console.error('Failed to create General Inbox dealer:', dealerError)
-          throw new Error('Could not create fallback dealer')
-        }
-        generalInboxDealer = newDealer
-        console.log('Created General Inbox dealer:', generalInboxDealer.id)
-      }
-      
-      // Create new fallback deal
-      const { data: newFallbackDeal, error: newDealError } = await supabase
-        .from('deals')
-        .insert({
-          dealer_id: generalInboxDealer.id,
-          vehicle_id: null,
-          status: 'negotiating',
-          created_by: user.id
-        })
-        .select()
-        .single()
-      
-      if (newDealError) {
-        console.error('Failed to create fallback deal:', newDealError)
-        throw new Error('Could not create fallback deal')
-      }
-      
-      // Update user with new fallback deal ID
-      await supabase
-        .from('users')
-        .update({ fallback_deal_id: newFallbackDeal.id })
-        .eq('id', user.id)
-      
-      fallbackDealId = newFallbackDeal.id
-      console.log('Created new fallback deal:', fallbackDealId)
-    }
 
     console.log('=== FINDING OR CREATING DEALER FOR SENDER ===')
     // Try to find existing dealer by sender email
@@ -262,28 +183,12 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log('=== FINDING DEAL FOR MESSAGE ===')
-    // Use advanced matching logic to find the correct deal
-    const matchResult = await findMatchingDeal(supabase, emailData, user.id, dealer.id, fallbackDealId)
+    // Try to find matching deal by VIN or stock number
+    const matchResult = await findMatchingDeal(supabase, emailData, user.id, dealer.id)
     const matchedDeal = matchResult.deal
     
-    let dealId = matchedDeal ? matchedDeal.id : fallbackDealId
-    console.log('Final deal ID to use:', dealId)
-    console.log('Is fallback deal:', dealId === fallbackDealId)
-    console.log('Match method:', matchedDeal ? 'VIN/Stock/Dealer' : 'Fallback')
-    
-    // Ensure we have a valid deal ID
-    if (!dealId) {
-      console.error('No deal ID available - neither matched nor fallback')
-      return new Response('Error: No deal available', { status: 500 })
-    }
-    
-    // If we found VIN or stock info but no matching vehicle, log it for potential manual review
-    if (!matchedDeal && (matchResult.extractedVin || matchResult.extractedStock)) {
-      console.log('=== POTENTIAL NEW VEHICLE DETECTED ===')
-      console.log('VIN:', matchResult.extractedVin)
-      console.log('Stock:', matchResult.extractedStock)
-      console.log('This email may be about a new vehicle not yet tracked')
-    }
+    console.log('Matched deal:', matchedDeal?.id || 'none')
+    console.log('Will create message without deal assignment if no match')
 
     console.log('=== CREATING MESSAGE RECORD ===')
     // Clean the email content to remove quoted replies and signatures
@@ -292,11 +197,11 @@ Deno.serve(async (req: Request) => {
     console.log('Cleaned content length:', cleanedContent.length)
     console.log('Cleaned content:', cleanedContent)
     
-    // Create the message record - ALWAYS use fallback deal for new emails
+    // Create the message record - only assign to deal if we found a match
     const { data: createdMessage, error: messageError } = await supabase
       .from('messages')
       .insert({
-        deal_id: fallbackDealId, // Always use fallback deal for incoming emails
+        deal_id: matchedDeal?.id || null, // Only assign if we found a matching deal
         dealer_id: dealer.id,
         content: cleanedContent,
         direction: 'inbound',
@@ -403,12 +308,11 @@ function cleanEmailContent(content: string): string {
   return finalCleaned;
 }
 
-// Advanced message matching logic similar to Base44 processor
-async function findMatchingDeal(supabase: any, emailData: Partial<InboundEmail>, userId: string, dealerId: string, fallbackDealId: string) {
+// Find matching deal by VIN or stock number only
+async function findMatchingDeal(supabase: any, emailData: Partial<InboundEmail>, userId: string, dealerId: string) {
   console.log('=== FINDING MATCHING DEAL ===');
   console.log('User ID:', userId);
   console.log('Dealer ID:', dealerId);
-  console.log('Fallback Deal ID:', fallbackDealId);
   
   const { sender, subject, 'body-plain': bodyPlain } = emailData;
   
