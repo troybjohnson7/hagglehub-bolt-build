@@ -37,8 +37,7 @@ export default function NotificationCenter() {
         .from('messages')
         .select(`
           *,
-          dealers (name),
-          deals!inner (id)
+          dealers (name)
         `)
         .eq('created_by', user.id)
         .eq('direction', 'inbound')
