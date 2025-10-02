@@ -426,20 +426,37 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
       return { percentage: 0, savings: 0, remaining: 0 };
     }
 
-    // Calculate based on mode
-    const askingPrice = isOTDMode ? (deal.asking_price + totalFees) : deal.asking_price;
-    const targetPrice = isOTDMode ? ((deal.target_price || 0) + totalFees) : (deal.target_price || 0);
-    const currentOffer = isOTDMode ? (currentPrice + totalFees) : currentPrice;
-
-    const totalGap = askingPrice - (targetPrice || currentOffer);
-    const currentGap = askingPrice - currentOffer;
-    const progressPercentage = totalGap > 0 ? ((totalGap - currentGap) / totalGap) * 100 : 0;
-    
-    return {
-      percentage: Math.max(0, Math.min(100, progressPercentage)),
-      savings: askingPrice - currentOffer,
-      remaining: Math.max(0, currentOffer - (targetPrice || currentOffer))
-    };
+    if (isOTDMode) {
+      // OTD Mode: Add fees to all prices
+      const askingOTD = deal.asking_price + totalFees;
+      const currentOfferOTD = currentPrice + totalFees;
+      const targetOTD = deal.target_price ? (deal.target_price + totalFees) : currentOfferOTD;
+      
+      const totalGap = askingOTD - targetOTD;
+      const currentGap = askingOTD - currentOfferOTD;
+      const progressPercentage = totalGap > 0 ? ((totalGap - currentGap) / totalGap) * 100 : 0;
+      
+      return {
+        percentage: Math.max(0, Math.min(100, progressPercentage)),
+        savings: askingOTD - currentOfferOTD,
+        remaining: Math.max(0, currentOfferOTD - targetOTD)
+      };
+    } else {
+      // Sales Price Mode: Use raw sales prices
+      const askingPrice = deal.asking_price;
+      const currentOffer = currentPrice;
+      const targetPrice = deal.target_price || currentOffer;
+      
+      const totalGap = askingPrice - targetPrice;
+      const currentGap = askingPrice - currentOffer;
+      const progressPercentage = totalGap > 0 ? ((totalGap - currentGap) / totalGap) * 100 : 0;
+      
+      return {
+        percentage: Math.max(0, Math.min(100, progressPercentage)),
+        savings: askingPrice - currentOffer,
+        remaining: Math.max(0, currentOffer - targetPrice)
+      };
+    }
   };
 
   const negotiationProgress = calculateProgress();
