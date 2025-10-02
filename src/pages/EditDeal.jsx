@@ -187,7 +187,7 @@ export default function EditDealPage() {
                     onChange={(e) => handleInputChange('current_offer', e.target.value)}
                   />
                   <Input
-                    placeholder="Your Target Sales Price"
+                    placeholder="Your Target Sales Price *"
                     type="number"
                     value={dealData.target_price}
                     onChange={(e) => handleInputChange('target_price', e.target.value)}
@@ -200,8 +200,9 @@ export default function EditDealPage() {
                   />
                 </div>
                 <p className="text-xs text-slate-500 mt-2">
-                  💡 <strong>Sales Price:</strong> Vehicle price before taxes/fees.<br/>
-                  <strong>Out-the-Door:</strong> Total including taxes, fees, add-ons.
+                  💡 <strong>Sales Price:</strong> Vehicle price before taxes/fees<br/>
+                  <strong>Out-the-Door:</strong> Total including taxes, fees, add-ons<br/>
+                  <strong>Target Price:</strong> Your ideal sales price goal
                 </p>
               </div>
 
