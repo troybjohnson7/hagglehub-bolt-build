@@ -248,6 +248,27 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
     }
   };
 
+  const handleUpdatePrice = async (value, isOTD, field) => {
+    try {
+      let updateData = {};
+      
+      if (isOTD) {
+        // If it's an OTD price, calculate the sales price by subtracting fees
+        const salesPrice = value - totalFees;
+        updateData[field] = salesPrice;
+      } else {
+        // If it's a sales price, use the value directly
+        updateData[field] = value;
+      }
+      
+      const updatedDeal = await Deal.update(deal.id, updateData);
+      onDealUpdate(updatedDeal);
+    } catch (error) {
+      console.error(`Failed to update ${field}:`, error);
+      throw error;
+    }
+  };
+
   // Analyze messages for pricing information
   useEffect(() => {
     if (messages.length === 0) return;
