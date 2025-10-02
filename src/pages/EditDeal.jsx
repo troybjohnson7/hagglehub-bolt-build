@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { Deal } from '@/api/entities';
 import { Vehicle } from '@/api/entities';
 import { Dealer } from '@/api/entities';
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { motion } from 'framer-motion';
 import { ArrowLeft, Save, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function EditDealPage() {
   const [searchParams] = useSearchParams();
@@ -108,9 +110,11 @@ export default function EditDealPage() {
       };
 
       await Deal.update(dealId, updateData);
-      navigate('/');
+      navigate(createPageUrl(`DealDetails?deal_id=${dealId}`));
+      toast.success('Deal updated successfully!');
     } catch (error) {
       console.error('Failed to update deal:', error);
+      toast.error('Failed to update deal. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -120,9 +124,11 @@ export default function EditDealPage() {
     setIsSaving(true);
     try {
       await Deal.delete(dealId);
-      navigate('/');
+      navigate(createPageUrl("Dashboard"));
+      toast.success('Deal deleted successfully!');
     } catch (error) {
       console.error('Failed to delete deal:', error);
+      toast.error('Failed to delete deal. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -150,7 +156,7 @@ export default function EditDealPage() {
       <div className="max-w-md mx-auto">
         <div className="flex items-center gap-4 mb-6">
           <motion.div whileTap={{ scale: 0.95 }}>
-            <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </motion.div>
