@@ -514,7 +514,7 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
             icon={DollarSign}
             placeholder="Enter current offer"
             onSave={(value) => handleUpdateDealField('current_offer', value)}
-            isOTDMode={false}
+            isOTDMode={isOTDMode}
             totalFees={totalFees}
           />
         </div>
