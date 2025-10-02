@@ -17,6 +17,9 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
   }
 });
 
+// Export supabase client for use in other components
+export { supabase };
+
 // Real Supabase entity implementation
 class SupabaseEntity {
   constructor(tableName) {
