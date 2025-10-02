@@ -231,6 +231,7 @@ const FeesBreakdown = ({ deal, onDealUpdate }) => {
 
 export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
   const [showFees, setShowFees] = useState(false);
+  const [isOTD, setIsOTD] = useState(false);
   const [analyzedPricing, setAnalyzedPricing] = useState({
     latestOffer: null,
     priceHistory: [],
