@@ -45,6 +45,114 @@ const PriceItem = ({ label, value, colorClass, icon: Icon }) => (
   </div>
 );
 
+const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, onSave }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleEdit = () => {
+    setEditValue(value || '');
+    setIsEditing(true);
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const numericValue = parseFloat(editValue);
+      if (!isNaN(numericValue) && numericValue > 0) {
+        await onSave(numericValue);
+        setIsEditing(false);
+        toast.success(`${label} updated successfully!`);
+      } else {
+        toast.error('Please enter a valid price');
+      }
+    } catch (error) {
+      console.error('Failed to save price:', error);
+      toast.error('Failed to save price');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditValue('');
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border">
+        <div className="flex items-center gap-3">
+          <Icon className={`w-5 h-5 ${colorClass || 'text-slate-600'}`} />
+          <span className="text-sm font-medium text-slate-800">{label}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Input
+            type="number"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            placeholder={placeholder}
+            className="w-32 h-8 text-sm"
+            autoFocus
+          />
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="h-8 px-2"
+          >
+            {isSaving ? (
+              <motion.div animate={{rotate:360}} transition={{duration:1, repeat:Infinity}} className="w-3 h-3 border border-t-transparent rounded-full" />
+            ) : (
+              <Check className="w-3 h-3" />
+            )}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleCancel}
+            className="h-8 px-2"
+          >
+            <X className="w-3 h-3" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border group hover:bg-slate-100 transition-colors">
+      <div className="flex items-center gap-3">
+        <Icon className={`w-5 h-5 ${colorClass || 'text-slate-600'}`} />
+        <span className="text-sm font-medium text-slate-800">{label}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className={`text-base font-bold ${colorClass || 'text-slate-900'}`}>
+          {value ? `$${value.toLocaleString()}` : 'N/A'}
+        </span>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={handleEdit}
+          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <Edit3 className="w-3 h-3" />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+const handleUpdateDealField = async (field, value) => {
+  try {
+    const updatedDeal = await Deal.update(deal.id, { [field]: value });
+    onDealUpdate(updatedDeal);
+  } catch (error) {
+    console.error(`Failed to update ${field}:`, error);
+    throw error;
+  }
+};
+
 const FeesBreakdown = ({ deal, onDealUpdate }) => {
   const initialFees = {
     doc_fee: '',
