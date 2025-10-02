@@ -417,8 +417,8 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
   const currentPrice = analyzedPricing.latestOffer || deal.current_offer || deal.asking_price || 0;
   const otdPrice = currentPrice + totalFees;
 
-  // Calculate negotiation progress based on current mode (sales price vs OTD)
-  const calculateNegotiationProgress = () => {
+  // Calculate negotiation progress based on current mode (sales price vs OTD) - recalculates when isOTDMode changes
+  const negotiationProgress = React.useMemo(() => {
     if (!deal.asking_price || !currentPrice) {
       return { percentage: 0, savings: 0, remaining: 0 };
     }
@@ -446,13 +446,11 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
       savings: askingPrice - currentOffer,
       remaining: Math.max(0, currentOffer - (targetPrice || currentOffer))
     };
-  };
+  }, [isOTDMode, deal.asking_price, deal.target_price, currentPrice, totalFees]);
 
   const PurchaseIcon = purchaseTypeInfo[deal.purchase_type]?.icon || Banknote;
   const purchaseLabel = purchaseTypeInfo[deal.purchase_type]?.label || 'Purchase Type N/A';
   
-  // Calculate negotiation progress based on current toggle state
-  const negotiationProgress = calculateNegotiationProgress();
 
   return (
     <Card className="shadow-lg border-slate-200">
