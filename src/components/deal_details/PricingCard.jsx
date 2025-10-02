@@ -406,7 +406,10 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
           </AnimatePresence>
 
           <div className="!mt-4 bg-teal-600 text-white p-4 rounded-xl flex items-center justify-between shadow-lg">
-            <h3 className="text-lg font-bold">Out-The-Door Price</h3>
+            <div>
+              <h3 className="text-lg font-bold">Out-The-Door Price</h3>
+              <p className="text-xs text-teal-200">Sales Price + Fees</p>
+            </div>
             <p className="text-2xl font-extrabold tracking-tight">
               ${otdPrice.toLocaleString()}
             </p>

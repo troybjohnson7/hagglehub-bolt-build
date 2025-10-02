@@ -175,19 +175,19 @@ export default function EditDealPage() {
                 <h3 className="text-lg font-semibold text-slate-700 mb-3">Pricing Information</h3>
                 <div className="space-y-3">
                   <Input
-                    placeholder="Asking Price"
+                    placeholder="Asking Sales Price"
                     type="number"
                     value={dealData.asking_price}
                     onChange={(e) => handleInputChange('asking_price', e.target.value)}
                   />
                   <Input
-                    placeholder="Current Offer"
+                    placeholder="Current Sales Price Offer"
                     type="number"
                     value={dealData.current_offer}
                     onChange={(e) => handleInputChange('current_offer', e.target.value)}
                   />
                   <Input
-                    placeholder="Your Target Price"
+                    placeholder="Your Target Sales Price"
                     type="number"
                     value={dealData.target_price}
                     onChange={(e) => handleInputChange('target_price', e.target.value)}
@@ -199,6 +199,10 @@ export default function EditDealPage() {
                     onChange={(e) => handleInputChange('otd_price', e.target.value)}
                   />
                 </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  💡 <strong>Sales Price:</strong> Vehicle price before taxes/fees.<br/>
+                  <strong>Out-the-Door:</strong> Total including taxes, fees, add-ons.
+                </p>
               </div>
 
               <div>

@@ -264,6 +264,7 @@ function DealForm({ parsedData, setStep, currentUser }) {
   });
   const [dealData, setDealData] = useState({
     asking_price: parsedData?.pricing?.asking_price?.toString() || '',
+    target_price: '',
     purchase_type: 'finance'
   });
 
@@ -378,7 +379,10 @@ function DealForm({ parsedData, setStep, currentUser }) {
             <div>
               <h3 className="text-lg font-semibold text-slate-700 mb-3">Deal Information</h3>
               <div className="grid grid-cols-2 gap-3">
-                <Input name="asking_price" placeholder="Asking Price *" type="number" value={dealData.asking_price} onChange={handleChange(setDealData)} required />
+                <Input name="asking_price" placeholder="Asking Sales Price *" type="number" value={dealData.asking_price} onChange={handleChange(setDealData)} required />
+                <Input name="target_price" placeholder="Your Target Sales Price" type="number" value={dealData.target_price} onChange={handleChange(setDealData)} />
+              </div>
+              <div className="grid grid-cols-1 gap-3 mt-3">
                 <Select value={dealData.purchase_type} onValueChange={handleSelectChange(setDealData, 'purchase_type')}>
                   <SelectTrigger>
                     <SelectValue placeholder="Purchase Type" />
@@ -390,6 +394,10 @@ function DealForm({ parsedData, setStep, currentUser }) {
                   </SelectContent>
                 </Select>
               </div>
+              <p className="text-xs text-slate-500 mt-2">
+                💡 <strong>Sales Price:</strong> The price of the vehicle before taxes, fees, and add-ons.<br/>
+                <strong>Out-the-Door Price:</strong> Total price including all taxes, fees, and add-ons.
+              </p>
             </div>
             <Button type="submit" disabled={isLoading} className="w-full bg-brand-teal hover:bg-brand-teal-dark py-3">
               {isLoading ? <Loader2 className="animate-spin" /> : 'Create Deal'}
