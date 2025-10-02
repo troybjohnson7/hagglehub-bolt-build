@@ -128,11 +128,88 @@ const FeesBreakdown = ({ deal, onDealUpdate }) => {
   );
 };
 
-export default function PricingCard({ deal, onDealUpdate }) {
+export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
   const [showFees, setShowFees] = useState(false);
+  const [analyzedPricing, setAnalyzedPricing] = useState({
+    latestOffer: null,
+    priceHistory: [],
+    negotiationProgress: null
+  });
+  
+  // Analyze messages for pricing information
+  useEffect(() => {
+    if (messages.length === 0) return;
+    
+    console.log('Analyzing messages for pricing information...');
+    
+    // Extract all prices from messages
+    const priceHistory = [];
+    let latestOffer = deal.current_offer;
+    
+    messages.forEach(message => {
+      if (message.contains_offer && message.extracted_price) {
+        priceHistory.push({
+          price: message.extracted_price,
+          date: message.created_date,
+          direction: message.direction,
+          content: message.content
+        });
+        
+        // Update latest offer if this is more recent
+        if (message.direction === 'inbound' && 
+            (!latestOffer || message.extracted_price !== latestOffer)) {
+          latestOffer = message.extracted_price;
+        }
+      }
+    });
+    
+    // Sort price history by date
+    priceHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    // Calculate negotiation progress
+    let negotiationProgress = null;
+    if (deal.asking_price && latestOffer) {
+      const totalGap = deal.asking_price - (deal.target_price || latestOffer);
+      const currentGap = deal.asking_price - latestOffer;
+      const progressPercentage = totalGap > 0 ? ((totalGap - currentGap) / totalGap) * 100 : 0;
+      
+      negotiationProgress = {
+        percentage: Math.max(0, Math.min(100, progressPercentage)),
+        savings: deal.asking_price - latestOffer,
+        remaining: latestOffer - (deal.target_price || latestOffer)
+      };
+    }
+    
+    setAnalyzedPricing({
+      latestOffer,
+      priceHistory,
+      negotiationProgress
+    });
+    
+    // Auto-update deal if we found a new offer
+    if (latestOffer && latestOffer !== deal.current_offer) {
+      console.log('Found new offer in messages:', latestOffer);
+      handleAutoUpdateOffer(latestOffer);
+    }
+    
+  }, [messages, deal.asking_price, deal.target_price, deal.current_offer]);
+  
+  const handleAutoUpdateOffer = async (newOffer) => {
+    try {
+      const updatedDeal = await Deal.update(deal.id, { 
+        current_offer: newOffer,
+        status: 'negotiating'
+      });
+      onDealUpdate(updatedDeal);
+      console.log('Auto-updated deal with new offer:', newOffer);
+    } catch (error) {
+      console.error('Failed to auto-update deal:', error);
+    }
+  };
   
   const totalFees = Object.values(deal.fees_breakdown || {}).reduce((sum, fee) => sum + (fee || 0), 0);
-  const otdPrice = (deal.current_offer || deal.asking_price || 0) + totalFees;
+  const currentPrice = analyzedPricing.latestOffer || deal.current_offer || deal.asking_price || 0;
+  const otdPrice = currentPrice + totalFees;
 
   const PurchaseIcon = purchaseTypeInfo[deal.purchase_type]?.icon || Banknote;
   const purchaseLabel = purchaseTypeInfo[deal.purchase_type]?.label || 'Purchase Type N/A';
@@ -159,8 +236,56 @@ export default function PricingCard({ deal, onDealUpdate }) {
       </CardHeader>
       <CardContent className="space-y-3">
         <PriceItem label="Asking Price" value={deal.asking_price} icon={FileText} />
-        <PriceItem label="Current Offer" value={deal.current_offer} colorClass="text-blue-600" icon={DollarSign} />
+        <PriceItem 
+          label="Current Offer" 
+          value={analyzedPricing.latestOffer || deal.current_offer} 
+          colorClass="text-blue-600" 
+          icon={DollarSign} 
+        />
         <PriceItem label="Target Price" value={deal.target_price} colorClass="text-green-600" icon={DollarSign} />
+        
+        {/* Negotiation Progress Bar */}
+        {analyzedPricing.negotiationProgress && (
+          <div className="bg-slate-50 border rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-slate-800">Negotiation Progress</span>
+              <span className="text-sm font-bold text-brand-teal">
+                {Math.round(analyzedPricing.negotiationProgress.percentage)}%
+              </span>
+            </div>
+            <div className="w-full bg-slate-200 rounded-full h-2">
+              <div 
+                className="bg-brand-teal h-2 rounded-full transition-all duration-500"
+                style={{ width: `${analyzedPricing.negotiationProgress.percentage}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-slate-600 mt-1">
+              <span>Saved: ${analyzedPricing.negotiationProgress.savings?.toLocaleString()}</span>
+              {analyzedPricing.negotiationProgress.remaining > 0 && (
+                <span>To target: ${analyzedPricing.negotiationProgress.remaining?.toLocaleString()}</span>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {/* Price History */}
+        {analyzedPricing.priceHistory.length > 0 && (
+          <div className="bg-slate-50 border rounded-lg p-3">
+            <h4 className="text-sm font-medium text-slate-800 mb-2">Recent Price Activity</h4>
+            <div className="space-y-1 max-h-20 overflow-y-auto">
+              {analyzedPricing.priceHistory.slice(-3).map((entry, index) => (
+                <div key={index} className="flex items-center justify-between text-xs">
+                  <span className={`font-medium ${entry.direction === 'inbound' ? 'text-green-600' : 'text-blue-600'}`}>
+                    {entry.direction === 'inbound' ? 'Dealer' : 'You'}: ${entry.price.toLocaleString()}
+                  </span>
+                  <span className="text-slate-500">
+                    {new Date(entry.date).toLocaleDateString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="border-t border-slate-200 pt-3 space-y-3">
           <div 

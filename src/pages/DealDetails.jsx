@@ -661,6 +661,10 @@ export default function DealDetailsPage() {
           </div>
           {/* Right Column - Negotiation Coach and Dealer Info */}
           <div className="lg:col-span-1 space-y-4">
+            <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+              {/* Enhanced Pricing Card with Message Analysis */}
+              <PricingCard deal={deal} onDealUpdate={setDeal} messages={messages} />
+            </div>
             <NegotiationCoach deal={deal} vehicle={vehicle} messages={messages} />
             {dealer && <DealerInfoCard dealer={dealer} />}
           </div>
