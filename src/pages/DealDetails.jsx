@@ -155,17 +155,33 @@ export default function DealDetailsPage() {
     fetchData();
   }, [fetchData]);
 
-  // Force scroll to top when component mounts and when deal data loads
+  // Aggressive scroll-to-top fix
   useEffect(() => {
+    // Immediate scroll to top
     window.scrollTo(0, 0);
-  }, [deal, vehicle, dealer]); // Trigger when data loads
-
-  // Also scroll to top immediately when component mounts
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    // Force scroll to top after a brief delay to override any other scroll behavior
-    setTimeout(() => window.scrollTo(0, 0), 100);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    
+    // Multiple delayed attempts to ensure we stay at top
+    const timeouts = [50, 100, 200, 500].map(delay => 
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }, delay)
+    );
+    
+    return () => timeouts.forEach(clearTimeout);
   }, []);
+  
+  // Also scroll to top when data loads
+  useEffect(() => {
+    if (deal && vehicle && dealer) {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+  }, [deal, vehicle, dealer]);
 
   // Scroll to bottom when new messages are added
   useEffect(() => {
