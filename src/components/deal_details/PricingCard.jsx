@@ -84,7 +84,7 @@ const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, 
   // Display value based on mode
   const displayValue = () => {
     if (!value) return null;
-    if (isOTDMode && (label.includes('Asking') || label.includes('Target') || label.includes('Current Offer'))) {
+    if (isOTDMode && (label.includes('Asking') || label.includes('Target') || label.includes('Current'))) {
       return value + totalFees;
     }
     return value;
@@ -537,26 +537,22 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
               <span className="text-sm font-medium text-slate-800">Negotiation Progress</span>
             </div>
             
-            {(() => {
-              // Simple calculation: Asking - Current Offer = Savings
-              const askingPrice = isOTDMode ? (deal.asking_price + totalFees) : deal.asking_price;
-              const currentOffer = isOTDMode ? ((analyzedPricing.latestOffer || deal.current_offer) + totalFees) : (analyzedPricing.latestOffer || deal.current_offer);
-              const savings = askingPrice - currentOffer;
-              
-              return (
-                <div>
-                  <div className="text-2xl font-bold text-brand-teal mb-1">
-                    ${savings > 0 ? savings.toLocaleString() : '0'}
-                  </div>
-                  <div className="text-sm text-slate-600">
-                    Total Savings
-                  </div>
-                  <div className="text-xs text-slate-500 mt-1">
-                    {isOTDMode ? 'Based on Out-the-Door prices' : 'Based on Sales prices'}
-                  </div>
-                </div>
-              );
-            })()}
+            <div>
+              <div className="text-2xl font-bold text-brand-teal mb-1">
+                ${(() => {
+                  const askingPrice = isOTDMode ? (deal.asking_price + totalFees) : deal.asking_price;
+                  const currentOffer = isOTDMode ? (currentPrice + totalFees) : currentPrice;
+                  const savings = askingPrice - currentOffer;
+                  return savings > 0 ? savings.toLocaleString() : '0';
+                })()}
+              </div>
+              <div className="text-sm text-slate-600">
+                Total Savings
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                {isOTDMode ? 'Based on Out-the-Door prices' : 'Based on Sales prices'}
+              </div>
+            </div>
           </div>
         )}
         
