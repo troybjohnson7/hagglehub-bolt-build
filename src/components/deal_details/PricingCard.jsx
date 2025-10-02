@@ -417,6 +417,37 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
   const currentPrice = analyzedPricing.latestOffer || deal.current_offer || deal.asking_price || 0;
   const otdPrice = currentPrice + totalFees;
 
+  // Calculate negotiation progress based on current mode (sales price vs OTD)
+  const calculateNegotiationProgress = () => {
+    if (!deal.asking_price || !currentPrice) {
+      return { percentage: 0, savings: 0, remaining: 0 };
+    }
+
+    let askingPrice, targetPrice, currentOffer;
+    
+    if (isOTDMode) {
+      // Use OTD prices for calculation
+      askingPrice = deal.asking_price + totalFees;
+      targetPrice = (deal.target_price || 0) + totalFees;
+      currentOffer = currentPrice + totalFees;
+    } else {
+      // Use sales prices for calculation
+      askingPrice = deal.asking_price;
+      targetPrice = deal.target_price || 0;
+      currentOffer = currentPrice;
+    }
+
+    const totalGap = askingPrice - (targetPrice || currentOffer);
+    const currentGap = askingPrice - currentOffer;
+    const progressPercentage = totalGap > 0 ? ((totalGap - currentGap) / totalGap) * 100 : 0;
+    
+    return {
+      percentage: Math.max(0, Math.min(100, progressPercentage)),
+      savings: askingPrice - currentOffer,
+      remaining: Math.max(0, currentOffer - (targetPrice || currentOffer))
+    };
+  };
+
   const PurchaseIcon = purchaseTypeInfo[deal.purchase_type]?.icon || Banknote;
   const purchaseLabel = purchaseTypeInfo[deal.purchase_type]?.label || 'Purchase Type N/A';
 
@@ -496,19 +527,19 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-slate-800">Negotiation Progress</span>
               <span className="text-sm font-bold text-brand-teal">
-                {Math.round(analyzedPricing.negotiationProgress.percentage)}%
+                {Math.round(calculateNegotiationProgress().percentage)}%
               </span>
             </div>
             <div className="w-full bg-slate-200 rounded-full h-2">
               <div 
                 className="bg-brand-teal h-2 rounded-full transition-all duration-500"
-                style={{ width: `${analyzedPricing.negotiationProgress.percentage}%` }}
+                style={{ width: `${calculateNegotiationProgress().percentage}%` }}
               />
             </div>
             <div className="flex justify-between text-xs text-slate-600 mt-1">
-              <span>Saved: ${analyzedPricing.negotiationProgress.savings?.toLocaleString()}</span>
-              {analyzedPricing.negotiationProgress.remaining > 0 && (
-                <span>To target: ${analyzedPricing.negotiationProgress.remaining?.toLocaleString()}</span>
+              <span>Saved: ${calculateNegotiationProgress().savings?.toLocaleString()}</span>
+              {calculateNegotiationProgress().remaining > 0 && (
+                <span>To target: ${calculateNegotiationProgress().remaining?.toLocaleString()}</span>
               )}
             </div>
           </div>
