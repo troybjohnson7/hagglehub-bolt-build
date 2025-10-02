@@ -505,20 +505,24 @@ export default function DealDetailsPage() {
                         <MessageBubble key={message.id} message={message} dealer={dealer} />
                       ))}
                     </AnimatePresence>
-              {/* Quick Actions */}
-              {deal && (
-                <div className="flex-shrink-0">
-                  <QuickActions 
-                    deal={deal} 
-                    onAction={(action, data) => {
-                      if (action === 'send_message') {
-                       setNewMessage(data.message);
-                      }
-                    }}
-                  />
-                </div>
-              )}
+                    {/* Quick Actions */}
+                    {deal && (
+                      <div className="flex-shrink-0">
+                        <QuickActions 
+                          deal={deal} 
+                          onAction={(action, data) => {
+                            if (action === 'send_message') {
+                             setNewMessage(data.message);
+                            }
+                          }}
+                        />
+                      </div>
+                    )}
                     <div ref={messagesEndRef} />
+                  </div>
+                )}
+              </div>
+
               {/* Message Input Area */}
               <div className="p-3 border-t border-slate-200 flex-shrink-0">
                 {/* AI Suggest and Templates buttons */}
@@ -566,7 +570,6 @@ export default function DealDetailsPage() {
                       </div>
                     </DialogContent>
                   </Dialog>
-                  </div>
                   <Sheet open={showTemplates} onOpenChange={setShowTemplates}>
                     <SheetTrigger asChild>
                       <Button size="sm" variant="outline" className="text-xs">
@@ -583,7 +586,6 @@ export default function DealDetailsPage() {
                     </SheetContent>
                   </Sheet>
                 </div>
-                )}
                 {/* Text input and Send button */}
                 <div className="flex gap-2">
                   <Textarea
@@ -606,7 +608,6 @@ export default function DealDetailsPage() {
               </div>
             </div>
           </div>
-              </div>
           {/* Right Column - Negotiation Coach and Dealer Info */}
           <div className="lg:col-span-1 space-y-4">
             <NegotiationCoach deal={deal} vehicle={vehicle} messages={messages} />
