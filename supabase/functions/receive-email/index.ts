@@ -221,11 +221,9 @@ Deno.serve(async (req: Request) => {
       dealer = existingDealers[0]
       console.log('Using existing dealer:', dealer.name)
     } else {
-      // Create new dealer from sender info
-      const senderDomain = sender.split('@')[1] || 'unknown.com'
-      let dealerName = senderDomain.replace(/\.(com|net|org)$/, '').replace(/^www\./, '')
-      dealerName = dealerName.charAt(0).toUpperCase() + dealerName.slice(1)
-      console.log('Creating new dealer from domain:', dealerName)
+      // Extract dealer name from message content first
+      let dealerName = extractDealerNameFromContent(bodyPlain, sender)
+      console.log('Creating new dealer with extracted name:', dealerName)
       
       const { data: newDealer, error: dealerError } = await supabase
         .from('dealers')
@@ -530,4 +528,57 @@ async function findMatchingDeal(supabase: any, emailData: Partial<InboundEmail>,
     extractedStock,
     extractedPhone
   };
+}
+
+function extractDealerNameFromContent(messageContent: string, senderEmail: string): string {
+  console.log('=== EXTRACTING DEALER NAME FROM MESSAGE CONTENT ===')
+  console.log('Message content:', messageContent)
+  console.log('Sender email:', senderEmail)
+  
+  // Look for Toyota of Cedar Park specifically
+  const toyotaCedarParkPattern = /Toyota\s+of\s+Cedar\s+Park/gi
+  if (messageContent.match(toyotaCedarParkPattern)) {
+    console.log('✅ Found Toyota of Cedar Park in message content')
+    return 'Toyota of Cedar Park'
+  }
+  
+  // Look for other specific dealer patterns in message content
+  const dealerPatterns = [
+    // Specific dealer name patterns
+    /([A-Za-z\s]+(?:Toyota|Honda|Ford|Chevrolet|Nissan|Hyundai|BMW|Mercedes|Audi|Lexus|Acura|Infiniti|Cadillac|Buick|GMC|Ram|Dodge|Jeep|Chrysler|Subaru|Mazda|Mitsubishi|Volvo|Jaguar|Porsche|Tesla|Genesis)[A-Za-z\s]*(?:of\s+[A-Za-z\s]+)?)/gi,
+    // Auto dealership patterns
+    /([A-Za-z\s]+(?:Auto|Motors|Automotive|Dealership|Cars)[A-Za-z\s]*)/gi,
+    // Email signature patterns (name before email)
+    /([A-Za-z\s]{3,30})\s*\n.*?[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi,
+    // Phone signature patterns
+    /([A-Za-z\s]{3,30})\s*\n.*?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/gi
+  ]
+  
+  for (const pattern of dealerPatterns) {
+    const matches = [...messageContent.matchAll(pattern)]
+    for (const match of matches) {
+      const dealerName = match[1]?.trim()
+      if (dealerName && 
+          dealerName.length > 3 && 
+          dealerName.length < 50 && 
+          !dealerName.includes('@') && 
+          !dealerName.includes('http') &&
+          !dealerName.toLowerCase().includes('gmail') &&
+          !dealerName.toLowerCase().includes('yahoo') &&
+          !dealerName.toLowerCase().includes('wrote') &&
+          !dealerName.toLowerCase().includes('sent') &&
+          !dealerName.toLowerCase().includes('from')) {
+        console.log('✅ Extracted dealer name from content:', dealerName)
+        return dealerName
+      }
+    }
+  }
+  
+  // Fallback to email domain parsing if no dealer name found in content
+  const senderDomain = senderEmail.split('@')[1] || 'unknown.com'
+  let fallbackName = senderDomain.replace(/\.(com|net|org)$/, '').replace(/^www\./, '')
+  fallbackName = fallbackName.charAt(0).toUpperCase() + fallbackName.slice(1)
+  
+  console.log('Using fallback dealer name from domain:', fallbackName)
+  return fallbackName
 }
