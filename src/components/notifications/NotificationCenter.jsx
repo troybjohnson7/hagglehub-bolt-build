@@ -64,10 +64,20 @@ export default function NotificationCenter() {
             return dealer?.name;
           }).filter(Boolean);
 
-          // Always link to the specific dealer conversation for unread messages
-          const primaryDealerId = dealerIdsWithUnread[0];
-          const link = createPageUrl(`Messages?dealer_id=${primaryDealerId}`);
-          console.log('Creating notification with link:', link);
+          // Smart routing: if message has a deal, go to deal details; otherwise go to messages
+          const primaryMessage = regularUnreadMessages[0];
+          let link;
+          
+          if (primaryMessage.deal_id) {
+            // Message has a deal - go to deal details page
+            link = createPageUrl(`DealDetails?deal_id=${primaryMessage.deal_id}`);
+            console.log('Creating notification with deal details link:', link);
+          } else {
+            // Message has no deal - go to messages page for assignment
+            const primaryDealerId = dealerIdsWithUnread[0];
+            link = createPageUrl(`Messages?dealer_id=${primaryDealerId}`);
+            console.log('Creating notification with messages link:', link);
+          }
 
           generatedNotifications.push({
             id: 'unread_messages',
