@@ -78,7 +78,7 @@ export default function NotificationCenter() {
     return '/messages';
   };
 
-  const handleNotificationClick = (notification) => {
+  const handleNotificationClick = async (notification) => {
     setIsOpen(false);
     
     // Mark the specific message as read when clicked
