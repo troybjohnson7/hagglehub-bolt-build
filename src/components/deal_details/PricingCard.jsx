@@ -29,9 +29,7 @@ const statusLabels = {
 
 const purchaseTypeInfo = {
   cash: { icon: Banknote, label: 'Cash Purchase' },
-    </span>
-  </div>
-);
+};
 
 const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, onSave }) => {
   const [isEditing, setIsEditing] = useState(false);
