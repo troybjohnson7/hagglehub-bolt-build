@@ -363,13 +363,22 @@ export default function Messages() {
           Vehicle.list()
         ]);
         
-        setDealers(dealersData);
+        // Only show dealers that have active deals or are the General Inbox
+        const activeDealerIds = dealsData
+          .filter(deal => ['quote_requested', 'negotiating', 'final_offer', 'accepted'].includes(deal.status))
+          .map(deal => deal.dealer_id);
+        
+        const filteredDealers = dealersData.filter(dealer => 
+          dealer.name === 'General Inbox' || activeDealerIds.includes(dealer.id)
+        );
+        
+        setDealers(filteredDealers);
         setDeals(dealsData);
         setVehicles(vehiclesData);
         
         // Auto-select dealer from URL params
         const dealerIdFromUrl = searchParams.get('dealer_id');
-        if (dealerIdFromUrl && cleanedDealers.find(d => d.id === dealerIdFromUrl)) {
+        if (dealerIdFromUrl && filteredDealers.find(d => d.id === dealerIdFromUrl)) {
           setSelectedDealerId(dealerIdFromUrl);
         }
       } catch (error) {
