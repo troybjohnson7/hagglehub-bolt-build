@@ -6,22 +6,22 @@ const quickActions = [
   {
     id: 'accept_offer',
     label: 'Accept Offer',
-    message: "Great! I'm ready to move forward with this offer. What's the next step?"
+   message: "Great! I'm ready to move forward with this offer. What's the next step to finalize everything?"
   },
   {
     id: 'counter_offer',
     label: 'Counter',
-    message: "Thank you for the offer. I was hoping we could get closer to $[TARGET_PRICE]. Would that work?"
+   message: "Thank you for the offer. I was hoping we could get closer to $[TARGET_PRICE]. Is there any flexibility on the price?"
   },
   {
     id: 'need_time',
     label: 'Need Time',
-    message: "I appreciate the offer. I need a day to discuss with my family. When do you need a decision by?"
+   message: "I appreciate the offer. I need some time to discuss this with my family. When do you need a decision by?"
   },
   {
     id: 'request_better',
     label: 'Best Price?',
-    message: "Is this your best price? I've been looking at similar vehicles and want to make sure I'm getting a fair deal."
+   message: "Is this your absolute best price? I've been researching similar vehicles and want to make sure I'm getting a fair deal."
   }
 ];
 

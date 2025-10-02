@@ -516,7 +516,7 @@ export default function DealDetailsPage() {
                   deal={deal} 
                   onAction={(action, data) => {
                     if (action === 'send_message') {
-                      handleMessageSubmit(data.message, 'outbound', 'app');
+                     setNewMessage(data.message);
                     }
                   }}
                 />
