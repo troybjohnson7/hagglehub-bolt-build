@@ -64,21 +64,6 @@ export default function NotificationCenter() {
             return dealer?.name;
           }).filter(Boolean);
 
-          // Smart routing: if message has a deal, go to deal details; otherwise go to messages
-          const primaryMessage = regularUnreadMessages[0];
-          let link;
-          
-          if (primaryMessage.deal_id) {
-            // Message has a deal - go to deal details page
-            link = createPageUrl(`DealDetails?deal_id=${primaryMessage.deal_id}`);
-            console.log('Creating notification with deal details link:', link);
-          } else {
-            // Message has no deal - go to messages page for assignment
-            const primaryDealerId = dealerIdsWithUnread[0];
-            link = createPageUrl(`Messages?dealer_id=${primaryDealerId}`);
-            console.log('Creating notification with messages link:', link);
-          }
-
           generatedNotifications.push({
             id: 'unread_messages',
             type: 'message',
@@ -90,7 +75,19 @@ export default function NotificationCenter() {
             color: 'text-blue-600',
             bgColor: 'bg-blue-50',
             action: () => setIsOpen(false),
-            link: link
+            link: (() => {
+              // Smart routing: if message has a deal, go to deal details; otherwise go to messages
+              const primaryMessage = regularUnreadMessages[0];
+              
+              if (primaryMessage.deal_id) {
+                // Message has a deal - go to deal details page
+                return createPageUrl(`DealDetails?deal_id=${primaryMessage.deal_id}`);
+              } else {
+                // Message has no deal - go to messages page for assignment
+                const primaryDealerId = dealerIdsWithUnread[0];
+                return createPageUrl(`Messages?dealer_id=${primaryDealerId}`);
+              }
+            })()
           });
         }
 
@@ -226,11 +223,6 @@ export default function NotificationCenter() {
                  notification.action();
                }
              }}
-              className="block p-3 rounded-lg border border-slate-200 hover:border-brand-lime hover:bg-slate-50 transition-all duration-200"
-            >
-              <div className="flex items-start gap-3">
-                <div className={`p-2 rounded-lg ${notification.bgColor}`}>
-                  <notification.icon className={`w-4 h-4 ${notification.color}`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-medium text-slate-900 group-hover:text-brand-teal">
