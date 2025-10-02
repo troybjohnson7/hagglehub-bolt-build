@@ -38,7 +38,7 @@ export default function NotificationCenter() {
         .select(`
           *,
           dealers (name),
-          deals (id)
+          deals!inner (id)
         `)
         .eq('created_by', user.id)
         .eq('direction', 'inbound')
@@ -58,9 +58,8 @@ export default function NotificationCenter() {
           hour: '2-digit', 
           minute: '2-digit' 
         }),
-        dealId: message.deals?.[0]?.id,
+        dealId: message.deal_id,
         dealerId: message.dealer_id,
-        action: () => setIsOpen(false)
       })) || [];
 
       setNotifications(formattedNotifications);
@@ -72,13 +71,21 @@ export default function NotificationCenter() {
 
   const getNotificationLink = (notification) => {
     if (notification.dealId) {
-      return `/deal/${notification.dealId}`;
+      return `/deal-details?deal_id=${notification.dealId}`;
     } else if (notification.dealerId) {
       return `/messages?dealer_id=${notification.dealerId}`;
     }
     return '/messages';
   };
 
+  const handleNotificationClick = (notification) => {
+    setIsOpen(false);
+    // Small delay to ensure state update happens before navigation
+    setTimeout(() => {
+      const link = getNotificationLink(notification);
+      window.location.href = link;
+    }, 50);
+  };
   return (
     <div className="relative">
       <button
@@ -87,7 +94,7 @@ export default function NotificationCenter() {
       >
         <Bell className="w-6 h-6" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 bg-brand-lime text-brand-teal text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -106,10 +113,9 @@ export default function NotificationCenter() {
               </div>
             ) : (
               notifications.map((notification) => (
-                <Link
+                <div
                   key={notification.id}
-                  to={getNotificationLink(notification)}
-                  onClick={notification.action}
+                  onClick={() => handleNotificationClick(notification)}
                   className="block p-4 hover:bg-slate-50 border-b border-slate-100 last:border-b-0 group"
                 >
                   <div className="flex items-start space-x-3">
@@ -128,20 +134,22 @@ export default function NotificationCenter() {
                       </p>
                     </div>
                   </div>
-                </Link>
+                </div>
               ))
             )}
           </div>
           
           {notifications.length > 0 && (
             <div className="p-3 border-t border-slate-200">
-              <Link
-                to="/messages"
-                onClick={() => setIsOpen(false)}
+              <div
+                onClick={() => {
+                  setIsOpen(false);
+                  setTimeout(() => window.location.href = '/messages', 50);
+                }}
                 className="text-sm text-brand-teal hover:text-brand-teal-dark font-medium"
               >
                 View all messages →
-              </Link>
+              </div>
             </div>
           )}
         </div>
