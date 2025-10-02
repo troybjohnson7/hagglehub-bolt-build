@@ -84,7 +84,7 @@ const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, 
   // Display value based on mode
   const displayValue = () => {
     if (!value) return null;
-    if (isOTDMode && (label.includes('Asking') || label.includes('Target') || label.includes('Current'))) {
+    if (isOTDMode && (label.includes('Asking') || label.includes('Target'))) {
       return value + totalFees;
     }
     return value;
@@ -541,7 +541,7 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
               <div className="text-2xl font-bold text-brand-teal mb-1">
                 ${(() => {
                   const askingPrice = isOTDMode ? (deal.asking_price + totalFees) : deal.asking_price;
-                  const currentOffer = isOTDMode ? (currentPrice + totalFees) : currentPrice;
+                  const currentOffer = currentPrice; // Current offer is ALWAYS the sales price, never changes with OTD toggle
                   const savings = askingPrice - currentOffer;
                   return savings > 0 ? savings.toLocaleString() : '0';
                 })()}
@@ -550,7 +550,7 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
                 Total Savings
               </div>
               <div className="text-xs text-slate-500 mt-1">
-                {isOTDMode ? 'Based on Out-the-Door prices' : 'Based on Sales prices'}
+                {isOTDMode ? 'Asking OTD vs Current Sales Offer' : 'Based on Sales prices'}
               </div>
             </div>
           </div>
