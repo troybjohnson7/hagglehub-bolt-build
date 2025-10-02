@@ -537,19 +537,19 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-slate-800">Negotiation Progress</span>
               <span className="text-sm font-bold text-brand-teal">
-                {Math.round(progress.percentage)}%
+                {Math.round(negotiationProgress.percentage)}%
               </span>
             </div>
             <div className="w-full bg-slate-200 rounded-full h-2">
               <div 
                 className="bg-brand-teal h-2 rounded-full transition-all duration-500"
-                style={{ width: `${progress.percentage}%` }}
+                style={{ width: `${negotiationProgress.percentage}%` }}
               />
             </div>
             <div className="flex justify-between text-xs text-slate-600 mt-1">
-              <span>Saved: ${progress.savings?.toLocaleString()}</span>
-              {progress.remaining > 0 && (
-                <span>To target: ${progress.remaining?.toLocaleString()}</span>
+              <span>Saved: ${negotiationProgress.savings?.toLocaleString()}</span>
+              {negotiationProgress.remaining > 0 && (
+                <span>To target: ${negotiationProgress.remaining?.toLocaleString()}</span>
               )}
             </div>
             <div className="text-xs text-slate-500 mt-1">
