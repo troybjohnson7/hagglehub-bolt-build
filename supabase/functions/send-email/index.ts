@@ -156,23 +156,23 @@ serve(async (req) => {
       const mailgunResult = await mailgunResponse.text()
       console.log('Mailgun response body:', mailgunResult)
 
-      let parsedResult
+      let parsedResult = null
       try {
         parsedResult = JSON.parse(mailgunResult)
         console.log('Parsed Mailgun result:', parsedResult)
       } catch (parseError) {
         console.error('Failed to parse Mailgun response as JSON:', parseError)
         console.log('Raw response:', mailgunResult)
-        throw new Error(`Mailgun returned non-JSON response: ${mailgunResult}`)
+        parsedResult = { error: `Mailgun returned non-JSON response: ${mailgunResult}` }
       }
 
       if (!mailgunResponse.ok) {
         console.error('Mailgun API error:', parsedResult)
-        throw new Error(`Mailgun API error: ${JSON.stringify(parsedResult)}`)
+        throw new Error(`Mailgun API error: ${JSON.stringify(parsedResult || mailgunResult)}`)
       }
 
       console.log('=== EMAIL SENT SUCCESSFULLY ===')
-      console.log('Mailgun message ID:', parsedResult.id)
+      console.log('Mailgun message ID:', parsedResult?.id)
 
     } catch (mailgunError) {
       console.error('=== MAILGUN ERROR ===')
