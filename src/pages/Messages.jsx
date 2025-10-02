@@ -693,7 +693,7 @@ export default function Messages() {
         </div>
         
         {/* View Deal Button - only show if there's an active deal for this dealer */}
-        {selectedDealer && currentDealForDealer && !isGeneralInbox && (
+        {selectedDealer && currentDealForDealer && !isGeneralInbox && ['quote_requested', 'negotiating', 'final_offer', 'accepted'].includes(currentDealForDealer.status) && (
           <Button 
             onClick={() => window.location.href = createPageUrl(`DealDetails?deal_id=${currentDealForDealer.id}`)}
             className="bg-brand-teal hover:bg-brand-teal-dark text-white shrink-0"
@@ -731,7 +731,7 @@ export default function Messages() {
               )}
               
               {/* View Deal option - only for dealers with active deals */}
-              {!isGeneralInbox && currentDealForDealer && (
+              {!isGeneralInbox && currentDealForDealer && ['quote_requested', 'negotiating', 'final_offer', 'accepted'].includes(currentDealForDealer.status) && (
                 <DropdownMenuItem 
                   onClick={() => window.location.href = createPageUrl(`DealDetails?deal_id=${currentDealForDealer.id}`)}
                 >
