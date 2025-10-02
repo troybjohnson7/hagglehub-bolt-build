@@ -21,17 +21,42 @@ import {
   Message
 } from '@/api/entities';
 import {
+  InvokeLLM
+} from '@/api/integrations';
+import {
   Button
 } from '@/components/ui/button';
+import {
+  Textarea
+} from '@/components/ui/textarea';
 import {
   ArrowLeft,
   Edit,
   Trash2,
-  MessageSquare
+  MessageSquare,
+  Send,
+  Sparkles,
+  Loader2,
+  MessageSquareReply
 } from 'lucide-react';
 import {
   motion
 } from 'framer-motion';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,6 +69,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
+import { sendReply } from "@/api/functions";
 
 import VehicleSummary from '../components/deal_details/VehicleSummary';
 import PricingCard from '../components/deal_details/PricingCard';
@@ -51,6 +77,9 @@ import DealerInfoCard from '../components/deal_details/DealerInfoCard';
 import MessageTimeline from '../components/deal_details/MessageTimeline';
 import NegotiationCoach from '../components/deal_details/NegotiationCoach';
 import CompleteDealModal from '../components/deal_details/CompleteDealModal';
+import MessageTemplates from '../components/messages/MessageTemplates';
+import QuickActions from '../components/messages/QuickActions';
+import PriceExtractNotification from '../components/messages/PriceExtractNotification';
 
 export default function DealDetailsPage() {
   const [searchParams] = useSearchParams();
@@ -64,6 +93,14 @@ export default function DealDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [newMessage, setNewMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState([]);
+  const [isSuggestionModalOpen, setIsSuggestionModalOpen] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [showPriceNotification, setShowPriceNotification] = useState(false);
+  const [extractedPrice, setExtractedPrice] = useState(null);
 
   const fetchData = useCallback(async () => {
     if (!dealId) {
