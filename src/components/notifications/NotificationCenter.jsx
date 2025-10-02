@@ -80,6 +80,23 @@ export default function NotificationCenter() {
 
   const handleNotificationClick = (notification) => {
     setIsOpen(false);
+    
+    // Mark the specific message as read when clicked
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('id', notification.id);
+      
+      if (!error) {
+        // Update local state to remove this notification
+        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+    }
+    
     // Small delay to ensure state update happens before navigation
     setTimeout(() => {
       const link = getNotificationLink(notification);
