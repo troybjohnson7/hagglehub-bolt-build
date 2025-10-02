@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Deal } from '@/api/entities';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,39 +6,47 @@ import { Input } from '@/components/ui/input';
 import { DollarSign, FileText, Calculator, ChevronDown, Save, HandCoins, Banknote, Landmark, Edit3, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge'; // Added import for Badge
+import { Badge } from '@/components/ui/badge';
 
 // Define status colors and labels, assuming common deal statuses
 const statusColors = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  approved: 'bg-green-100 text-green-800',
-  rejected: 'bg-red-100 text-red-800',
-  draft: 'bg-gray-100 text-gray-800',
-  closed: 'bg-blue-100 text-blue-800',
-  // Add other statuses as needed
+  quote_requested: 'bg-yellow-100 text-yellow-800',
+  negotiating: 'bg-blue-100 text-blue-800',
+  final_offer: 'bg-orange-100 text-orange-800',
+  accepted: 'bg-green-100 text-green-800',
+  declined: 'bg-red-100 text-red-800',
+  expired: 'bg-gray-100 text-gray-800',
 };
 
 const statusLabels = {
-  pending: 'Pending',
-  approved: 'Approved',
-  rejected: 'Rejected',
-  draft: 'Draft',
-  closed: 'Closed',
+  quote_requested: 'Quote Requested',
+  negotiating: 'Negotiating',
+  final_offer: 'Final Offer',
+  accepted: 'Accepted',
+  declined: 'Declined',
+  expired: 'Expired',
 };
 
 const purchaseTypeInfo = {
   cash: { icon: Banknote, label: 'Cash Purchase' },
+  finance: { icon: Landmark, label: 'Finance' },
+  lease: { icon: HandCoins, label: 'Lease' },
 };
 
-const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, onSave }) => {
+const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, onSave, isOTDMode, totalFees }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [isOTD, setIsOTD] = useState(false);
 
   const handleEdit = () => {
-    setEditValue(value || '');
-    setIsOTD(false); // Default to sales price
+    // When editing, show the appropriate value based on mode
+    if (isOTDMode && (label.includes('Asking') || label.includes('Target'))) {
+      // For OTD mode, show the sales price + fees
+      setEditValue((value || 0) + totalFees);
+    } else {
+      // For sales price mode or current offer, show the raw value
+      setEditValue(value || '');
+    }
     setIsEditing(true);
   };
 
@@ -48,7 +55,14 @@ const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, 
     try {
       const numericValue = parseFloat(editValue);
       if (!isNaN(numericValue) && numericValue > 0) {
-        await onSave(numericValue, isOTD);
+        let finalValue = numericValue;
+        
+        // If we're in OTD mode and this is asking/target price, subtract fees to get sales price
+        if (isOTDMode && (label.includes('Asking') || label.includes('Target'))) {
+          finalValue = numericValue - totalFees;
+        }
+        
+        await onSave(finalValue);
         setIsEditing(false);
         toast.success(`${label} updated successfully!`);
       } else {
@@ -65,7 +79,15 @@ const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, 
   const handleCancel = () => {
     setIsEditing(false);
     setEditValue('');
-    setIsOTD(false);
+  };
+
+  // Display value based on mode
+  const displayValue = () => {
+    if (!value) return null;
+    if (isOTDMode && (label.includes('Asking') || label.includes('Target'))) {
+      return value + totalFees;
+    }
+    return value;
   };
 
   if (isEditing) {
@@ -117,7 +139,7 @@ const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, 
       </div>
       <div className="flex items-center gap-2">
         <span className={`text-base font-bold ${colorClass || 'text-slate-900'}`}>
-          {value ? `$${value.toLocaleString()}` : 'N/A'}
+          {displayValue() ? `$${displayValue().toLocaleString()}` : 'N/A'}
         </span>
         <Button
           size="sm"
@@ -153,7 +175,6 @@ const FeesBreakdown = ({ deal, onDealUpdate }) => {
       ...deal.fees_breakdown
     }));
   }, [deal.fees_breakdown]);
-
 
   const handleFeeChange = (e) => {
     const { name, value } = e.target;
@@ -217,7 +238,7 @@ const FeesBreakdown = ({ deal, onDealUpdate }) => {
 
 export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
   const [showFees, setShowFees] = useState(false);
-  const [isOTD, setIsOTD] = useState(false);
+  const [isOTDMode, setIsOTDMode] = useState(false);
   const [analyzedPricing, setAnalyzedPricing] = useState({
     latestOffer: null,
     priceHistory: [],
@@ -227,27 +248,6 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
   const handleUpdateDealField = async (field, value) => {
     try {
       const updatedDeal = await Deal.update(deal.id, { [field]: value });
-      onDealUpdate(updatedDeal);
-    } catch (error) {
-      console.error(`Failed to update ${field}:`, error);
-      throw error;
-    }
-  };
-
-  const handleUpdatePrice = async (value, isOTD, field) => {
-    try {
-      let updateData = {};
-      
-      if (isOTD) {
-        // If it's an OTD price, calculate the sales price by subtracting fees
-        const salesPrice = value - totalFees;
-        updateData[field] = salesPrice;
-      } else {
-        // If it's a sales price, use the value directly
-        updateData[field] = value;
-      }
-      
-      const updatedDeal = await Deal.update(deal.id, updateData);
       onDealUpdate(updatedDeal);
     } catch (error) {
       console.error(`Failed to update ${field}:`, error);
@@ -420,7 +420,6 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
   const PurchaseIcon = purchaseTypeInfo[deal.purchase_type]?.icon || Banknote;
   const purchaseLabel = purchaseTypeInfo[deal.purchase_type]?.label || 'Purchase Type N/A';
 
-
   return (
     <Card className="shadow-lg border-slate-200">
       <CardHeader className="pb-4">
@@ -429,7 +428,7 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
             <DollarSign className="w-5 h-5 text-slate-700" />
             Pricing Overview
           </CardTitle>
-          {deal.status && statusLabels[deal.status] && ( // Only render badge if status and label exist
+          {deal.status && statusLabels[deal.status] && (
             <Badge className={`${statusColors[deal.status] || 'bg-gray-100 text-gray-800'} border font-medium`}>
               {statusLabels[deal.status]}
             </Badge>
@@ -439,15 +438,31 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
           <PurchaseIcon className="w-4 h-4" />
           <span>{purchaseLabel}</span>
         </div>
+        
+        {/* OTD Toggle Checkbox */}
+        <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
+          <input
+            type="checkbox"
+            id="otd-mode"
+            checked={isOTDMode}
+            onChange={(e) => setIsOTDMode(e.target.checked)}
+            className="rounded border-slate-300"
+          />
+          <label htmlFor="otd-mode" className="text-sm text-slate-600 font-medium">
+            Show Out-the-Door prices (includes taxes & fees)
+          </label>
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="group">
           <EditablePriceItem 
-            label="Asking Sales Price" 
+            label={isOTDMode ? "Asking Out-the-Door" : "Asking Sales Price"} 
             value={deal.asking_price} 
             icon={FileText}
             placeholder="Enter asking price"
-            onSave={(value, isOTD) => handleUpdatePrice(value, isOTD, 'asking_price')}
+            onSave={(value) => handleUpdateDealField('asking_price', value)}
+            isOTDMode={isOTDMode}
+            totalFees={totalFees}
           />
         </div>
         <div className="group">
@@ -457,17 +472,21 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
             colorClass="text-blue-600" 
             icon={DollarSign}
             placeholder="Enter current offer"
-            onSave={(value, isOTD) => handleUpdatePrice(value, isOTD, 'current_offer')}
+            onSave={(value) => handleUpdateDealField('current_offer', value)}
+            isOTDMode={false}
+            totalFees={totalFees}
           />
         </div>
         <div className="group">
           <EditablePriceItem 
-            label="Your Target Sales Price" 
+            label={isOTDMode ? "Your Target Out-the-Door" : "Your Target Sales Price"} 
             value={deal.target_price} 
             colorClass="text-green-600" 
             icon={DollarSign}
             placeholder="Enter target price"
-            onSave={(value, isOTD) => handleUpdatePrice(value, isOTD, 'target_price')}
+            onSave={(value) => handleUpdateDealField('target_price', value)}
+            isOTDMode={isOTDMode}
+            totalFees={totalFees}
           />
         </div>
         
@@ -554,18 +573,6 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
               ${otdPrice.toLocaleString()}
             </p>
           </div>
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            id="otd-checkbox"
-            checked={isOTD}
-            onChange={(e) => setIsOTD(e.target.checked)}
-            className="rounded border-slate-300"
-          />
-          <label htmlFor="otd-checkbox" className="text-slate-600">
-            This is an Out-the-Door price (includes taxes & fees)
-          </label>
         </div>
       </CardContent>
     </Card>
