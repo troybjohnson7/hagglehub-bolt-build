@@ -426,19 +426,10 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
       return { percentage: 0, savings: 0, remaining: 0 };
     }
 
-    let askingPrice, targetPrice, currentOffer;
-    
-    if (isOTDMode) {
-      // Use OTD prices for calculation
-      askingPrice = deal.asking_price + totalFees;
-      targetPrice = (deal.target_price || 0) + totalFees;
-      currentOffer = currentPrice + totalFees;
-    } else {
-      // Use sales prices for calculation
-      askingPrice = deal.asking_price;
-      targetPrice = deal.target_price || 0;
-      currentOffer = currentPrice;
-    }
+    // Calculate based on mode
+    const askingPrice = isOTDMode ? (deal.asking_price + totalFees) : deal.asking_price;
+    const targetPrice = isOTDMode ? ((deal.target_price || 0) + totalFees) : (deal.target_price || 0);
+    const currentOffer = isOTDMode ? (currentPrice + totalFees) : currentPrice;
 
     const totalGap = askingPrice - (targetPrice || currentOffer);
     const currentGap = askingPrice - currentOffer;
