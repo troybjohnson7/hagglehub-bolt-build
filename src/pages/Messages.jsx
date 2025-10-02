@@ -647,6 +647,10 @@ export default function Messages() {
       console.log('Full conversation text for parsing:', conversationText);
       
       const result = parseConversationDirectly(conversationText, selectedDealer);
+      
+      // Add the original dealer ID so we can move messages later
+      result.originalDealerId = selectedDealerId;
+      
       console.log('Direct parsing result:', result);
       
       // Navigate to AddVehicle page with parsed data

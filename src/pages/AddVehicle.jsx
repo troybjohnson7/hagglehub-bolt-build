@@ -295,6 +295,38 @@ function DealForm({ parsedData, setStep, currentUser }) {
         dealer_id: newDealer.id,
         status: 'quote_requested'
       });
+      
+      // If this deal was created from messages (indicated by parsedData), 
+      // move all messages from the original dealer to this new deal
+      if (parsedData && parsedData.originalDealerId) {
+        try {
+          console.log('Moving messages from original dealer to new deal...');
+          const originalMessages = await Message.filter({ dealer_id: parsedData.originalDealerId });
+          
+          // Update all messages to point to the new dealer and deal
+          await Promise.all(
+            originalMessages.map(msg => 
+              Message.update(msg.id, { 
+                dealer_id: newDealer.id,
+                deal_id: newDeal.id 
+              })
+            )
+          );
+          
+          // Delete the original dealer if it has no other data
+          const originalDealer = await Dealer.filter({ id: parsedData.originalDealerId });
+          if (originalDealer.length > 0) {
+            await Dealer.delete(parsedData.originalDealerId);
+            console.log('Deleted original dealer after moving messages');
+          }
+          
+          console.log(`Moved ${originalMessages.length} messages to new deal`);
+        } catch (error) {
+          console.error('Failed to move messages to new deal:', error);
+          // Don't fail the whole operation if message moving fails
+        }
+      }
+      
       toast.success("Deal successfully created!");
       console.log('AddVehicle: Deal created successfully, navigating to dashboard');
       console.log('AddVehicle: Created deal:', newDeal);
