@@ -49,9 +49,11 @@ const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, 
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isOTD, setIsOTD] = useState(false);
 
   const handleEdit = () => {
     setEditValue(value || '');
+    setIsOTD(false); // Default to sales price
     setIsEditing(true);
   };
 
@@ -60,7 +62,7 @@ const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, 
     try {
       const numericValue = parseFloat(editValue);
       if (!isNaN(numericValue) && numericValue > 0) {
-        await onSave(numericValue);
+        await onSave(numericValue, isOTD);
         setIsEditing(false);
         toast.success(`${label} updated successfully!`);
       } else {
@@ -77,6 +79,7 @@ const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, 
   const handleCancel = () => {
     setIsEditing(false);
     setEditValue('');
+    setIsOTD(false);
   };
 
   if (isEditing) {
@@ -436,7 +439,7 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
             value={deal.asking_price} 
             icon={FileText}
             placeholder="Enter asking price"
-            onSave={(value) => handleUpdateDealField('asking_price', value)}
+            onSave={(value, isOTD) => handleUpdatePrice(value, isOTD, 'asking_price')}
           />
         </div>
         <div className="group">
@@ -446,7 +449,7 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
             colorClass="text-blue-600" 
             icon={DollarSign}
             placeholder="Enter current offer"
-            onSave={(value) => handleUpdateDealField('current_offer', value)}
+            onSave={(value, isOTD) => handleUpdatePrice(value, isOTD, 'current_offer')}
           />
         </div>
         <div className="group">
@@ -456,7 +459,7 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
             colorClass="text-green-600" 
             icon={DollarSign}
             placeholder="Enter target price"
-            onSave={(value) => handleUpdateDealField('target_price', value)}
+            onSave={(value, isOTD) => handleUpdatePrice(value, isOTD, 'target_price')}
           />
         </div>
         
@@ -543,6 +546,18 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
               ${otdPrice.toLocaleString()}
             </p>
           </div>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            id="otd-checkbox"
+            checked={isOTD}
+            onChange={(e) => setIsOTD(e.target.checked)}
+            className="rounded border-slate-300"
+          />
+          <label htmlFor="otd-checkbox" className="text-slate-600">
+            This is an Out-the-Door price (includes taxes & fees)
+          </label>
         </div>
       </CardContent>
     </Card>
