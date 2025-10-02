@@ -4,7 +4,7 @@ import { Deal } from '@/api/entities';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { DollarSign, FileText, Calculator, ChevronDown, Save, HandCoins, Banknote, Landmark } from 'lucide-react';
+import { DollarSign, FileText, Calculator, ChevronDown, Save, HandCoins, Banknote, Landmark, Edit3, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge'; // Added import for Badge
@@ -322,14 +322,35 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <PriceItem label="Asking Price" value={deal.asking_price} icon={FileText} />
-        <PriceItem 
-          label="Current Offer" 
-          value={analyzedPricing.latestOffer || deal.current_offer} 
-          colorClass="text-blue-600" 
-          icon={DollarSign} 
-        />
-        <PriceItem label="Target Price" value={deal.target_price} colorClass="text-green-600" icon={DollarSign} />
+        <div className="group">
+          <EditablePriceItem 
+            label="Asking Sales Price" 
+            value={deal.asking_price} 
+            icon={FileText}
+            placeholder="Enter asking price"
+            onSave={(value) => handleUpdateDealField('asking_price', value)}
+          />
+        </div>
+        <div className="group">
+          <EditablePriceItem 
+            label="Current Offer" 
+            value={analyzedPricing.latestOffer || deal.current_offer} 
+            colorClass="text-blue-600" 
+            icon={DollarSign}
+            placeholder="Enter current offer"
+            onSave={(value) => handleUpdateDealField('current_offer', value)}
+          />
+        </div>
+        <div className="group">
+          <EditablePriceItem 
+            label="Your Target Sales Price" 
+            value={deal.target_price} 
+            colorClass="text-green-600" 
+            icon={DollarSign}
+            placeholder="Enter target price"
+            onSave={(value) => handleUpdateDealField('target_price', value)}
+          />
+        </div>
         
         {/* Negotiation Progress Bar */}
         {analyzedPricing.negotiationProgress && (
