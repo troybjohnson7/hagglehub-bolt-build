@@ -450,6 +450,9 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
 
   const PurchaseIcon = purchaseTypeInfo[deal.purchase_type]?.icon || Banknote;
   const purchaseLabel = purchaseTypeInfo[deal.purchase_type]?.label || 'Purchase Type N/A';
+  
+  // Calculate negotiation progress based on current toggle state
+  const negotiationProgress = calculateNegotiationProgress();
 
   return (
     <Card className="shadow-lg border-slate-200">
@@ -522,24 +525,24 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
         </div>
         
         {/* Negotiation Progress Bar */}
-        {analyzedPricing.negotiationProgress && (
+        {(analyzedPricing.negotiationProgress || (deal.asking_price && currentPrice)) && (
           <div className="bg-slate-50 border rounded-lg p-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-slate-800">Negotiation Progress</span>
               <span className="text-sm font-bold text-brand-teal">
-                {Math.round(calculateNegotiationProgress().percentage)}%
+                {Math.round(negotiationProgress.percentage)}%
               </span>
             </div>
             <div className="w-full bg-slate-200 rounded-full h-2">
               <div 
                 className="bg-brand-teal h-2 rounded-full transition-all duration-500"
-                style={{ width: `${calculateNegotiationProgress().percentage}%` }}
+                style={{ width: `${negotiationProgress.percentage}%` }}
               />
             </div>
             <div className="flex justify-between text-xs text-slate-600 mt-1">
-              <span>Saved: ${calculateNegotiationProgress().savings?.toLocaleString()}</span>
-              {calculateNegotiationProgress().remaining > 0 && (
-                <span>To target: ${calculateNegotiationProgress().remaining?.toLocaleString()}</span>
+              <span>Saved: ${negotiationProgress.savings?.toLocaleString()}</span>
+              {negotiationProgress.remaining > 0 && (
+                <span>To target: ${negotiationProgress.remaining?.toLocaleString()}</span>
               )}
             </div>
           </div>
