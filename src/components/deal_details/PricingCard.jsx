@@ -421,7 +421,7 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
   const purchaseLabel = purchaseTypeInfo[deal.purchase_type]?.label || 'Purchase Type N/A';
   
   // Calculate negotiation progress based on current mode
-  const calculateProgress = () => {
+  const negotiationProgress = (() => {
     if (!deal.asking_price || !currentPrice) {
       return { percentage: 0, savings: 0, remaining: 0 };
     }
@@ -457,9 +457,8 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
         remaining: Math.max(0, currentOffer - targetPrice)
       };
     }
-  };
 
-  const negotiationProgress = calculateProgress();
+  })();
 
   return (
     <Card className="shadow-lg border-slate-200">
