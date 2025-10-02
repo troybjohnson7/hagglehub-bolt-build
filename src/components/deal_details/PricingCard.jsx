@@ -539,12 +539,12 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
             
             {(() => {
               // Simple calculation: Asking - Current Offer = Savings
-                ${(() => {
-                  const askingPrice = isOTDMode ? (deal.asking_price + totalFees) : deal.asking_price;
-                  const currentOffer = isOTDMode ? ((analyzedPricing.latestOffer || deal.current_offer) + totalFees) : (analyzedPricing.latestOffer || deal.current_offer);
-                  const savings = askingPrice - currentOffer;
-                  return savings > 0 ? savings.toLocaleString() : '0';
-                })()}
+              const askingPrice = isOTDMode ? (deal.asking_price + totalFees) : deal.asking_price;
+              const currentOffer = isOTDMode ? ((analyzedPricing.latestOffer || deal.current_offer) + totalFees) : (analyzedPricing.latestOffer || deal.current_offer);
+              const savings = askingPrice - currentOffer;
+              
+              return (
+                <div>
                   <div className="text-2xl font-bold text-brand-teal mb-1">
                     ${savings > 0 ? savings.toLocaleString() : '0'}
                   </div>
