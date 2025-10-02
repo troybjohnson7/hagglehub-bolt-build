@@ -220,7 +220,10 @@ export default function NotificationCenter() {
           >
             <Link
               to={notification.link}
-              onClick={notification.action}
+             onClick={() => {
+               notification.action();
+               setIsOpen(false);
+             }}
               className="block p-3 rounded-lg border border-slate-200 hover:border-brand-lime hover:bg-slate-50 transition-all duration-200"
             >
               <div className="flex items-start gap-3">
