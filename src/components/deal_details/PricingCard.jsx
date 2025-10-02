@@ -535,25 +535,28 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
           <div className="bg-slate-50 border rounded-lg p-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-slate-800">Negotiation Progress</span>
-              <span className="text-sm font-bold text-brand-teal">
-                {Math.round(negotiationProgress.percentage)}%
-              </span>
             </div>
-            <div className="w-full bg-slate-200 rounded-full h-2">
-              <div 
-                className="bg-brand-teal h-2 rounded-full transition-all duration-500"
-                style={{ width: `${negotiationProgress.percentage}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-slate-600 mt-1">
-              <span>Saved: ${negotiationProgress.savings?.toLocaleString()}</span>
-              {negotiationProgress.remaining > 0 && (
-                <span>To target: ${negotiationProgress.remaining?.toLocaleString()}</span>
-              )}
-            </div>
-            <div className="text-xs text-slate-500 mt-1">
-              {isOTDMode ? 'Based on Out-the-Door prices' : 'Based on Sales prices'}
-            </div>
+            
+            {(() => {
+              // Simple calculation: Asking - Current Offer = Savings
+              const askingPrice = isOTDMode ? (deal.asking_price + totalFees) : deal.asking_price;
+              const currentOffer = isOTDMode ? (currentPrice + totalFees) : currentPrice;
+              const savings = askingPrice - currentOffer;
+              
+              return (
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-brand-teal mb-1">
+                    ${savings > 0 ? savings.toLocaleString() : '0'}
+                  </div>
+                  <div className="text-sm text-slate-600">
+                    Total Savings
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    {isOTDMode ? 'Based on Out-the-Door prices' : 'Based on Sales prices'}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
         
