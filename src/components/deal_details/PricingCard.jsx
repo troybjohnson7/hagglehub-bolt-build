@@ -147,18 +147,45 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
     let latestOffer = deal.current_offer;
     
     messages.forEach(message => {
-      if (message.contains_offer && message.extracted_price) {
-        priceHistory.push({
-          price: message.extracted_price,
-          date: message.created_date,
-          direction: message.direction,
-          content: message.content
+      // Extract prices from message content using enhanced patterns
+      const extractedPrices = extractPricesFromText(message.content);
+      
+      if (extractedPrices.length > 0) {
+        extractedPrices.forEach(price => {
+          priceHistory.push({
+            price: price,
+            date: message.created_date,
+            direction: message.direction,
+            content: message.content
+          });
         });
         
-        // Update latest offer if this is more recent
-        if (message.direction === 'inbound' && 
-            (!latestOffer || message.extracted_price !== latestOffer)) {
-          latestOffer = message.extracted_price;
+        // Update latest offer if this is more recent inbound message
+        if (message.direction === 'inbound') {
+          const highestPrice = Math.max(...extractedPrices);
+          if (!latestOffer || highestPrice !== latestOffer) {
+            latestOffer = highestPrice;
+          }
+        }
+      }
+      
+      // Also check the existing extracted_price field for backward compatibility
+      if (message.contains_offer && message.extracted_price) {
+        const existingPrice = message.extracted_price;
+        // Only add if we didn't already extract this price
+        const alreadyExtracted = extractedPrices.includes(existingPrice);
+        if (!alreadyExtracted) {
+          priceHistory.push({
+            price: existingPrice,
+            date: message.created_date,
+            direction: message.direction,
+            content: message.content
+          });
+          
+          if (message.direction === 'inbound' && 
+              (!latestOffer || existingPrice !== latestOffer)) {
+            latestOffer = existingPrice;
+          }
         }
       }
     });
@@ -193,6 +220,66 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
     }
     
   }, [messages, deal.asking_price, deal.target_price, deal.current_offer]);
+
+  // Enhanced price extraction function
+  const extractPricesFromText = (text) => {
+    const prices = [];
+    
+    // Pattern 1: $52K, $52k (with dollar sign and K)
+    const dollarKPattern = /\$(\d{1,3}(?:\.\d)?)[kK]/g;
+    let match;
+    while ((match = dollarKPattern.exec(text)) !== null) {
+      const price = parseFloat(match[1]) * 1000;
+      if (price >= 1000 && price <= 500000) {
+        prices.push(price);
+        console.log('Extracted $K format price:', price, 'from:', match[0]);
+      }
+    }
+    
+    // Pattern 2: 52K, 52k (without dollar sign but with K)
+    const kPattern = /\b(\d{1,3}(?:\.\d)?)[kK]\b/g;
+    while ((match = kPattern.exec(text)) !== null) {
+      const price = parseFloat(match[1]) * 1000;
+      if (price >= 1000 && price <= 500000) {
+        prices.push(price);
+        console.log('Extracted K format price:', price, 'from:', match[0]);
+      }
+    }
+    
+    // Pattern 3: $52,000, $52000 (traditional dollar format)
+    const dollarPattern = /\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/g;
+    while ((match = dollarPattern.exec(text)) !== null) {
+      const price = parseFloat(match[1].replace(/,/g, ''));
+      if (price >= 1000 && price <= 500000) {
+        prices.push(price);
+        console.log('Extracted $ format price:', price, 'from:', match[0]);
+      }
+    }
+    
+    // Pattern 4: 52000, 52,000 (numbers without $ in pricing context)
+    // Only extract if the number appears in a pricing context
+    const contextPattern = /(?:price|offer|cost|pay|payment|deal|quote|asking|selling|worth|value|total|otd|out.the.door)\s*[:\-]?\s*(\d{2,3}(?:,\d{3})*)\b/gi;
+    while ((match = contextPattern.exec(text)) !== null) {
+      const price = parseFloat(match[1].replace(/,/g, ''));
+      if (price >= 1000 && price <= 500000) {
+        prices.push(price);
+        console.log('Extracted contextual price:', price, 'from:', match[0]);
+      }
+    }
+    
+    // Pattern 5: Standalone large numbers that look like car prices (5-6 digits)
+    const standalonePattern = /\b(\d{2,3}(?:,\d{3})+)\b/g;
+    while ((match = standalonePattern.exec(text)) !== null) {
+      const price = parseFloat(match[1].replace(/,/g, ''));
+      if (price >= 10000 && price <= 500000) {
+        prices.push(price);
+        console.log('Extracted standalone price:', price, 'from:', match[0]);
+      }
+    }
+    
+    // Remove duplicates and return
+    return [...new Set(prices)];
+  };
   
   const handleAutoUpdateOffer = async (newOffer) => {
     try {
