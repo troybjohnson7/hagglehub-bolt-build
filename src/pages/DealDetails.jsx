@@ -155,9 +155,16 @@ export default function DealDetailsPage() {
     fetchData();
   }, [fetchData]);
 
-  // Scroll to top when component mounts
+  // Force scroll to top when component mounts and when deal data loads
   useEffect(() => {
     window.scrollTo(0, 0);
+  }, [deal, vehicle, dealer]); // Trigger when data loads
+
+  // Also scroll to top immediately when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    // Force scroll to top after a brief delay to override any other scroll behavior
+    setTimeout(() => window.scrollTo(0, 0), 100);
   }, []);
 
   // Scroll to bottom when new messages are added
@@ -470,49 +477,49 @@ export default function DealDetailsPage() {
         </div>
         
         {/* Compact Top Row - Vehicle and Pricing Overview */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 mb-2">
-          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-2">
-            <h2 className="text-base font-bold text-slate-900">{vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : 'Vehicle'}</h2>
-            {vehicle?.trim && <p className="text-xs text-slate-600">{vehicle.trim}</p>}
-            <div className="flex gap-3 mt-1 text-xs text-slate-500">
-              {vehicle?.vin && <span>VIN: {vehicle.vin.slice(-6)}</span>}
-              {vehicle?.mileage && <span>{vehicle.mileage.toLocaleString()} mi</span>}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+            <h2 className="text-lg font-bold text-slate-900">{vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : 'Vehicle'}</h2>
+            {vehicle?.trim && <p className="text-sm text-slate-600">{vehicle.trim}</p>}
+            <div className="flex gap-4 mt-2 text-sm text-slate-500">
+              {vehicle?.vin && <span>VIN: {vehicle.vin}</span>}
+              {vehicle?.mileage && <span>{vehicle.mileage.toLocaleString()} miles</span>}
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-2">
-            <h3 className="text-base font-bold text-slate-900 mb-1">Pricing</h3>
-            <div className="grid grid-cols-3 gap-2 text-xs">
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Pricing</h3>
+            <div className="grid grid-cols-3 gap-3 text-sm">
               <div className="text-center">
                 <p className="text-slate-500">Asking</p>
-                <p className="font-semibold">{deal.asking_price ? `$${Math.round(deal.asking_price/1000)}k` : 'N/A'}</p>
+                <p className="font-semibold">{deal.asking_price ? `$${deal.asking_price.toLocaleString()}` : 'N/A'}</p>
               </div>
               <div className="text-center">
                 <p className="text-slate-500">Offer</p>
-                <p className="font-semibold text-blue-600">{deal.current_offer ? `$${Math.round(deal.current_offer/1000)}k` : 'N/A'}</p>
+                <p className="font-semibold text-blue-600">{deal.current_offer ? `$${deal.current_offer.toLocaleString()}` : 'N/A'}</p>
               </div>
               <div className="text-center">
                 <p className="text-slate-500">Target</p>
-                <p className="font-semibold text-green-600">{deal.target_price ? `$${Math.round(deal.target_price/1000)}k` : 'N/A'}</p>
+                <p className="font-semibold text-green-600">{deal.target_price ? `$${deal.target_price.toLocaleString()}` : 'N/A'}</p>
               </div>
             </div>
           </div>
         </div>
         
         {/* Main Content Row - Optimized for viewport */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Left Column - Messages */}
           <div className="lg:col-span-2">
             {/* Messages Section with Input */}
-            <div className="bg-white rounded-xl shadow-lg border border-slate-200 h-[calc(100vh-200px)] flex flex-col">
+            <div className="bg-white rounded-xl shadow-lg border border-slate-200 h-[calc(100vh-280px)] flex flex-col">
               {/* Messages Header */}
-              <div className="p-1.5 border-b border-slate-200 flex-shrink-0">
+              <div className="p-3 border-b border-slate-200 flex-shrink-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                     <MessageSquare className="w-4 h-4 text-slate-700" />
                     Conversation
                   </h3>
                   <Link to={createPageUrl(`Messages?dealer_id=${dealer?.id}`)}>
-                    <Button variant="ghost" size="sm" className="text-brand-teal hover:text-brand-teal-dark hover:bg-teal-50 text-xs">
+                    <Button variant="ghost" size="sm" className="text-brand-teal hover:text-brand-teal-dark hover:bg-teal-50 text-sm">
                       View Full Messages
                     </Button>
                   </Link>
@@ -520,7 +527,7 @@ export default function DealDetailsPage() {
               </div>
 
               {/* Messages Display - Scrollable */}
-              <div className="flex-1 p-1.5 overflow-y-auto">
+              <div className="flex-1 p-3 overflow-y-auto">
                 {messages.length === 0 ? (
                   <div className="text-center text-slate-500 py-4">
                     <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-2" />
@@ -535,7 +542,7 @@ export default function DealDetailsPage() {
                     </AnimatePresence>
                     {/* Quick Actions */}
                     {deal && (
-                      <div className="flex-shrink-0 mt-1">
+                      <div className="flex-shrink-0 mt-2">
                         <QuickActions 
                           deal={deal} 
                           onAction={(action, data) => {
@@ -552,16 +559,16 @@ export default function DealDetailsPage() {
               </div>
 
               {/* Message Input Area */}
-              <div className="p-1.5 border-t border-slate-200 flex-shrink-0">
+              <div className="p-3 border-t border-slate-200 flex-shrink-0">
                 {/* AI Suggest and Templates buttons */}
-                <div className="flex gap-1 mb-1">
+                <div className="flex gap-2 mb-2">
                   <Dialog open={isSuggestionModalOpen} onOpenChange={setIsSuggestionModalOpen}>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={handleAISuggestion}
                       disabled={isSuggesting}
-                      className="text-xs border-lime-300 text-lime-700 hover:bg-lime-50 px-2 py-1"
+                      className="text-sm border-lime-300 text-lime-700 hover:bg-lime-50"
                     >
                       {isSuggesting ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
                       AI Suggest
@@ -600,7 +607,7 @@ export default function DealDetailsPage() {
                   </Dialog>
                   <Sheet open={showTemplates} onOpenChange={setShowTemplates}>
                     <SheetTrigger asChild>
-                      <Button size="sm" variant="outline" className="text-xs px-2 py-1">
+                      <Button size="sm" variant="outline" className="text-sm">
                         <MessageSquareReply className="w-3 h-3 mr-1" />
                         Templates
                       </Button>
@@ -615,20 +622,20 @@ export default function DealDetailsPage() {
                   </Sheet>
                 </div>
                 {/* Text input and Send button */}
-                <div className="flex gap-1.5">
+                <div className="flex gap-2">
                   <Textarea
                     placeholder="Type your reply..."
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
-                    className="flex-1 min-h-[32px] text-sm focus:ring-lime-500 focus:border-lime-500 resize-none"
-                    rows={1}
+                    className="flex-1 min-h-[44px] text-sm focus:ring-lime-500 focus:border-lime-500 resize-none"
+                    rows={2}
                   />
                   <Button 
                     size="icon" 
                     onClick={handleSendMessage} 
                     disabled={isSending || !newMessage.trim()}
-                    className="bg-teal-700 hover:bg-teal-800 shrink-0 h-8 w-8"
+                    className="bg-teal-700 hover:bg-teal-800 shrink-0"
                   >
                     {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </Button>
@@ -637,7 +644,7 @@ export default function DealDetailsPage() {
             </div>
           </div>
           {/* Right Column - Negotiation Coach and Dealer Info */}
-          <div className="lg:col-span-1 space-y-2">
+          <div className="lg:col-span-1 space-y-4">
             <NegotiationCoach deal={deal} vehicle={vehicle} messages={messages} />
             {dealer && <DealerInfoCard dealer={dealer} />}
           </div>
