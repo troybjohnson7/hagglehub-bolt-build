@@ -29,18 +29,6 @@ const statusLabels = {
 
 const purchaseTypeInfo = {
   cash: { icon: Banknote, label: 'Cash Purchase' },
-  finance: { icon: Landmark, label: 'Financed Deal' },
-  lease: { icon: HandCoins, label: 'Lease Agreement' },
-};
-
-const PriceItem = ({ label, value, colorClass, icon: Icon }) => (
-  <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border">
-    <div className="flex items-center gap-3">
-      <Icon className={`w-5 h-5 ${colorClass || 'text-slate-600'}`} />
-      <span className="text-sm font-medium text-slate-800">{label}</span>
-    </div>
-    <span className={`text-base font-bold ${colorClass || 'text-slate-900'}`}>
-      {value ? `$${value.toLocaleString()}` : 'N/A'}
     </span>
   </div>
 );
@@ -449,21 +437,6 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
             </Badge>
           )}
         </div>
-        
-        {/* OTD Toggle Checkbox */}
-        <div className="flex items-center gap-2 pt-2">
-          <input
-            type="checkbox"
-            id="otd-toggle"
-            checked={isOTD}
-            onChange={(e) => setIsOTD(e.target.checked)}
-            className="rounded border-slate-300"
-          />
-          <label htmlFor="otd-toggle" className="text-sm text-slate-600 font-medium">
-            Show Out-the-Door prices (includes taxes & fees)
-          </label>
-        </div>
-        
         <div className="flex items-center gap-2 text-sm text-slate-500 pt-1">
           <PurchaseIcon className="w-4 h-4" />
           <span>{purchaseLabel}</span>
@@ -472,30 +445,30 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
       <CardContent className="space-y-3">
         <div className="group">
           <EditablePriceItem 
-            label={isOTD ? "Asking Out-the-Door" : "Asking Sales Price"} 
-            value={isOTD ? (deal.asking_price || 0) + totalFees : deal.asking_price} 
+            label="Asking Sales Price" 
+            value={deal.asking_price} 
             icon={FileText}
-            placeholder={isOTD ? "Enter asking OTD price" : "Enter asking sales price"}
+            placeholder="Enter asking price"
             onSave={(value, isOTD) => handleUpdatePrice(value, isOTD, 'asking_price')}
           />
         </div>
         <div className="group">
           <EditablePriceItem 
             label="Current Offer" 
-            value={isOTD ? (analyzedPricing.latestOffer || deal.current_offer || 0) + totalFees : analyzedPricing.latestOffer || deal.current_offer} 
+            value={analyzedPricing.latestOffer || deal.current_offer} 
             colorClass="text-blue-600" 
             icon={DollarSign}
-            placeholder={isOTD ? "Enter current OTD offer" : "Enter current sales offer"}
+            placeholder="Enter current offer"
             onSave={(value, isOTD) => handleUpdatePrice(value, isOTD, 'current_offer')}
           />
         </div>
         <div className="group">
           <EditablePriceItem 
-            label={isOTD ? "Your Target Out-the-Door" : "Your Target Sales Price"} 
-            value={isOTD ? (deal.target_price || 0) + totalFees : deal.target_price} 
+            label="Your Target Sales Price" 
+            value={deal.target_price} 
             colorClass="text-green-600" 
             icon={DollarSign}
-            placeholder={isOTD ? "Enter target OTD price" : "Enter target sales price"}
+            placeholder="Enter target price"
             onSave={(value, isOTD) => handleUpdatePrice(value, isOTD, 'target_price')}
           />
         </div>
