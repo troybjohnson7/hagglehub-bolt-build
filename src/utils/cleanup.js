@@ -13,14 +13,10 @@ export function cleanupDuplicateDealers(dealers) {
     d.name === 'Uncategorized (9qb207z)' // Exact match for the specific one
   );
   
-  if (systemDealers.length <= 1) {
-    // Even if only one, rename it if it's not "General Inbox"
-    if (systemDealers.length === 1 && systemDealers[0].name !== 'General Inbox') {
-      systemDealers[0].name = 'General Inbox';
-      systemDealers[0].notes = 'System inbox for messages that don\'t match any specific deals. You can organize these messages later.';
-    }
-    return dealers;
-  }
+  // Don't automatically clean up dealers - just return them as-is
+  // Let the user manually organize their dealers
+  return dealers;
+}
   
   // Keep the first one, mark others for removal
   const [keepDealer, ...duplicates] = systemDealers;

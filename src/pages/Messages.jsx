@@ -363,47 +363,7 @@ export default function Messages() {
           Vehicle.list()
         ]);
         
-        // Clean up duplicate dealers
-        const cleanedDealers = cleanupDuplicateDealers(dealersData);
-        
-        // Check if any dealer needs to be updated from "Gmail" to proper dealer name
-        for (const dealer of cleanedDealers) {
-          if (dealer.name === 'Gmail' || dealer.name.toLowerCase().includes('gmail')) {
-            // Get messages for this dealer to check content
-            try {
-              const dealerMessages = await Message.filter({ dealer_id: dealer.id });
-              const conversationText = dealerMessages.map(m => m.content).join('\n\n');
-              
-              // Check if this is actually Toyota of Cedar Park
-              if (conversationText.includes('Toyota of Cedar Park') || 
-                  conversationText.includes('toyotaofcedarpark.com') ||
-                  conversationText.includes('Brian Toyota')) {
-                
-                console.log('Updating Gmail dealer to Toyota of Cedar Park');
-                await Dealer.update(dealer.id, {
-                  name: 'Toyota of Cedar Park',
-                  contact_email: 'brian@toyotaofcedarpark.com',
-                  phone: '(512) 778-0711',
-                  address: '5600 183A Toll Rd, Cedar Park, TX 78641',
-                  website: 'https://www.toyotaofcedarpark.com',
-                  sales_rep_name: 'Brian'
-                });
-                
-                // Update the local dealer object
-                dealer.name = 'Toyota of Cedar Park';
-                dealer.contact_email = 'brian@toyotaofcedarpark.com';
-                dealer.phone = '(512) 778-0711';
-                dealer.address = '5600 183A Toll Rd, Cedar Park, TX 78641';
-                dealer.website = 'https://www.toyotaofcedarpark.com';
-                dealer.sales_rep_name = 'Brian';
-              }
-            } catch (error) {
-              console.error('Failed to update dealer name:', error);
-            }
-          }
-        }
-        
-        setDealers(cleanedDealers);
+        setDealers(dealersData);
         setDeals(dealsData);
         setVehicles(vehiclesData);
         
