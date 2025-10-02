@@ -143,16 +143,6 @@ const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, 
   );
 };
 
-const handleUpdateDealField = async (field, value) => {
-  try {
-    const updatedDeal = await Deal.update(deal.id, { [field]: value });
-    onDealUpdate(updatedDeal);
-  } catch (error) {
-    console.error(`Failed to update ${field}:`, error);
-    throw error;
-  }
-};
-
 const FeesBreakdown = ({ deal, onDealUpdate }) => {
   const initialFees = {
     doc_fee: '',
@@ -244,6 +234,16 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
     negotiationProgress: null
   });
   
+  const handleUpdateDealField = async (field, value) => {
+    try {
+      const updatedDeal = await Deal.update(deal.id, { [field]: value });
+      onDealUpdate(updatedDeal);
+    } catch (error) {
+      console.error(`Failed to update ${field}:`, error);
+      throw error;
+    }
+  };
+
   // Analyze messages for pricing information
   useEffect(() => {
     if (messages.length === 0) return;
