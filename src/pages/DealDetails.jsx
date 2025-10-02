@@ -449,6 +449,16 @@ export default function DealDetailsPage() {
               </Button>
             )}
             
+            <Link to={createPageUrl(`EditDeal?deal_id=${deal.id}`)}>
+              <Button
+                variant="outline"
+                className="border-slate-300 text-slate-700 hover:bg-slate-50"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Deal
+              </Button>
+            </Link>
+            
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
