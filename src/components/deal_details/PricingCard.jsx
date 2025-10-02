@@ -525,7 +525,7 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
         </div>
         
         {/* Negotiation Progress Bar */}
-        {(analyzedPricing.negotiationProgress || (deal.asking_price && currentPrice)) && (
+        {(deal.asking_price && currentPrice) && (
           <div className="bg-slate-50 border rounded-lg p-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-slate-800">Negotiation Progress</span>
