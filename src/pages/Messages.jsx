@@ -732,6 +732,17 @@ export default function Messages() {
           </select>
         </div>
         
+        {/* View Deal Button - only show if there's an active deal for this dealer */}
+        {selectedDealer && currentDealForDealer && !isGeneralInbox && (
+          <Button 
+            onClick={() => window.location.href = createPageUrl(`DealDetails?deal_id=${currentDealForDealer.id}`)}
+            className="bg-brand-teal hover:bg-brand-teal-dark text-white shrink-0"
+          >
+            <MessageCircle className="w-4 h-4 mr-2" />
+            View Deal
+          </Button>
+        )}
+        
         {/* Three dots menu */}
         {selectedDealer && (
           <DropdownMenu>
