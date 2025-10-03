@@ -117,6 +117,9 @@ export default function SmartInsights({ deals, vehicles }) {
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (response.status === 429) {
+          throw new Error('OpenAI rate limit reached. Please wait a moment and try again. If this persists, check your OpenAI billing at platform.openai.com');
+        }
         throw new Error(errorData.error || 'Analysis failed');
       }
 

@@ -314,7 +314,18 @@ Respond ONLY with valid JSON in this exact format:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error:', errorText);
+      console.error('OpenAI API error:', response.status, errorText);
+
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({
+            error: 'Rate limit reached',
+            details: 'OpenAI API rate limit exceeded. Please wait a moment and try again, or check your OpenAI account billing at https://platform.openai.com/account/billing'
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       throw new Error(`OpenAI API failed: ${response.status}`);
     }
 
