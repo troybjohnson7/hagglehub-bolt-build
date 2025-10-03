@@ -2,13 +2,13 @@
   # Analyze Deals Edge Function
 
   1. Purpose
-    - Uses Claude AI to analyze active car deals with real market data
+    - Uses OpenAI GPT to analyze active car deals with real market data
     - Provides strategic insights and actionable recommendations
     - Supports both manual and event-triggered analysis
     - Implements intelligent caching to reduce API costs
 
   2. Features
-    - Real-time deal analysis with Claude 3.5 Sonnet
+    - Real-time deal analysis with GPT-4o
     - Market data integration for context
     - Proactive urgency detection (expiring quotes, stale deals)
     - Multi-deal portfolio analysis
@@ -88,12 +88,12 @@ Deno.serve(async (req: Request) => {
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
-    if (!anthropicApiKey) {
-      console.error('ANTHROPIC_API_KEY not configured');
+    if (!openaiApiKey) {
+      console.error('OPENAI_API_KEY not configured');
       return new Response(
-        JSON.stringify({ error: 'AI service not configured. Please add your Anthropic API key to enable insights.' }),
+        JSON.stringify({ error: 'AI service not configured. Please add your OpenAI API key to enable insights.' }),
         { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -216,7 +216,7 @@ Deno.serve(async (req: Request) => {
       d.is_expiring_soon || d.is_stale || d.has_expired
     );
 
-    // Build comprehensive prompt for Claude
+    // Build comprehensive prompt for GPT
     const prompt = `You are "The HaggleHub Coach", an expert AI car negotiation assistant with deep knowledge of automotive market trends and negotiation psychology.
 
 You have access to real market data from ${relevantMarketData.length} completed deals in the HaggleHub community for similar vehicles.
@@ -275,70 +275,51 @@ Provide a strategic analysis with the following structure:
 - Contradicting yourself across insights
 - Being overly pessimistic or unrealistically optimistic
 
-Respond ONLY with valid JSON matching the schema provided.`;
+Respond ONLY with valid JSON in this exact format:
+{
+  "summary": "string",
+  "insights": [
+    {
+      "title": "string",
+      "explanation": "string",
+      "next_step": "string",
+      "type": "positive" | "negative" | "neutral"
+    }
+  ]
+}`;
 
-    console.log('Calling Claude API...');
-    
-    // Call Claude API
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    console.log('Calling OpenAI API...');
+
+    // Call OpenAI API
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': anthropicApiKey,
-        'anthropic-version': '2023-06-01'
+        'Authorization': `Bearer ${openaiApiKey}`
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 2000,
+        model: 'gpt-4o',
         messages: [{
+          role: 'system',
+          content: 'You are a helpful car negotiation coach. Always respond with valid JSON only.'
+        }, {
           role: 'user',
           content: prompt
         }],
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'deal_analysis',
-            strict: true,
-            schema: {
-              type: 'object',
-              properties: {
-                summary: { 
-                  type: 'string',
-                  description: 'Brief encouraging overview of all deals (2-3 sentences)'
-                },
-                insights: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      title: { type: 'string' },
-                      explanation: { type: 'string' },
-                      next_step: { type: 'string' },
-                      type: { type: 'string', enum: ['positive', 'negative', 'neutral'] }
-                    },
-                    required: ['title', 'explanation', 'next_step', 'type'],
-                    additionalProperties: false
-                  },
-                  minItems: 2,
-                  maxItems: 4
-                }
-              },
-              required: ['summary', 'insights'],
-              additionalProperties: false
-            }
-          }
-        }
+        response_format: { type: 'json_object' },
+        temperature: 0.7,
+        max_tokens: 2000
       })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Claude API error:', errorText);
-      throw new Error(`Claude API failed: ${response.status}`);
+      console.error('OpenAI API error:', errorText);
+      throw new Error(`OpenAI API failed: ${response.status}`);
     }
 
-    const claudeResponse = await response.json();
-    const analysisResult = JSON.parse(claudeResponse.content[0].text);
+    const openaiResponse = await response.json();
+    const analysisResult = JSON.parse(openaiResponse.choices[0].message.content);
 
     console.log('Analysis complete');
 

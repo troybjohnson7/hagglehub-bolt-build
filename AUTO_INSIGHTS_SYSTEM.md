@@ -2,12 +2,12 @@
 
 ## Overview
 
-The Smart Insights feature now includes **Event-Based Auto-Refresh with Claude AI**, providing proactive, intelligent deal analysis with minimal API costs.
+The Smart Insights feature now includes **Event-Based Auto-Refresh with OpenAI GPT**, providing proactive, intelligent deal analysis with minimal API costs.
 
 ## Key Features
 
-### 1. Claude 3.5 Sonnet Integration
-- Real AI-powered analysis using Anthropic's Claude 3.5 Sonnet
+### 1. GPT-4o Integration
+- Real AI-powered analysis using OpenAI's GPT-4o
 - Structured JSON responses with validated schemas
 - Market data-aware insights with specific recommendations
 - Cost-effective with intelligent caching
@@ -101,28 +101,28 @@ The system automatically analyzes deals when:
 
 ## Cost Analysis
 
-### Per-Analysis Costs (Claude 3.5 Sonnet)
-- **Input tokens**: ~1,800 tokens × $0.003/1K = $0.0054
-- **Output tokens**: ~500 tokens × $0.015/1K = $0.0075
-- **Total per call**: ~$0.013
+### Per-Analysis Costs (GPT-4o)
+- **Input tokens**: ~1,800 tokens × $0.0025/1K = $0.0045
+- **Output tokens**: ~500 tokens × $0.010/1K = $0.0050
+- **Total per call**: ~$0.0095
 
 ### Monthly Cost Projections
 
 #### With Event-Based Triggers (Recommended)
 | Users | Calls/Month | Total Cost | Cost/User |
 |-------|-------------|------------|-----------|
-| 100   | 500         | $6.50      | $0.065    |
-| 500   | 2,500       | $32.50     | $0.065    |
-| 1000  | 5,000       | $65.00     | $0.065    |
+| 100   | 500         | $4.75      | $0.048    |
+| 500   | 2,500       | $23.75     | $0.048    |
+| 1000  | 5,000       | $47.50     | $0.048    |
 
 **Note**: With 12-hour caching, actual costs are 50-70% lower than maximum possible calls.
 
 #### Without Caching (for comparison)
 | Users | Calls/Month | Total Cost | Cost/User |
 |-------|-------------|------------|-----------|
-| 100   | 1,500       | $19.50     | $0.195    |
-| 500   | 7,500       | $97.50     | $0.195    |
-| 1000  | 15,000      | $195.00    | $0.195    |
+| 100   | 1,500       | $14.25     | $0.143    |
+| 500   | 7,500       | $71.25     | $0.143    |
+| 1000  | 15,000      | $142.50    | $0.143    |
 
 ### Cost Optimization Features
 1. **Smart Caching**: 12-hour TTL reduces redundant analyses
@@ -198,17 +198,20 @@ Periodic function to scan all active deals:
 ### 1. Environment Variables
 Add to Supabase Edge Function secrets:
 ```bash
-ANTHROPIC_API_KEY=sk-ant-xxx...
+OPENAI_API_KEY=sk-proj-xxx...
 ```
 
-**Note**: This is already configured automatically by Supabase.
+To add the key, run:
+```bash
+supabase secrets set OPENAI_API_KEY=your-key-here
+```
 
 ### 2. Test the System
 
 #### Manual Test:
 1. Go to Dashboard
 2. Click "Analyze My Deals"
-3. Verify insights appear with Claude branding
+3. Verify insights appear with GPT-4o branding
 4. Check that cache indicator shows
 
 #### Auto-Trigger Test:
@@ -225,15 +228,15 @@ ANTHROPIC_API_KEY=sk-ant-xxx...
 
 ### 3. Monitor Costs
 
-Check Anthropic dashboard:
-- URL: https://console.anthropic.com
+Check OpenAI dashboard:
+- URL: https://platform.openai.com/usage
 - View API usage by date
 - Set up billing alerts
 
 ## Troubleshooting
 
 ### Issue: "AI service not configured"
-**Solution**: Ensure ANTHROPIC_API_KEY is set in Supabase Edge Function secrets.
+**Solution**: Ensure OPENAI_API_KEY is set in Supabase Edge Function secrets.
 
 ### Issue: Analysis not triggering automatically
 **Solution**:

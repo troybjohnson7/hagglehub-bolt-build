@@ -159,7 +159,7 @@ export default function SmartInsights({ deals, vehicles }) {
           </div>
           <div>
             <CardTitle className="text-sm md:text-lg font-bold text-slate-900">Smart Insights</CardTitle>
-            <CardDescription className="text-xs md:text-sm hidden md:block">AI-powered analysis with real market data.</CardDescription>
+            <CardDescription className="text-xs md:text-sm hidden md:block">AI-powered analysis with real market data from GPT-4o.</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -174,7 +174,7 @@ export default function SmartInsights({ deals, vehicles }) {
         )}
         {!analysis && (
           <div className="text-center">
-            <p className="text-slate-600 mb-2 md:mb-4 text-xs md:text-sm leading-snug">Get AI-powered analysis with real market data from Claude.</p>
+            <p className="text-slate-600 mb-2 md:mb-4 text-xs md:text-sm leading-snug">Get AI-powered analysis with real market data from ChatGPT.</p>
             <Button onClick={() => handleAnalyzeDeals(false)} disabled={isLoading} className="text-xs md:text-sm py-1.5 h-8 md:h-10 md:py-2 w-full md:w-auto">
               {isLoading ? (
                 <><Loader2 className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2 animate-spin" /> Analyzing...</>
