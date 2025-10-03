@@ -3,10 +3,10 @@ import { Filter, ListFilter } from 'lucide-react';
 
 export default function DealFilters({ filters, setFilters, sortBy, setSortBy }) {
   return (
-    <div className="bg-white p-3 md:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-lime hover:border-opacity-20 transition-all duration-200 mb-4 md:mb-6 flex flex-col sm:flex-row gap-3 md:gap-4">
-      <div className="flex-1 grid grid-cols-2 sm:grid-cols-2 gap-3 md:gap-4">
+    <div className="bg-white p-2 md:p-4 rounded-lg shadow-sm border border-slate-200 hover:border-brand-lime hover:border-opacity-20 transition-all duration-200 flex flex-col sm:flex-row gap-2 md:gap-4">
+      <div className="flex-1 grid grid-cols-2 sm:grid-cols-2 gap-2 md:gap-4">
         <div>
-          <label className="text-xs text-brand-teal flex items-center mb-1 font-medium">
+          <label className="text-xs text-brand-teal flex items-center mb-0.5 font-medium">
             <Filter className="w-3 h-3 mr-1" />
             Status
           </label>
@@ -14,7 +14,7 @@ export default function DealFilters({ filters, setFilters, sortBy, setSortBy }) 
             value={filters.status}
             onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
           >
-            <SelectTrigger className="w-full border-slate-200 focus:border-brand-lime focus:ring-brand-lime h-8 md:h-9 text-sm">
+            <SelectTrigger className="w-full border-slate-200 focus:border-brand-lime focus:ring-brand-lime h-7 md:h-9 text-xs md:text-sm">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
@@ -29,7 +29,7 @@ export default function DealFilters({ filters, setFilters, sortBy, setSortBy }) 
           </Select>
         </div>
         <div>
-          <label className="text-xs text-brand-teal flex items-center mb-1 font-medium">
+          <label className="text-xs text-brand-teal flex items-center mb-0.5 font-medium">
             <Filter className="w-3 h-3 mr-1" />
             Priority
           </label>
@@ -37,7 +37,7 @@ export default function DealFilters({ filters, setFilters, sortBy, setSortBy }) 
             value={filters.priority}
             onValueChange={(value) => setFilters(prev => ({ ...prev, priority: value }))}
           >
-            <SelectTrigger className="w-full border-slate-200 focus:border-brand-lime focus:ring-brand-lime h-8 md:h-9 text-sm">
+            <SelectTrigger className="w-full border-slate-200 focus:border-brand-lime focus:ring-brand-lime h-7 md:h-9 text-xs md:text-sm">
               <SelectValue placeholder="Filter by priority" />
             </SelectTrigger>
             <SelectContent>
@@ -49,13 +49,13 @@ export default function DealFilters({ filters, setFilters, sortBy, setSortBy }) 
           </Select>
         </div>
       </div>
-      <div className="sm:border-l sm:pl-3 md:sm:pl-4 border-slate-200 flex-shrink-0">
-        <label className="text-xs text-brand-teal flex items-center mb-1 font-medium">
+      <div className="sm:border-l sm:pl-2 md:sm:pl-4 border-slate-200 flex-shrink-0">
+        <label className="text-xs text-brand-teal flex items-center mb-0.5 font-medium">
           <ListFilter className="w-3 h-3 mr-1" />
-          Sort By
+          Sort
         </label>
         <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-full sm:w-[160px] md:sm:w-[180px] border-slate-200 focus:border-brand-lime focus:ring-brand-lime h-8 md:h-9 text-sm">
+          <SelectTrigger className="w-full sm:w-[140px] md:sm:w-[180px] border-slate-200 focus:border-brand-lime focus:ring-brand-lime h-7 md:h-9 text-xs md:text-sm">
             <SelectValue placeholder="Sort deals" />
           </SelectTrigger>
           <SelectContent>

@@ -229,50 +229,49 @@ export default function Dashboard() {
   
   // Show full dashboard for users with deals
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50 px-2 py-3 md:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50 px-2 py-2 md:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between md:items-center mb-4 md:mb-8 gap-3 md:gap-4">
+        <div className="flex flex-col md:flex-row justify-between md:items-center mb-2 md:mb-6 gap-2 md:gap-4">
           <div className="text-center md:text-left">
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
+            <h1 className="text-xl md:text-3xl font-bold text-slate-900">
               Welcome, {user?.full_name?.split(' ')[0] || 'Haggler'}!
             </h1>
-            <p className="text-slate-600 mt-1 text-sm md:text-base">Your command center for car deals.</p>
+            <p className="text-slate-600 mt-0.5 text-xs md:text-base">Your command center for car deals.</p>
           </div>
           <Link to={createPageUrl("AddVehicle")} className="w-full md:w-auto">
-            <Button className="bg-brand-teal hover:bg-brand-teal-dark text-white rounded-xl font-medium w-full py-2.5 md:py-2">
-              <Plus className="w-5 h-5 mr-2" />
-              Add New Deal
+            <Button className="bg-brand-teal hover:bg-brand-teal-dark text-white rounded-xl font-medium w-full py-2 md:py-2">
+              <Plus className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+              <span className="text-sm md:text-base">Add New Deal</span>
             </Button>
           </Link>
         </div>
-        
-        <div className="mb-4 md:mb-8">
+
+        <div className="mb-2 md:mb-6 hidden md:block">
           <SmartInsights deals={deals} vehicles={vehicles} />
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-8">
           <div className="lg:col-span-2">
-            <div className="md:hidden mb-3">
-              <Button 
-                variant="outline" 
-                className="w-full justify-start text-left font-normal bg-white text-sm py-2"
+            <div className="md:hidden mb-2">
+              <Button
+                variant="outline"
+                className="w-full justify-start text-left font-normal bg-white text-xs py-1.5 h-8"
                 onClick={() => setShowMobileFilters(!showMobileFilters)}
               >
-                <SlidersHorizontal className="w-4 h-4 mr-2" />
-                {showMobileFilters ? 'Hide Filters' : 'Show Filters & Sort'}
+                <SlidersHorizontal className="w-3 h-3 mr-1.5" />
+                {showMobileFilters ? 'Hide Filters' : 'Filters'}
               </Button>
             </div>
-            
-            <div className="md:hidden mb-3">
-              {/* Pass the user prop to UserEmailManager for potential fallback email logic */}
+
+            <div className="md:hidden mb-2">
               <UserEmailManager user={user} />
             </div>
-            
-            <div className={`${showMobileFilters ? 'block' : 'hidden'} md:block`}>
+
+            <div className={`${showMobileFilters ? 'block mb-2' : 'hidden'} md:block md:mb-4`}>
               <DealFilters filters={filters} setFilters={setFilters} sortBy={sortBy} setSortBy={setSortBy} />
             </div>
 
-            <div className="space-y-3 md:space-y-4">
+            <div className="space-y-2 md:space-y-4">
               <AnimatePresence>
                 {filteredAndSortedDeals.length > 0 ? (
                   filteredAndSortedDeals.map((deal) => (
@@ -287,11 +286,11 @@ export default function Dashboard() {
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-center py-12 md:py-16 px-4 md:px-6 bg-white rounded-xl shadow-sm border"
+                    className="text-center py-8 md:py-16 px-4 md:px-6 bg-white rounded-xl shadow-sm border"
                   >
-                    <Search className="w-10 h-10 md:w-12 md:h-12 text-slate-300 mx-auto mb-3 md:mb-4" />
-                    <h3 className="text-base md:text-lg font-semibold text-slate-800">No Deals Found</h3>
-                    <p className="text-slate-500 mt-1 text-sm md:text-base">
+                    <Search className="w-8 h-8 md:w-12 md:h-12 text-slate-300 mx-auto mb-2 md:mb-4" />
+                    <h3 className="text-sm md:text-lg font-semibold text-slate-800">No Deals Found</h3>
+                    <p className="text-slate-500 mt-1 text-xs md:text-base">
                       Your filters didn't match any deals. Try adjusting your filter settings.
                     </p>
                   </motion.div>
