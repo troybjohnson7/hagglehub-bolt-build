@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, MessageSquare, Lightbulb, AlertTriangle, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../api/entities';
 
@@ -10,20 +10,31 @@ export default function NotificationCenter() {
 
   useEffect(() => {
     fetchNotifications();
-    
-    // Set up real-time subscription for new messages
-    const channel = supabase
+
+    // Set up real-time subscriptions for messages and insight notifications
+    const messagesChannel = supabase
       .channel('messages')
-      .on('postgres_changes', 
+      .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: 'direction=eq.inbound' },
-        (payload) => {
+        () => {
+          fetchNotifications();
+        }
+      )
+      .subscribe();
+
+    const insightsChannel = supabase
+      .channel('insight_notifications')
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'insight_notifications' },
+        () => {
           fetchNotifications();
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(insightsChannel);
     };
   }, []);
 
@@ -33,7 +44,7 @@ export default function NotificationCenter() {
       if (!user) return;
 
       // Get recent inbound messages with dealer info
-      const { data: messages, error } = await supabase
+      const { data: messages, error: messagesError } = await supabase
         .from('messages')
         .select(`
           *,
@@ -45,30 +56,66 @@ export default function NotificationCenter() {
         .order('created_date', { ascending: false })
         .limit(10);
 
-      if (error) throw error;
+      if (messagesError) throw messagesError;
 
-      const formattedNotifications = messages?.map(message => ({
-        id: message.id,
+      // Get unread insight notifications
+      const { data: insightNotifs, error: insightsError } = await supabase
+        .from('insight_notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_read', false)
+        .order('sent_at', { ascending: false })
+        .limit(10);
+
+      if (insightsError) throw insightsError;
+
+      const formattedMessages = messages?.map(message => ({
+        id: `msg-${message.id}`,
+        type: 'message',
+        originalId: message.id,
         title: `New message from ${message.dealers?.name || 'Unknown Dealer'}`,
-        message: message.content.length > 100 
-          ? message.content.substring(0, 100) + '...' 
+        message: message.content.length > 100
+          ? message.content.substring(0, 100) + '...'
           : message.content,
-        time: new Date(message.created_date).toLocaleTimeString([], { 
-          hour: '2-digit', 
-          minute: '2-digit' 
+        time: new Date(message.created_date).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit'
         }),
+        timestamp: new Date(message.created_date),
         dealId: message.deal_id,
         dealerId: message.dealer_id,
+        notificationType: 'message'
       })) || [];
 
-      setNotifications(formattedNotifications);
-      setUnreadCount(formattedNotifications.length);
+      const formattedInsights = insightNotifs?.map(notif => ({
+        id: `insight-${notif.id}`,
+        type: 'insight',
+        originalId: notif.id,
+        title: notif.title,
+        message: notif.message,
+        time: new Date(notif.sent_at).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        timestamp: new Date(notif.sent_at),
+        notificationType: notif.notification_type,
+      })) || [];
+
+      // Combine and sort by timestamp
+      const allNotifications = [...formattedMessages, ...formattedInsights]
+        .sort((a, b) => b.timestamp - a.timestamp);
+
+      setNotifications(allNotifications);
+      setUnreadCount(allNotifications.length);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     }
   };
 
   const getNotificationLink = (notification) => {
+    if (notification.type === 'insight') {
+      return '/dashboard';
+    }
     if (notification.dealId) {
       return `/deal-details?deal_id=${notification.dealId}`;
     } else if (notification.dealerId) {
@@ -77,26 +124,42 @@ export default function NotificationCenter() {
     return '/messages';
   };
 
+  const getNotificationIcon = (notification) => {
+    if (notification.type === 'insight') {
+      if (notification.notificationType === 'critical') {
+        return <AlertTriangle className="w-4 h-4 text-red-600" />;
+      } else if (notification.notificationType === 'important') {
+        return <Lightbulb className="w-4 h-4 text-orange-600" />;
+      }
+      return <Info className="w-4 h-4 text-blue-600" />;
+    }
+    return <MessageSquare className="w-4 h-4 text-brand-teal" />;
+  };
+
   const handleNotificationClick = async (notification) => {
     setIsOpen(false);
-    
-    // Mark the specific message as read when clicked
+
     try {
-      const { error } = await supabase
-        .from('messages')
-        .update({ is_read: true })
-        .eq('id', notification.id);
-      
-      if (!error) {
-        // Update local state to remove this notification
-        setNotifications(prev => prev.filter(n => n.id !== notification.id));
-        setUnreadCount(prev => Math.max(0, prev - 1));
+      if (notification.type === 'insight') {
+        await supabase
+          .from('insight_notifications')
+          .update({ is_read: true, read_at: new Date().toISOString() })
+          .eq('id', notification.originalId);
+      } else {
+        await supabase
+          .from('messages')
+          .update({ is_read: true })
+          .eq('id', notification.originalId);
       }
+
+      // Update local state
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
-      console.error('Error marking message as read:', error);
+      console.error('Error marking notification as read:', error);
     }
-    
-    // Small delay to ensure state update happens before navigation
+
+    // Navigate to appropriate page
     setTimeout(() => {
       const link = getNotificationLink(notification);
       window.location.href = link;
@@ -132,11 +195,11 @@ export default function NotificationCenter() {
                 <div
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
-                  className="block p-4 hover:bg-slate-50 border-b border-slate-100 last:border-b-0 group"
+                  className="block p-4 hover:bg-slate-50 border-b border-slate-100 last:border-b-0 group cursor-pointer"
                 >
                   <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0">
-                      <div className="w-2 h-2 bg-brand-teal rounded-full mt-2"></div>
+                    <div className="flex-shrink-0 mt-0.5">
+                      {getNotificationIcon(notification)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="text-sm font-medium text-slate-900 group-hover:text-brand-teal">

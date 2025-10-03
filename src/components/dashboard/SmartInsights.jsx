@@ -1,12 +1,12 @@
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Bot, Loader2, Sparkles, TrendingUp, TrendingDown, Hourglass } from 'lucide-react';
-import { InvokeLLM } from '@/api/integrations';
+import { Bot, Loader2, Sparkles, TrendingUp, TrendingDown, Hourglass, AlertCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
-import { MarketData } from '@/api/entities';
+import { supabase } from '@/api/entities';
 
 const InsightIcon = ({ type }) => {
   switch (type) {
@@ -20,10 +20,63 @@ const InsightIcon = ({ type }) => {
 export default function SmartInsights({ deals, vehicles }) {
   const [isLoading, setIsLoading] = useState(false);
   const [analysis, setAnalysis] = useState(null);
+  const [cacheInfo, setCacheInfo] = useState(null);
+  const [urgentDealsCount, setUrgentDealsCount] = useState(0);
 
   const activeDeals = useMemo(() => {
     return deals.filter(deal => ['quote_requested', 'negotiating', 'final_offer'].includes(deal.status));
   }, [deals]);
+
+  useEffect(() => {
+    const checkUrgentDeals = () => {
+      const urgent = activeDeals.filter(deal => {
+        const daysSinceContact = deal.last_contact_date
+          ? Math.floor((Date.now() - new Date(deal.last_contact_date).getTime()) / (1000 * 60 * 60 * 24))
+          : null;
+        const daysUntilExpiry = deal.quote_expires
+          ? Math.floor((new Date(deal.quote_expires).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+          : null;
+
+        return (daysUntilExpiry !== null && daysUntilExpiry <= 3 && daysUntilExpiry >= 0) ||
+               (daysSinceContact !== null && daysSinceContact >= 7);
+      });
+      setUrgentDealsCount(urgent.length);
+    };
+
+    checkUrgentDeals();
+  }, [activeDeals]);
+
+  useEffect(() => {
+    if (activeDeals.length > 0) {
+      loadCachedInsights();
+    }
+  }, [activeDeals.length]);
+
+  const loadCachedInsights = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: cachedInsight } = await supabase
+        .from('insights_cache')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('cache_expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (cachedInsight) {
+        setAnalysis(cachedInsight.analysis_data);
+        setCacheInfo({
+          cached: true,
+          expires_at: cachedInsight.cache_expires_at
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load cached insights:', error);
+    }
+  };
 
   const getVehicleInfo = (vehicleId) => {
     const v = vehicles.find(v => v.id === vehicleId);
@@ -31,89 +84,63 @@ export default function SmartInsights({ deals, vehicles }) {
     return `${v.year} ${v.make} ${v.model}`;
   };
 
-  const handleAnalyzeDeals = async () => {
+  const handleAnalyzeDeals = async (forceRefresh = false) => {
     setIsLoading(true);
-    setAnalysis(null);
-    try {
-      // Get market data for context
-      const marketData = await MarketData.list();
-      
-      const dealsForAnalysis = activeDeals.map(deal => {
-        const vehicle = vehicles.find(v => v.id === deal.vehicle_id);
-        return {
-          vehicle: getVehicleInfo(deal.vehicle_id),
-          vehicle_details: vehicle, // Include full vehicle object for market data matching
-          status: deal.status,
-          purchase_type: deal.purchase_type,
-          asking_price: deal.asking_price,
-          current_offer: deal.current_offer,
-          target_price: deal.target_price,
-          last_contact: deal.last_contact_date,
-        };
-      });
+    if (forceRefresh) {
+      setAnalysis(null);
+      setCacheInfo(null);
+    }
 
-      // Find relevant market data for the user's deals
-      const relevantMarketData = marketData.filter(data => 
-        dealsForAnalysis.some(deal => 
-          deal.vehicle_details && // Ensure vehicle details are present
-          data.vehicle_make === deal.vehicle_details.make &&
-          data.vehicle_model === deal.vehicle_details.model &&
-          Math.abs(data.vehicle_year - deal.vehicle_details.year) <= 2
-        )
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Please sign in to analyze deals');
+        return;
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-deals`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            deals: activeDeals,
+            vehicles: vehicles,
+            force_refresh: forceRefresh,
+            trigger_events: forceRefresh ? ['manual_refresh'] : ['manual_trigger']
+          })
+        }
       );
 
-      const prompt = `
-        You are "The HaggleHub Coach", an expert AI car negotiation assistant with access to real market data from completed deals.
-        
-        Analyze the following active car deals and provide strategic insights using both the deal context AND the real market data from the HaggleHub community.
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Analysis failed');
+      }
 
-        **Active Deals:**
-        ${JSON.stringify(dealsForAnalysis, null, 2)}
-
-        **Real Market Data from HaggleHub Community:**
-        ${relevantMarketData.length > 0 ? JSON.stringify(relevantMarketData.slice(0, 10), null, 2) : 'No directly comparable deals in database yet.'}
-
-        **Your Task:**
-        Provide a concise, encouraging overall summary, then identify 2-3 critical insights. For each insight:
-        1. A short, impactful title
-        2. Analysis incorporating real market data when available
-        3. Clear actionable next step
-        4. Type: 'positive', 'negative', or 'neutral'
-
-        Focus on:
-        - How their current offers compare to actual completed deals
-        - Market trends for their specific vehicles
-        - Purchase type considerations (cash/finance/lease differences)
-        - Timing and negotiation strategy based on community data
-      `;
-
-      const response = await InvokeLLM({
-        prompt,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            summary: { type: "string", description: "A brief, encouraging overview of all deals." },
-            insights: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  title: { type: "string" },
-                  explanation: { type: "string" },
-                  next_step: { type: "string" },
-                  type: { type: "string", enum: ["positive", "negative", "neutral"] }
-                },
-                required: ["title", "explanation", "next_step", "type"]
-              }
-            }
-          },
-          required: ["summary", "insights"]
-        }
+      const result = await response.json();
+      setAnalysis(result);
+      setCacheInfo({
+        cached: result.cached,
+        expires_at: result.cache_expires_at,
+        market_data_points: result.market_data_points,
+        urgent_deals_count: result.urgent_deals_count
       });
-      setAnalysis(response);
+
+      if (result.urgent_deals_count > 0) {
+        toast.warning(`${result.urgent_deals_count} deal(s) need immediate attention!`);
+      } else {
+        toast.success('Analysis complete!');
+      }
     } catch (error) {
       console.error("Failed to analyze deals:", error);
-      toast.error("Couldn't get insights from the coach. Please try again.");
+      if (error.message.includes('AI service not configured')) {
+        toast.error('AI insights are not configured yet. Contact support to enable this feature.');
+      } else {
+        toast.error(error.message || "Couldn't get insights from the coach. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -137,10 +164,18 @@ export default function SmartInsights({ deals, vehicles }) {
         </div>
       </CardHeader>
       <CardContent className="p-2 pt-0 md:p-6">
+        {urgentDealsCount > 0 && (
+          <div className="mb-2 md:mb-4 p-2 md:p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-orange-600 flex-shrink-0" />
+            <p className="text-xs md:text-sm text-orange-800 font-medium">
+              {urgentDealsCount} deal{urgentDealsCount > 1 ? 's' : ''} need{urgentDealsCount === 1 ? 's' : ''} attention
+            </p>
+          </div>
+        )}
         {!analysis && (
           <div className="text-center">
-            <p className="text-slate-600 mb-2 md:mb-4 text-xs md:text-sm leading-snug">Get instant analysis with real deal data.</p>
-            <Button onClick={handleAnalyzeDeals} disabled={isLoading} className="text-xs md:text-sm py-1.5 h-8 md:h-10 md:py-2 w-full md:w-auto">
+            <p className="text-slate-600 mb-2 md:mb-4 text-xs md:text-sm leading-snug">Get AI-powered analysis with real market data from Claude.</p>
+            <Button onClick={() => handleAnalyzeDeals(false)} disabled={isLoading} className="text-xs md:text-sm py-1.5 h-8 md:h-10 md:py-2 w-full md:w-auto">
               {isLoading ? (
                 <><Loader2 className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2 animate-spin" /> Analyzing...</>
               ) : (
@@ -151,7 +186,35 @@ export default function SmartInsights({ deals, vehicles }) {
         )}
         {analysis && (
           <div>
-            <p className="text-xs md:text-sm text-slate-800 mb-2 md:mb-4 p-2 md:p-3 bg-white rounded-md border border-slate-200 leading-snug">{analysis.summary}</p>
+            <div className="flex items-start justify-between gap-2 mb-2 md:mb-3">
+              <p className="text-xs md:text-sm text-slate-800 p-2 md:p-3 bg-white rounded-md border border-slate-200 leading-snug flex-1">{analysis.summary}</p>
+            </div>
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                {cacheInfo?.cached && (
+                  <Badge variant="outline" className="text-xs">
+                    <Clock className="w-3 h-3 mr-1" />
+                    Cached
+                  </Badge>
+                )}
+                {cacheInfo?.market_data_points > 0 && (
+                  <span>{cacheInfo.market_data_points} market data points</span>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleAnalyzeDeals(true)}
+                disabled={isLoading}
+                className="text-xs h-7"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  'Refresh'
+                )}
+              </Button>
+            </div>
             <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
               {analysis.insights.map((insight, index) => (
                 <AccordionItem key={index} value={`item-${index}`} className="bg-white/80 border-slate-200 rounded-lg mb-1.5 md:mb-2 px-2 md:px-4">

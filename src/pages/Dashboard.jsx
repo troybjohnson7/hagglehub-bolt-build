@@ -17,6 +17,7 @@ import DealFilters from '../components/dashboard/DealFilters';
 import RecentMessages from '../components/dashboard/RecentMessages';
 import UserEmailManager from '../components/dashboard/UserEmailManager';
 import { Skeleton } from "@/components/ui/skeleton";
+import InsightTriggerService from '@/utils/insightTriggers';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ export default function Dashboard() {
   const [filters, setFilters] = useState({ status: 'active', priority: 'all' });
   const [sortBy, setSortBy] = useState('recent');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [hasCheckedAutoTrigger, setHasCheckedAutoTrigger] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -118,7 +120,7 @@ export default function Dashboard() {
   useEffect(() => {
     console.log('Dashboard: useEffect triggered, pathname:', location.pathname);
     fetchData();
-    
+
     // Listen for localStorage changes (when new deals are created)
     const handleStorageChange = (e) => {
       console.log('Dashboard: Storage change event:', e.key, e.newValue);
@@ -127,16 +129,41 @@ export default function Dashboard() {
         fetchData();
       }
     };
-    
+
     window.addEventListener('storage', handleStorageChange);
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
   }, [navigate]);
 
+  // Auto-trigger insights analysis when deals are loaded or changed
+  useEffect(() => {
+    const checkAutoTrigger = async () => {
+      if (!hasCheckedAutoTrigger && deals.length > 0 && vehicles.length > 0 && !isLoading) {
+        setHasCheckedAutoTrigger(true);
+        console.log('Dashboard: Checking if auto-trigger is needed...');
+
+        // Wait a bit to ensure everything is loaded
+        setTimeout(async () => {
+          try {
+            const result = await InsightTriggerService.checkAndTrigger(deals, vehicles);
+            if (result) {
+              console.log('Dashboard: Auto-analysis triggered successfully');
+            }
+          } catch (error) {
+            console.error('Dashboard: Auto-trigger check failed:', error);
+          }
+        }, 2000);
+      }
+    };
+
+    checkAutoTrigger();
+  }, [deals, vehicles, isLoading, hasCheckedAutoTrigger]);
+
   // Add a manual refresh function that can be called when needed
   const refreshData = () => {
+    setHasCheckedAutoTrigger(false);
     fetchData();
   };
 
