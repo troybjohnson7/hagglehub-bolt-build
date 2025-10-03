@@ -246,7 +246,7 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        <div className="mb-2 md:mb-6 hidden md:block">
+        <div className="mb-2 md:mb-6">
           <SmartInsights deals={deals} vehicles={vehicles} />
         </div>
         

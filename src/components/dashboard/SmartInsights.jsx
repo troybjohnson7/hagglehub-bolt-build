@@ -125,47 +125,47 @@ export default function SmartInsights({ deals, vehicles }) {
 
   return (
     <Card className="shadow-sm md:shadow-lg border-brand-lime border-opacity-30 bg-lime-50/30">
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="p-1.5 md:p-2 bg-brand-lime rounded-lg">
-            <Bot className="w-4 h-4 md:w-5 md:h-5 text-brand-teal" />
+      <CardHeader className="p-2 md:p-6">
+        <div className="flex items-center gap-2 md:gap-3">
+          <div className="p-1 md:p-2 bg-brand-lime rounded-lg">
+            <Bot className="w-3 h-3 md:w-5 md:h-5 text-brand-teal" />
           </div>
           <div>
-            <CardTitle className="text-base md:text-lg font-bold text-slate-900">Smart Insights</CardTitle>
-            <CardDescription className="text-sm">AI-powered analysis with real market data.</CardDescription>
+            <CardTitle className="text-sm md:text-lg font-bold text-slate-900">Smart Insights</CardTitle>
+            <CardDescription className="text-xs md:text-sm hidden md:block">AI-powered analysis with real market data.</CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-4 md:p-6">
+      <CardContent className="p-2 pt-0 md:p-6">
         {!analysis && (
           <div className="text-center">
-            <p className="text-slate-600 mb-3 md:mb-4 text-xs md:text-sm">Get instant analysis powered by real deal data from the HaggleHub community.</p>
-            <Button onClick={handleAnalyzeDeals} disabled={isLoading} className="text-sm py-2">
+            <p className="text-slate-600 mb-2 md:mb-4 text-xs md:text-sm leading-snug">Get instant analysis with real deal data.</p>
+            <Button onClick={handleAnalyzeDeals} disabled={isLoading} className="text-xs md:text-sm py-1.5 h-8 md:h-10 md:py-2 w-full md:w-auto">
               {isLoading ? (
-                <><Loader2 className="w-4 h-4 mr-1 md:mr-2 animate-spin" /> Analyzing...</>
+                <><Loader2 className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2 animate-spin" /> Analyzing...</>
               ) : (
-                <><Sparkles className="w-4 h-4 mr-1 md:mr-2" /> Analyze My Deals</>
+                <><Sparkles className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" /> Analyze My Deals</>
               )}
             </Button>
           </div>
         )}
         {analysis && (
           <div>
-            <p className="text-xs md:text-sm text-slate-800 mb-3 md:mb-4 p-2 md:p-3 bg-white rounded-md border border-slate-200">{analysis.summary}</p>
+            <p className="text-xs md:text-sm text-slate-800 mb-2 md:mb-4 p-2 md:p-3 bg-white rounded-md border border-slate-200 leading-snug">{analysis.summary}</p>
             <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
               {analysis.insights.map((insight, index) => (
-                <AccordionItem key={index} value={`item-${index}`} className="bg-white/80 border-slate-200 rounded-lg mb-2 px-3 md:px-4">
+                <AccordionItem key={index} value={`item-${index}`} className="bg-white/80 border-slate-200 rounded-lg mb-1.5 md:mb-2 px-2 md:px-4">
                   <AccordionTrigger className="text-xs md:text-sm font-semibold hover:no-underline py-2 md:py-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 md:gap-2">
                       <InsightIcon type={insight.type} />
-                      {insight.title}
+                      <span className="text-left">{insight.title}</span>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="space-y-2 md:space-y-3 pt-1">
-                    <p className="text-xs md:text-sm text-slate-600">{insight.explanation}</p>
+                  <AccordionContent className="space-y-1.5 md:space-y-3 pt-1">
+                    <p className="text-xs md:text-sm text-slate-600 leading-snug">{insight.explanation}</p>
                     <div>
                       <h4 className="text-xs font-bold text-brand-teal mb-1">Next Step:</h4>
-                      <p className="text-xs md:text-sm text-slate-800 font-medium bg-slate-100 p-2 rounded-md">{insight.next_step}</p>
+                      <p className="text-xs md:text-sm text-slate-800 font-medium bg-slate-100 p-1.5 md:p-2 rounded-md leading-snug">{insight.next_step}</p>
                     </div>
                   </AccordionContent>
                 </AccordionItem>
