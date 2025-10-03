@@ -526,16 +526,16 @@ export default function DealDetailsPage() {
           {/* Left Column - Messages */}
           <div className="lg:col-span-2">
             {/* Messages Section with Input */}
-            <div className="bg-white rounded-xl shadow-lg border border-slate-200 h-[calc(100vh-280px)] flex flex-col">
+            <div className="bg-white rounded-xl shadow-lg border border-slate-200 h-[calc(100vh-240px)] sm:h-[calc(100vh-280px)] flex flex-col">
               {/* Messages Header */}
-              <div className="p-3 border-b border-slate-200 flex-shrink-0">
+              <div className="p-2 sm:p-3 border-b border-slate-200 flex-shrink-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-slate-700" />
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-slate-700 hidden sm:block" />
                     Conversation
                   </h3>
                   <Link to={createPageUrl(`Messages?dealer_id=${dealer?.id}`)}>
-                    <Button variant="ghost" size="sm" className="text-brand-teal hover:text-brand-teal-dark hover:bg-teal-50 text-sm">
+                    <Button variant="ghost" size="sm" className="text-brand-teal hover:text-brand-teal-dark hover:bg-teal-50 text-xs sm:text-sm">
                       View Full Messages
                     </Button>
                   </Link>
@@ -543,14 +543,14 @@ export default function DealDetailsPage() {
               </div>
 
               {/* Messages Display - Scrollable */}
-              <div className="flex-1 p-3 overflow-y-auto">
+              <div className="flex-1 p-2 sm:p-3 overflow-y-auto">
                 {messages.length === 0 ? (
                   <div className="text-center text-slate-500 py-4">
-                    <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-slate-300 mx-auto mb-2" />
                     <p className="text-sm">No messages yet. Send one to start!</p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-2 sm:space-y-3">
                     <AnimatePresence>
                       {messages.map((message) => (
                         <MessageBubble key={message.id} message={message} dealer={dealer} />
@@ -558,7 +558,7 @@ export default function DealDetailsPage() {
                     </AnimatePresence>
                     {/* Quick Actions */}
                     {deal && (
-                      <div className="flex-shrink-0 mt-2">
+                      <div className="flex-shrink-0 mt-2 sm:mt-3">
                         <QuickActions 
                           deal={deal} 
                           onAction={(action, data) => {
@@ -575,18 +575,18 @@ export default function DealDetailsPage() {
               </div>
 
               {/* Message Input Area */}
-              <div className="p-3 border-t border-slate-200 flex-shrink-0">
+              <div className="p-2 sm:p-3 border-t border-slate-200 flex-shrink-0">
                 {/* AI Suggest and Templates buttons */}
-                <div className="flex gap-2 mb-2">
+                <div className="flex gap-1 sm:gap-2 mb-2">
                   <Dialog open={isSuggestionModalOpen} onOpenChange={setIsSuggestionModalOpen}>
                     <Button
-                      size="sm"
+                      size="sm" 
                       variant="outline"
                       onClick={handleAISuggestion}
                       disabled={isSuggesting}
-                      className="text-sm border-lime-300 text-lime-700 hover:bg-lime-50"
+                      className="text-xs sm:text-sm border-lime-300 text-lime-700 hover:bg-lime-50"
                     >
-                      {isSuggesting ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                      {isSuggesting ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1 hidden sm:block" />}
                       AI Suggest
                     </Button>
                     <DialogContent className="max-w-2xl">
@@ -623,8 +623,8 @@ export default function DealDetailsPage() {
                   </Dialog>
                   <Sheet open={showTemplates} onOpenChange={setShowTemplates}>
                     <SheetTrigger asChild>
-                      <Button size="sm" variant="outline" className="text-sm">
-                        <MessageSquareReply className="w-3 h-3 mr-1" />
+                      <Button size="sm" variant="outline" className="text-xs sm:text-sm">
+                        <MessageSquareReply className="w-3 h-3 mr-1 hidden sm:block" />
                         Templates
                       </Button>
                     </SheetTrigger>
@@ -644,14 +644,14 @@ export default function DealDetailsPage() {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
-                    className="flex-1 min-h-[44px] text-sm focus:ring-lime-500 focus:border-lime-500 resize-none"
-                    rows={2}
+                    className="flex-1 min-h-[36px] sm:min-h-[44px] text-sm focus:ring-lime-500 focus:border-lime-500 resize-none"
+                    rows={1}
                   />
                   <Button 
                     size="icon" 
                     onClick={handleSendMessage} 
                     disabled={isSending || !newMessage.trim()}
-                    className="bg-teal-700 hover:bg-teal-800 shrink-0"
+                    className="bg-teal-700 hover:bg-teal-800 shrink-0 h-9 w-9 sm:h-10 sm:w-10"
                   >
                     {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </Button>

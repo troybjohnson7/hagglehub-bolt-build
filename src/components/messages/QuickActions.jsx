@@ -38,16 +38,16 @@ export default function QuickActions({ deal, onAction }) {
   };
 
   return (
-    <div className="bg-white border-t border-slate-200 p-4">
+    <div className="bg-white border-t border-slate-200 p-2 sm:p-4">
       <div className="mb-2">
-        <p className="text-xs font-medium text-slate-600">Quick Actions:</p>
+        <p className="text-xs font-medium text-slate-600 hidden sm:block">Quick Actions:</p>
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-1 sm:gap-2">
         {quickActions.map((action) => (
           <motion.div key={action.id} whileTap={{ scale: 0.98 }}>
             <Button
               onClick={() => handleQuickAction(action)}
-              className="w-full text-xs py-2 px-3 justify-center font-semibold bg-brand-teal hover:bg-brand-teal-dark text-white"
+              className="w-full text-xs py-1.5 sm:py-2 px-2 sm:px-3 justify-center font-semibold bg-brand-teal hover:bg-brand-teal-dark text-white"
               size="sm"
             >
               {action.label}
