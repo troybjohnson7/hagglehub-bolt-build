@@ -54,41 +54,44 @@ export default function DealCard({ deal, vehicle, dealer }) {
         onClick={() => handleCardClick(deal.id)}
       >
         <Card className="shadow-sm border-slate-200 hover:shadow-lg hover:border-brand-lime transition-all duration-200 overflow-hidden">
-          <CardHeader className="p-3 md:p-4">
+          <CardHeader className="p-3">
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-base text-slate-900 truncate">
+                <h3 className="font-bold text-sm md:text-base text-slate-900 truncate">
                   {vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : 'Vehicle Info Missing'}
                 </h3>
-                <p className="text-slate-500 text-sm mt-1 truncate">
+                <p className="text-slate-500 text-xs md:text-sm mt-1 truncate">
                   {dealer ? dealer.name : 'Dealer Info Missing'}
                 </p>
               </div>
-              <Badge className={`${statusColors[deal.status]} border font-medium text-xs ml-2 shrink-0`}>
+              <Badge className={`${statusColors[deal.status]} border font-medium text-xs ml-2 shrink-0 px-2 py-0.5`}>
                 {statusLabels[deal.status]}
               </Badge>
             </div>
           </CardHeader>
           
-          <CardContent className="p-3 md:p-4 pt-0">
+          <CardContent className="p-3 pt-0">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 md:gap-4">
+              <div className="flex items-center gap-3">
                 <div>
-                  <p className="text-xs text-slate-500">Offer</p>
-                  <p className="text-sm font-bold text-slate-900">
+                  <p className="text-xs text-slate-500">Current Offer</p>
+                  <p className="text-sm md:text-base font-bold text-slate-900">
                     {deal.current_offer ? `$${Number(deal.current_offer).toLocaleString()}` : 'Pending'}
                   </p>
                 </div>
                 {savings > 0 && (
-                  <div className="flex items-center gap-1.5 text-brand-teal">
+                  <div className="flex items-center gap-1 text-brand-teal">
                     <TrendingDown className="w-4 h-4" />
-                    <span className="text-sm font-bold">
+                    <div className="text-center">
+                      <p className="text-xs text-brand-teal opacity-80">Savings</p>
+                      <span className="text-sm font-bold">
                       ${savings.toLocaleString()}
-                    </span>
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
-              <ChevronRight className="w-5 h-5 text-slate-400" />
+              <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-slate-400" />
             </div>
           </CardContent>
         </Card>

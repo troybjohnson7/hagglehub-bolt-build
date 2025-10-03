@@ -35,35 +35,35 @@ export default function RecentMessages({ messages, dealers, isLoading }) {
     <Card className="shadow-sm border-slate-200 hover:border-brand-lime hover:border-opacity-20 transition-all duration-200">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-bold text-slate-900">Recent Messages</CardTitle>
+          <CardTitle className="text-base md:text-lg font-bold text-slate-900">Recent Messages</CardTitle>
           <Link to={createPageUrl("Messages")}>
             <Button variant="ghost" size="sm" className="text-brand-teal hover:text-brand-teal-dark hover:bg-teal-50">
-              <ExternalLink className="w-4 h-4" />
+              <ExternalLink className="w-3 h-3 md:w-4 md:h-4" />
             </Button>
           </Link>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 md:space-y-4 p-3 md:p-6">
         {messages.length > 0 ? (
           messages.slice(0, 5).map((message) => (
             <Link 
               key={message.id} 
               to={createPageUrl(`Messages?dealer_id=${message.dealer_id}`)}
-              className="block border-b border-slate-100 last:border-0 pb-3 last:pb-0 hover:bg-slate-50 rounded-lg p-2 -m-2 transition-colors"
+              className="block border-b border-slate-100 last:border-0 pb-2 md:pb-3 last:pb-0 hover:bg-slate-50 rounded-lg p-2 -m-2 transition-colors"
             >
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start justify-between gap-1 md:gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="font-medium text-slate-900 text-sm truncate">
+                    <p className="font-medium text-slate-900 text-xs md:text-sm truncate">
                       {getDealerName(message.dealer_id)}
                     </p>
                     {!message.is_read && (
-                      <Badge variant="secondary" className="bg-brand-lime bg-opacity-20 text-brand-teal border-brand-lime text-xs font-bold">
+                      <Badge variant="secondary" className="bg-brand-lime bg-opacity-20 text-brand-teal border-brand-lime text-xs font-bold px-1.5 py-0.5">
                         New
                       </Badge>
                     )}
                   </div>
-                  <p className="text-slate-600 text-sm truncate mt-1">
+                  <p className="text-slate-600 text-xs md:text-sm truncate mt-1">
                     {message.content}
                   </p>
                   <p className="text-slate-400 text-xs mt-1">
@@ -72,7 +72,7 @@ export default function RecentMessages({ messages, dealers, isLoading }) {
                 </div>
                 <Badge 
                   variant="outline" 
-                  className={`text-xs shrink-0 ${
+                  className={`text-xs shrink-0 px-1.5 py-0.5 ${
                     message.direction === 'inbound' 
                       ? 'border-brand-lime text-brand-teal bg-lime-50' 
                       : 'border-brand-teal text-brand-teal bg-teal-50'
@@ -84,9 +84,9 @@ export default function RecentMessages({ messages, dealers, isLoading }) {
             </Link>
           ))
         ) : (
-          <div className="text-center py-4">
-            <MessageSquare className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-            <p className="text-slate-500 text-sm">No messages yet</p>
+          <div className="text-center py-3 md:py-4">
+            <MessageSquare className="w-6 h-6 md:w-8 md:h-8 text-slate-400 mx-auto mb-2" />
+            <p className="text-slate-500 text-xs md:text-sm">No messages yet</p>
           </div>
         )}
       </CardContent>

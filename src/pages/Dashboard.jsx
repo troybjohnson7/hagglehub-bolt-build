@@ -196,29 +196,29 @@ export default function Dashboard() {
     return (
        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50 px-4 py-6 md:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between md:items-center mb-8 gap-4">
+          <div className="flex flex-col md:flex-row justify-between md:items-center mb-4 md:mb-8 gap-3 md:gap-4">
             <div className="text-center md:text-left">
-              <h1 className="text-3xl font-bold text-slate-900">
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
                 Welcome, {user?.full_name?.split(' ')[0] || 'Haggler'}!
               </h1>
-              <p className="text-slate-600 mt-1">Your command center for car deals.</p>
+              <p className="text-slate-600 mt-1 text-sm md:text-base">Your command center for car deals.</p>
             </div>
             <Link to={createPageUrl("AddVehicle")} className="w-full md:w-auto">
-              <Button className="bg-brand-teal hover:bg-brand-teal-dark text-white rounded-xl font-medium w-full">
+              <Button className="bg-brand-teal hover:bg-brand-teal-dark text-white rounded-xl font-medium w-full py-2.5 md:py-2">
                 <Plus className="w-5 h-5 mr-2" />
                 Add New Deal
               </Button>
             </Link>
           </div>
-          <div className="text-center py-20 px-6 bg-white rounded-xl shadow-sm border">
-              <Handshake className="w-16 h-16 text-slate-300 mx-auto mb-6" />
-              <h3 className="text-2xl font-semibold text-slate-800">You're All Set!</h3>
-              <p className="text-slate-500 mt-2 max-w-md mx-auto">
+          <div className="text-center py-12 md:py-20 px-4 md:px-6 bg-white rounded-xl shadow-sm border">
+              <Handshake className="w-12 h-12 md:w-16 md:h-16 text-slate-300 mx-auto mb-4 md:mb-6" />
+              <h3 className="text-xl md:text-2xl font-semibold text-slate-800">You're All Set!</h3>
+              <p className="text-slate-500 mt-2 max-w-md mx-auto text-sm md:text-base">
                 You have no active deals right now. Click "Add New Deal" to start tracking your next vehicle negotiation.
               </p>
              
              {/* Show Universal Deal Email even when no deals */}
-             <div className="mt-8 max-w-md mx-auto">
+             <div className="mt-6 md:mt-8 max-w-md mx-auto">
                <UserEmailManager user={user} />
              </div>
           </div>
@@ -229,33 +229,33 @@ export default function Dashboard() {
   
   // Show full dashboard for users with deals
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50 px-4 py-6 md:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50 px-2 py-3 md:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between md:items-center mb-8 gap-4">
+        <div className="flex flex-col md:flex-row justify-between md:items-center mb-4 md:mb-8 gap-3 md:gap-4">
           <div className="text-center md:text-left">
-            <h1 className="text-3xl font-bold text-slate-900">
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
               Welcome, {user?.full_name?.split(' ')[0] || 'Haggler'}!
             </h1>
-            <p className="text-slate-600 mt-1">Your command center for car deals.</p>
+            <p className="text-slate-600 mt-1 text-sm md:text-base">Your command center for car deals.</p>
           </div>
           <Link to={createPageUrl("AddVehicle")} className="w-full md:w-auto">
-            <Button className="bg-brand-teal hover:bg-brand-teal-dark text-white rounded-xl font-medium w-full">
+            <Button className="bg-brand-teal hover:bg-brand-teal-dark text-white rounded-xl font-medium w-full py-2.5 md:py-2">
               <Plus className="w-5 h-5 mr-2" />
               Add New Deal
             </Button>
           </Link>
         </div>
         
-        <div className="mb-8">
+        <div className="mb-4 md:mb-8">
           <SmartInsights deals={deals} vehicles={vehicles} />
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
           <div className="lg:col-span-2">
-            <div className="md:hidden mb-4">
+            <div className="md:hidden mb-3">
               <Button 
                 variant="outline" 
-                className="w-full justify-start text-left font-normal bg-white"
+                className="w-full justify-start text-left font-normal bg-white text-sm py-2"
                 onClick={() => setShowMobileFilters(!showMobileFilters)}
               >
                 <SlidersHorizontal className="w-4 h-4 mr-2" />
@@ -263,7 +263,7 @@ export default function Dashboard() {
               </Button>
             </div>
             
-            <div className="md:hidden mb-4">
+            <div className="md:hidden mb-3">
               {/* Pass the user prop to UserEmailManager for potential fallback email logic */}
               <UserEmailManager user={user} />
             </div>
@@ -272,7 +272,7 @@ export default function Dashboard() {
               <DealFilters filters={filters} setFilters={setFilters} sortBy={sortBy} setSortBy={setSortBy} />
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               <AnimatePresence>
                 {filteredAndSortedDeals.length > 0 ? (
                   filteredAndSortedDeals.map((deal) => (
@@ -287,11 +287,11 @@ export default function Dashboard() {
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-center py-16 px-6 bg-white rounded-xl shadow-sm border"
+                    className="text-center py-12 md:py-16 px-4 md:px-6 bg-white rounded-xl shadow-sm border"
                   >
-                    <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-slate-800">No Deals Found</h3>
-                    <p className="text-slate-500 mt-1">
+                    <Search className="w-10 h-10 md:w-12 md:h-12 text-slate-300 mx-auto mb-3 md:mb-4" />
+                    <h3 className="text-base md:text-lg font-semibold text-slate-800">No Deals Found</h3>
+                    <p className="text-slate-500 mt-1 text-sm md:text-base">
                       Your filters didn't match any deals. Try adjusting your filter settings.
                     </p>
                   </motion.div>
@@ -300,7 +300,7 @@ export default function Dashboard() {
             </div>
           </div>
           
-          <div className="hidden lg:block lg:col-span-1 space-y-8">
+          <div className="hidden lg:block lg:col-span-1 space-y-6 lg:space-y-8">
             {/* Pass the user prop to UserEmailManager for potential fallback email logic */}
             <UserEmailManager user={user} />
             <RecentMessages messages={messages} dealers={dealers} isLoading={isLoading} />
