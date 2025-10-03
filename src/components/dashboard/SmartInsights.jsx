@@ -1,9 +1,9 @@
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Bot, Lightbulb, Loader2, Sparkles, TrendingUp, TrendingDown, Hourglass } from 'lucide-react';
+import { Bot, Loader2, Sparkles, TrendingUp, TrendingDown, Hourglass } from 'lucide-react';
 import { InvokeLLM } from '@/api/integrations';
 import { toast } from 'sonner';
 import { MarketData } from '@/api/entities';

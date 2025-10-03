@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { User } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,8 +42,8 @@ export default function UserEmailManager() {
         setUser(currentUser);
         setUserEmail(`deals-${currentUser.email_identifier}@hagglehub.app`);
 
-      } catch (e) {
-        console.error("Could not fetch user", e);
+      } catch (error) {
+        console.error("Could not fetch user", error);
         setUser(null);
         setUserEmail('');
       } finally {

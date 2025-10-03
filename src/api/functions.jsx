@@ -1,11 +1,4 @@
-// Email service functions for HaggleHub
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { supabase } from './entities.js';
 export async function sendReply({ message_content, dealer_id, deal_id }) {
   try {
     console.log('Calling Edge Function with:', { message_content, dealer_id, deal_id });
@@ -30,9 +23,20 @@ export async function sendReply({ message_content, dealer_id, deal_id }) {
     const userEmail = `deals-${profile.email_identifier}@hagglehub.app`;
     const fromName = profile.full_name || 'HaggleHub User';
 
+    // Get dealer email from database
+    const { data: dealer, error: dealerError } = await supabase
+      .from('dealers')
+      .select('contact_email')
+      .eq('id', dealer_id)
+      .single();
+
+    if (dealerError || !dealer?.contact_email) {
+      throw new Error('Dealer email not found');
+    }
+
     // Get the current session token properly
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
+
     if (sessionError || !session) {
       console.error('No valid session found:', sessionError);
       throw new Error('Authentication required');
@@ -40,7 +44,8 @@ export async function sendReply({ message_content, dealer_id, deal_id }) {
 
     console.log('Using session token for Edge Function call');
     console.log('Sending from user email:', userEmail);
-    
+    console.log('Sending to dealer email:', dealer.contact_email);
+
     const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
       method: 'POST',
       headers: {
@@ -49,7 +54,7 @@ export async function sendReply({ message_content, dealer_id, deal_id }) {
       },
       body: JSON.stringify({
         subject: 'Re: Vehicle Inquiry',
-        to: 'troy.b.johnson@gmail.com',
+        to: dealer.contact_email,
         html: `<p>${message_content}</p>`,
         text: message_content,
         from: `${fromName} <${userEmail}>`,

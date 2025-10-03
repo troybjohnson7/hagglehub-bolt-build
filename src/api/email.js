@@ -1,10 +1,9 @@
-// Email service for HaggleHub using Supabase Edge Functions with Mailgun
-
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Email service for HaggleHub using Supabase Edge Functions with Mailgun
-// Domain: hagglehub.app
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error('Missing required environment variables: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set');
+}
 
 export class EmailService {
   static async sendEmail({ to, subject, html, text, from, deal_id, dealer_id }) {

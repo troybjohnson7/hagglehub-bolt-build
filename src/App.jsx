@@ -1,5 +1,4 @@
 import './App.css'
-import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Layout from '@/pages/Layout'
 import IndexPage from '@/pages/Index'
@@ -34,6 +33,7 @@ function App() {
         <Route path="/edit-dealer/:dealerId" element={<Layout currentPageName="EditDealer"><EditDealerPage /></Layout>} />
         <Route path="/onboarding" element={<Layout currentPageName="Onboarding"><OnboardingPage /></Layout>} />
       </Routes>
+      <Toaster />
     </Router>
   )
 }
