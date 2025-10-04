@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, MessageSquare, Lightbulb, AlertTriangle, Info } from 'lucide-react';
+import { Bell, MessageSquare, Lightbulb, AlertTriangle, Info, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../api/entities';
 
@@ -165,6 +165,44 @@ export default function NotificationCenter() {
       window.location.href = link;
     }, 50);
   };
+
+  const handleClearAll = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Mark all message notifications as read
+      const messageIds = notifications
+        .filter(n => n.type === 'message')
+        .map(n => n.originalId);
+
+      if (messageIds.length > 0) {
+        await supabase
+          .from('messages')
+          .update({ is_read: true })
+          .in('id', messageIds);
+      }
+
+      // Mark all insight notifications as read
+      const insightIds = notifications
+        .filter(n => n.type === 'insight')
+        .map(n => n.originalId);
+
+      if (insightIds.length > 0) {
+        await supabase
+          .from('insight_notifications')
+          .update({ is_read: true, read_at: new Date().toISOString() })
+          .in('id', insightIds);
+      }
+
+      // Clear local state
+      setNotifications([]);
+      setUnreadCount(0);
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Error clearing all notifications:', error);
+    }
+  };
   return (
     <div className="relative">
       <button
@@ -181,8 +219,17 @@ export default function NotificationCenter() {
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-slate-200 z-50">
-          <div className="p-4 border-b border-slate-200">
+          <div className="p-4 border-b border-slate-200 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-slate-900">Notifications</h3>
+            {notifications.length > 0 && (
+              <button
+                onClick={handleClearAll}
+                className="text-slate-600 hover:text-slate-900 transition-colors p-1 rounded hover:bg-slate-100"
+                title="Clear all notifications"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
           
           <div className="max-h-96 overflow-y-auto">
