@@ -510,7 +510,7 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
   const displayTargetPrice = getDisplayPrice(deal.target_price, deal.otd_target_price);
 
   const savings = displayAskingPrice && displayCurrentOffer
-    ? displayAskingPrice - displayCurrentOffer
+    ? Math.round(displayAskingPrice - displayCurrentOffer)
     : 0;
 
   return (

@@ -45,7 +45,7 @@ export default function DealCard({ deal, vehicle, dealer }) {
   const displayCurrentOffer = getDisplayPrice(deal.current_offer, deal.otd_current_offer);
 
   const savings = displayAskingPrice && displayCurrentOffer
-    ? displayAskingPrice - displayCurrentOffer
+    ? Math.round(displayAskingPrice - displayCurrentOffer)
     : 0;
 
   return (

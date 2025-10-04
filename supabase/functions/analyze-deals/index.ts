@@ -295,10 +295,19 @@ Provide a strategic analysis with the following structure:
 
 **ANALYSIS PRIORITIES:**
 1. Time-sensitive issues (expiring quotes, stale negotiations)
-2. Significant price gaps vs market data
-3. Purchase type optimization (cash/finance/lease advantages)
-4. Multi-deal portfolio strategy
-5. Behavioral patterns and momentum
+2. Strong deals worth accepting (savings > 5% off asking price)
+3. Significant price gaps vs market data
+4. Purchase type optimization (cash/finance/lease advantages)
+5. Multi-deal portfolio strategy
+6. Behavioral patterns and momentum
+
+**RECOGNIZING GOOD DEALS:**
+- If current_offer is 5% or more below asking_price, this is a GOOD DEAL worth accepting
+- Savings of $2,000+ on vehicles under $40k is excellent
+- Savings of $3,000+ on vehicles $40k-$60k is excellent
+- Savings of $5,000+ on vehicles over $60k is excellent
+- When a deal is good, clearly recommend accepting and moving forward
+- Use positive language: "Excellent savings", "Strong negotiation", "Ready to close"
 
 **QUALITY STANDARDS:**
 - Be specific with numbers: "Your offer is 8% below market average" not "Your offer is low"
@@ -306,12 +315,14 @@ Provide a strategic analysis with the following structure:
 - Provide confidence levels: "Strong position" vs "Possible opportunity"
 - Balance encouragement with reality: honest but supportive
 - No generic advice: every insight should be unique to their situation
+- When the deal is good, be enthusiastic and recommend acceptance
 
 **AVOID:**
 - Vague statements like "consider reaching out" (say "call today at 2pm")
 - Generic advice that applies to anyone
 - Contradicting yourself across insights
-- Being overly pessimistic or unrealistically optimistic
+- Being overly pessimistic about good deals (if they've saved $3k+, congratulate them!)
+- Pushing for more when they've already negotiated well (know when to recommend acceptance)
 
 Respond ONLY with valid JSON in this exact format:
 {
