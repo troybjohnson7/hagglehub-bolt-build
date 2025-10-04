@@ -5,6 +5,7 @@ export function createPageUrl(pageName) {
     const pageMap = {
         'AddVehicle': '/add-vehicle',
         'DealDetails': '/deal-details',
+        'DealHistory': '/deal-history',
         'EditDeal': '/edit-deal',
         'EditDealer': '/edit-dealer',
         'PrivacyPolicy': '/privacy-policy',

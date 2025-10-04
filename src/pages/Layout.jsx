@@ -17,6 +17,7 @@ import {
   Bot,
   Target,
   ShieldCheck,
+  History,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -195,6 +196,12 @@ export default function Layout({ children, currentPageName }) {
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>{user.full_name || user.email}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <Link to={createPageUrl("DealHistory")}>
+                    <DropdownMenuItem className="cursor-pointer">
+                      <History className="mr-2 h-4 w-4" />
+                      <span>Deal History</span>
+                    </DropdownMenuItem>
+                  </Link>
                   <Link to={createPageUrl("Account")}>
                     <DropdownMenuItem className="cursor-pointer">
                       <Settings className="mr-2 h-4 w-4" />

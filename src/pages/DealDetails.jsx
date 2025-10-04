@@ -39,7 +39,9 @@ import {
   Send,
   Sparkles,
   Loader2,
-  MessageSquareReply
+  MessageSquareReply,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 import {
   motion,
@@ -416,9 +418,42 @@ export default function DealDetailsPage() {
   }
 
   const isActiveStatus = ['quote_requested', 'negotiating', 'final_offer', 'accepted'].includes(deal.status);
+  const isArchivedDeal = ['deal_won', 'deal_lost'].includes(deal.status);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50 px-2 py-1">
+      {isArchivedDeal && (
+        <div className="max-w-7xl mx-auto mb-4">
+          <div className={`rounded-lg p-4 border-2 ${
+            deal.status === 'deal_won'
+              ? 'bg-green-50 border-green-300'
+              : 'bg-slate-50 border-slate-300'
+          }`}>
+            <div className="flex items-center gap-3">
+              {deal.status === 'deal_won' ? (
+                <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0" />
+              ) : (
+                <XCircle className="w-6 h-6 text-slate-600 flex-shrink-0" />
+              )}
+              <div>
+                <p className={`font-bold ${
+                  deal.status === 'deal_won' ? 'text-green-900' : 'text-slate-900'
+                }`}>
+                  {deal.status === 'deal_won' ? 'Deal Won!' : 'Archived Deal'}
+                </p>
+                <p className={`text-sm ${
+                  deal.status === 'deal_won' ? 'text-green-700' : 'text-slate-600'
+                }`}>
+                  This deal has been completed and is now in your history.
+                  {deal.status === 'deal_won' && deal.final_price && (
+                    <> Final price: <span className="font-bold">${deal.final_price.toLocaleString()}</span></>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <PriceExtractNotification 
         show={showPriceNotification} 
         price={extractedPrice}
@@ -598,6 +633,12 @@ export default function DealDetailsPage() {
 
               {/* Message Input Area */}
               <div className="p-2 sm:p-3 border-t border-slate-200 flex-shrink-0">
+                {isArchivedDeal ? (
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center text-sm text-slate-600">
+                    Messages are disabled for completed deals
+                  </div>
+                ) : (
+                  <>
                 {/* AI Suggest and Templates buttons */}
                 <div className="flex gap-1 sm:gap-2 mb-2">
                   <Dialog open={isSuggestionModalOpen} onOpenChange={setIsSuggestionModalOpen}>
@@ -669,15 +710,17 @@ export default function DealDetailsPage() {
                     className="flex-1 min-h-[36px] sm:min-h-[44px] text-sm focus:ring-lime-500 focus:border-lime-500 resize-none"
                     rows={1}
                   />
-                  <Button 
-                    size="icon" 
-                    onClick={handleSendMessage} 
+                  <Button
+                    size="icon"
+                    onClick={handleSendMessage}
                     disabled={isSending || !newMessage.trim()}
                     className="bg-teal-700 hover:bg-teal-800 shrink-0 h-9 w-9 sm:h-10 sm:w-10"
                   >
                     {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </Button>
                 </div>
+                </>
+                )}
               </div>
             </div>
           </div>

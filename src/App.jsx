@@ -9,6 +9,7 @@ import Dashboard from '@/pages/Dashboard'
 import AddVehiclePage from '@/pages/AddVehicle'
 import MessagesPage from '@/pages/Messages'
 import AccountPage from '@/pages/Account'
+import DealHistoryPage from '@/pages/DealHistory'
 import DealDetailsPage from '@/pages/DealDetails'
 import EditDealPage from '@/pages/EditDeal'
 import EditDealerPage from '@/pages/EditDealer'
@@ -28,6 +29,7 @@ function App() {
         <Route path="/add-vehicle" element={<Layout currentPageName="AddVehicle"><AddVehiclePage /></Layout>} />
         <Route path="/messages" element={<Layout currentPageName="Messages"><MessagesPage /></Layout>} />
         <Route path="/account" element={<Layout currentPageName="Account"><AccountPage /></Layout>} />
+        <Route path="/deal-history" element={<Layout currentPageName="DealHistory"><DealHistoryPage /></Layout>} />
         <Route path="/deal-details" element={<Layout currentPageName="DealDetails"><DealDetailsPage /></Layout>} />
         <Route path="/edit-deal" element={<Layout currentPageName="EditDeal"><EditDealPage /></Layout>} />
         <Route path="/edit-dealer" element={<Layout currentPageName="EditDealer"><EditDealerPage /></Layout>} />

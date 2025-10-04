@@ -20,11 +20,14 @@ export default function DealFilters({ filters, setFilters, sortBy, setSortBy }) 
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="quote_requested">Quote Requested</SelectItem>
               <SelectItem value="negotiating">Negotiating</SelectItem>
               <SelectItem value="final_offer">Final Offer</SelectItem>
               <SelectItem value="accepted">Accepted</SelectItem>
               <SelectItem value="declined">Declined</SelectItem>
+              <SelectItem value="deal_won">Won</SelectItem>
+              <SelectItem value="deal_lost">Lost</SelectItem>
             </SelectContent>
           </Select>
         </div>

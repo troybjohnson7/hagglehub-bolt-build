@@ -16,6 +16,7 @@ import DealCard from '../components/dashboard/DealCard';
 import DealFilters from '../components/dashboard/DealFilters';
 import RecentMessages from '../components/dashboard/RecentMessages';
 import UserEmailManager from '../components/dashboard/UserEmailManager';
+import DealHistoryWidget from '../components/dashboard/DealHistoryWidget';
 import { Skeleton } from "@/components/ui/skeleton";
 import InsightTriggerService from '@/utils/insightTriggers';
 
@@ -179,6 +180,8 @@ export default function Dashboard() {
     if (filters.status !== 'all') {
       if (filters.status === 'active') {
         filtered = filtered.filter(deal => ['quote_requested', 'negotiating', 'final_offer'].includes(deal.status));
+      } else if (filters.status === 'completed') {
+        filtered = filtered.filter(deal => ['deal_won', 'deal_lost'].includes(deal.status));
       } else {
         filtered = filtered.filter(deal => deal.status === filters.status);
       }
@@ -329,6 +332,7 @@ export default function Dashboard() {
           <div className="hidden lg:block lg:col-span-1 space-y-6 lg:space-y-8">
             {/* Pass the user prop to UserEmailManager for potential fallback email logic */}
             <UserEmailManager user={user} />
+            <DealHistoryWidget deals={deals} />
             <RecentMessages messages={messages} dealers={dealers} isLoading={isLoading} />
           </div>
         </div>
