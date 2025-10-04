@@ -193,7 +193,7 @@ const TaxesAndFeesSection = ({ deal, onDealUpdate, onFeesChange }) => {
 
       await saveDealFees(deal.id, fees, false);
 
-      const updatedDeal = await Deal.getById(deal.id);
+      const [updatedDeal] = await Deal.filter({ id: deal.id });
       onDealUpdate(updatedDeal);
       onFeesChange(fees.totalFees);
 
@@ -240,7 +240,7 @@ const TaxesAndFeesSection = ({ deal, onDealUpdate, onFeesChange }) => {
 
       await saveDealFees(deal.id, fees, true);
 
-      const updatedDeal = await Deal.getById(deal.id);
+      const [updatedDeal] = await Deal.filter({ id: deal.id });
       onDealUpdate(updatedDeal);
       onFeesChange(totalFees);
 
@@ -447,13 +447,13 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
         await syncOTDPricesFromSalesPrice(deal.id, updatedDeal);
       }
 
-      const refreshedDeal = await Deal.getById(deal.id);
+      const [refreshedDeal] = await Deal.filter({ id: deal.id });
       onDealUpdate(refreshedDeal);
 
       if (field === 'asking_price' && deal.buyer_zip_code && !deal.manual_fees_override && !isOTDMode) {
         const fees = await calculateTaxesAndFees(value, deal.buyer_zip_code);
         await saveDealFees(deal.id, fees, false);
-        const finalDeal = await Deal.getById(deal.id);
+        const [finalDeal] = await Deal.filter({ id: deal.id });
         onDealUpdate(finalDeal);
         setCurrentFees(fees.totalFees);
         toast.success('Asking price and fees updated!');
@@ -482,7 +482,8 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
       }
 
       const updatedDeal = await toggleNegotiationMode(deal.id, newMode, deal);
-      const refreshedDeal = await Deal.getById(deal.id);
+
+      const [refreshedDeal] = await Deal.filter({ id: deal.id });
 
       setIsOTDMode(newMode === 'otd');
       onDealUpdate(refreshedDeal);
