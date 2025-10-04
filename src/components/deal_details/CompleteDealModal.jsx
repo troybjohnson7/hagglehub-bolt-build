@@ -159,13 +159,19 @@ export default function CompleteDealModal({
               <Input
                 id="final_price"
                 type="number"
+                step="0.01"
                 placeholder="Enter final agreed price"
                 value={finalPrice}
                 onChange={(e) => setFinalPrice(e.target.value)}
                 required
               />
+              {finalPrice && parseFloat(finalPrice) > 0 && (
+                <p className="text-sm text-slate-600">
+                  Final price: <span className="font-semibold text-slate-900">{formatCurrency(parseFloat(finalPrice))}</span>
+                </p>
+              )}
               {potentialSavings > 0 && (
-                <div className="flex items-center gap-2 text-green-600 text-sm">
+                <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
                   <TrendingUp className="w-4 h-4" />
                   <span>You saved {formatCurrency(potentialSavings)}!</span>
                 </div>
