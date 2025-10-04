@@ -37,6 +37,7 @@ interface Deal {
   purchase_type: string;
   asking_price: number | null;
   current_offer: number | null;
+  otd_price: number | null;
   target_price: number | null;
   last_contact_date: string | null;
   quote_expires: string | null;
@@ -202,6 +203,7 @@ Deno.serve(async (req: Request) => {
         purchase_type: deal.purchase_type,
         asking_price: deal.asking_price,
         current_offer: deal.current_offer,
+        otd_price: deal.otd_price,
         target_price: deal.target_price,
         days_since_last_contact: daysSinceLastContact,
         days_until_quote_expires: daysUntilExpiry,
@@ -224,6 +226,15 @@ You have access to real market data from ${relevantMarketData.length} completed 
 **CRITICAL CONTEXT:**
 ${urgentDeals.length > 0 ? `\n⚠️ URGENT: ${urgentDeals.length} deal(s) need immediate attention!\n` : ''}
 ${trigger_events && trigger_events.length > 0 ? `Triggered by: ${trigger_events.join(', ')}\n` : ''}
+
+**IMPORTANT PRICING DEFINITIONS:**
+- **asking_price**: The dealer's listed sales price (before taxes/fees)
+- **current_offer**: The buyer's current offer for the SALES PRICE (before taxes/fees)
+- **otd_price**: Out-The-Door price - total amount including taxes, fees, registration (if provided)
+- **target_price**: The buyer's goal SALES PRICE (before taxes/fees)
+
+ALWAYS analyze based on sales prices (asking_price, current_offer, target_price) when comparing to market data.
+OTD price includes ~$3,000-$4,000 in taxes/fees on top of the sales price.
 
 **USER'S ACTIVE DEALS:**
 ${JSON.stringify(dealsForAnalysis, null, 2)}
