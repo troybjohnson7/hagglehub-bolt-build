@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
+import { formatCurrency } from '@/utils';
 
 const quickActions = [
   {
@@ -31,7 +32,7 @@ export default function QuickActions({ deal, onAction }) {
     
     // Replace placeholders with actual values
     if (deal.target_price) {
-      message = message.replace('[TARGET_PRICE]', deal.target_price.toLocaleString());
+      message = message.replace('[TARGET_PRICE]', formatCurrency(deal.target_price).replace('$', ''));
     }
     
     onAction('send_message', { message });

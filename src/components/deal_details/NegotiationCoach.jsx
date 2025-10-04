@@ -6,6 +6,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Bot, Lightbulb, Loader2, Sparkles } from 'lucide-react';
 import { InvokeLLM } from '@/api/integrations';
 import { toast } from 'sonner';
+import { formatCurrency } from '@/utils';
 
 export default function NegotiationCoach({ deal, vehicle, messages }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -33,9 +34,9 @@ export default function NegotiationCoach({ deal, vehicle, messages }) {
 
         **Deal Context:**
         - Vehicle: ${vehicle?.year} ${vehicle?.make} ${vehicle?.model}
-        - Dealer's Asking Price: $${deal?.asking_price?.toLocaleString()}
-        - Your Target Price: $${deal?.target_price?.toLocaleString() || 'Not set'}
-        - Current Dealer Offer: $${deal?.current_offer?.toLocaleString() || 'None yet'}
+        - Dealer's Asking Price: ${formatCurrency(deal?.asking_price)}
+        - Your Target Price: ${deal?.target_price ? formatCurrency(deal.target_price) : 'Not set'}
+        - Current Dealer Offer: ${deal?.current_offer ? formatCurrency(deal.current_offer) : 'None yet'}
         - Current Deal Status: ${deal?.status}
 
         **Recent Conversation History (most recent first):**

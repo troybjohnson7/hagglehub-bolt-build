@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DollarSign, X, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { formatCurrency } from '@/utils';
 
 export default function PriceExtractNotification({ show, price, deal, onClose, onUpdate }) {
   const [isUpdating, setIsUpdating] = useState(false);
@@ -47,7 +48,7 @@ export default function PriceExtractNotification({ show, price, deal, onClose, o
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-lime-800">
-                      Price detected: ${price.toLocaleString()}
+                      Price detected: {formatCurrency(price)}
                     </p>
                     <p className="text-xs text-lime-600">
                       Update your deal with this offer?

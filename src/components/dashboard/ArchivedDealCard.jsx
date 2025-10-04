@@ -12,7 +12,7 @@ import {
   Clock
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
+import { createPageUrl, formatCurrency } from '@/utils';
 import { format } from 'date-fns';
 
 export default function ArchivedDealCard({ deal, vehicle, dealer }) {
@@ -93,7 +93,7 @@ export default function ArchivedDealCard({ deal, vehicle, dealer }) {
                 <div className="text-right">
                   <p className="text-xs text-slate-500 mb-1">Final Price</p>
                   <p className="text-2xl font-bold text-slate-900">
-                    ${deal.final_price?.toLocaleString() || 'N/A'}
+                    {formatCurrency(deal.final_price)}
                   </p>
                 </div>
 
@@ -101,24 +101,24 @@ export default function ArchivedDealCard({ deal, vehicle, dealer }) {
                   <div className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-2 rounded-lg">
                     <TrendingUp className="w-4 h-4" />
                     <div className="text-right">
-                      <p className="text-sm font-bold">${savings.toLocaleString()} saved</p>
+                      <p className="text-sm font-bold">{formatCurrency(savings)} saved</p>
                       <p className="text-xs">({savingsPercentage}% off)</p>
                     </div>
                   </div>
                 )}
 
                 <div className="text-right text-xs text-slate-500 mt-1">
-                  <p>Original: ${deal.asking_price?.toLocaleString() || 'N/A'}</p>
+                  <p>Original: {formatCurrency(deal.asking_price)}</p>
                 </div>
               </>
             ) : (
               <div className="text-right">
                 <p className="text-xs text-slate-500 mb-1">Last Offer</p>
                 <p className="text-xl font-bold text-slate-700">
-                  ${deal.current_offer?.toLocaleString() || deal.asking_price?.toLocaleString() || 'N/A'}
+                  {formatCurrency(deal.current_offer || deal.asking_price)}
                 </p>
                 <p className="text-xs text-slate-500 mt-1">
-                  Target: ${deal.target_price?.toLocaleString() || 'N/A'}
+                  Target: {formatCurrency(deal.target_price)}
                 </p>
               </div>
             )}

@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
+import { createPageUrl, formatCurrency } from '@/utils';
 import {
   History,
   Trophy,
@@ -59,7 +59,7 @@ export default function DealHistoryWidget({ deals }) {
               <span className="text-xs text-lime-700 font-medium">Total Savings</span>
               <DollarSign className="w-4 h-4 text-lime-600" />
             </div>
-            <p className="text-xl font-bold text-lime-900">${totalSavings.toLocaleString()}</p>
+            <p className="text-xl font-bold text-lime-900">{formatCurrency(totalSavings)}</p>
           </div>
         )}
 

@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { DollarSign } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { formatCurrency } from '@/utils';
 
 export default function MessageBubble({ message, dealer }) {
   const isUser = message.direction === 'outbound';
@@ -45,7 +46,7 @@ export default function MessageBubble({ message, dealer }) {
             {message.contains_offer && message.extracted_price && (
               <Badge className="bg-lime-500 text-lime-900 text-xs shrink-0">
                 <DollarSign className="w-2 h-2 sm:w-3 sm:h-3 mr-1" />
-                ${message.extracted_price.toLocaleString()}
+                {formatCurrency(message.extracted_price)}
               </Badge>
             )}
           </div>

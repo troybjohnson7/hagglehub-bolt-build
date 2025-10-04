@@ -1,13 +1,13 @@
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
+import {
   TrendingDown,
   ChevronRight
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
+import { createPageUrl, formatCurrency } from "@/utils";
 
 // Debug function to log navigation
 const handleCardClick = (dealId) => {
@@ -93,7 +93,7 @@ export default function DealCard({ deal, vehicle, dealer }) {
                     {isOTDMode ? 'Current OTD Offer' : 'Current Offer'}
                   </p>
                   <p className="text-sm md:text-base font-bold text-slate-900">
-                    {displayCurrentOffer ? `$${Number(displayCurrentOffer).toLocaleString()}` : 'Pending'}
+                    {displayCurrentOffer ? formatCurrency(displayCurrentOffer) : 'Pending'}
                   </p>
                 </div>
                 {savings > 0 && (
@@ -102,7 +102,7 @@ export default function DealCard({ deal, vehicle, dealer }) {
                     <div className="text-center">
                       <p className="text-xs text-brand-teal opacity-80">Savings</p>
                       <span className="text-sm font-bold">
-                      ${savings.toLocaleString()}
+                      {formatCurrency(savings)}
                       </span>
                     </div>
                   </div>

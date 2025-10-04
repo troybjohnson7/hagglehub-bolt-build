@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Deal } from '@/api/entities';
 import { MarketData } from '@/api/entities';
+import { formatCurrency } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -166,7 +167,7 @@ export default function CompleteDealModal({
               {potentialSavings > 0 && (
                 <div className="flex items-center gap-2 text-green-600 text-sm">
                   <TrendingUp className="w-4 h-4" />
-                  <span>You saved ${potentialSavings.toLocaleString()}!</span>
+                  <span>You saved {formatCurrency(potentialSavings)}!</span>
                 </div>
               )}
             </div>

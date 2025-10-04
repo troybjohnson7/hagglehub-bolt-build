@@ -2,6 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatCurrency } from '@/utils';
 
 const templates = {
   connect_understand: {
@@ -53,10 +54,10 @@ export default function MessageTemplates({ onSelect, deal }) {
     // Replace common variables
     message = message.replace(/\[VEHICLE\]/g, 'vehicle');
     if (deal?.target_price) {
-      message = message.replace(/\[TARGET_PRICE\]/g, deal.target_price.toLocaleString());
+      message = message.replace(/\[TARGET_PRICE\]/g, formatCurrency(deal.target_price).replace('$', ''));
     }
     if (deal?.current_offer) {
-      message = message.replace(/\[CURRENT_OFFER\]/g, deal.current_offer.toLocaleString());
+      message = message.replace(/\[CURRENT_OFFER\]/g, formatCurrency(deal.current_offer).replace('$', ''));
     }
     
     return message;

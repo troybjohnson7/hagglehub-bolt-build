@@ -5,7 +5,8 @@ import {
   useNavigate
 } from 'react-router-dom';
 import {
-  createPageUrl
+  createPageUrl,
+  formatCurrency
 } from '@/utils';
 import {
   Deal
@@ -309,9 +310,9 @@ export default function DealDetailsPage() {
 
       **Deal Context:**
       - Vehicle: ${vehicle?.year || 'N/A'} ${vehicle?.make || 'N/A'} ${vehicle?.model || 'N/A'}
-      - Dealer's Asking Price: $${deal?.asking_price?.toLocaleString() || 'N/A'}
-      - Your Target Price: $${deal?.target_price?.toLocaleString() || 'Not set'}
-      - Current Dealer Offer: $${deal?.current_offer?.toLocaleString() || 'None yet'}
+      - Dealer's Asking Price: ${formatCurrency(deal?.asking_price)}
+      - Your Target Price: ${deal?.target_price ? formatCurrency(deal.target_price) : 'Not set'}
+      - Current Dealer Offer: ${deal?.current_offer ? formatCurrency(deal.current_offer) : 'None yet'}
       - Purchase Type: ${deal?.purchase_type || 'N/A'}
       - Current Deal Status: ${deal?.status || 'N/A'}
 
@@ -446,7 +447,7 @@ export default function DealDetailsPage() {
                 }`}>
                   This deal has been completed and is now in your history.
                   {deal.status === 'deal_won' && deal.final_price && (
-                    <> Final price: <span className="font-bold">${deal.final_price.toLocaleString()}</span></>
+                    <> Final price: <span className="font-bold">{formatCurrency(deal.final_price)}</span></>
                   )}
                 </p>
               </div>
@@ -554,24 +555,24 @@ export default function DealDetailsPage() {
                 <p className="text-slate-500">{deal.negotiation_mode === 'otd' ? 'Asking OTD' : 'Asking'}</p>
                 <p className="font-semibold">
                   {deal.negotiation_mode === 'otd'
-                    ? (deal.otd_asking_price ? `$${deal.otd_asking_price.toLocaleString()}` : 'N/A')
-                    : (deal.asking_price ? `$${deal.asking_price.toLocaleString()}` : 'N/A')}
+                    ? formatCurrency(deal.otd_asking_price)
+                    : formatCurrency(deal.asking_price)}
                 </p>
               </div>
               <div className="text-center">
                 <p className="text-slate-500">{deal.negotiation_mode === 'otd' ? 'OTD Offer' : 'Offer'}</p>
                 <p className="font-semibold text-blue-600">
                   {deal.negotiation_mode === 'otd'
-                    ? (deal.otd_current_offer ? `$${deal.otd_current_offer.toLocaleString()}` : 'N/A')
-                    : (deal.current_offer ? `$${deal.current_offer.toLocaleString()}` : 'N/A')}
+                    ? formatCurrency(deal.otd_current_offer)
+                    : formatCurrency(deal.current_offer)}
                 </p>
               </div>
               <div className="text-center">
                 <p className="text-slate-500">{deal.negotiation_mode === 'otd' ? 'OTD Target' : 'Target'}</p>
                 <p className="font-semibold text-green-600">
                   {deal.negotiation_mode === 'otd'
-                    ? (deal.otd_target_price ? `$${deal.otd_target_price.toLocaleString()}` : 'N/A')
-                    : (deal.target_price ? `$${deal.target_price.toLocaleString()}` : 'N/A')}
+                    ? formatCurrency(deal.otd_target_price)
+                    : formatCurrency(deal.target_price)}
                 </p>
               </div>
             </div>

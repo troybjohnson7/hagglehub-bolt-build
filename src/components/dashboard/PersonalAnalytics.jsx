@@ -11,6 +11,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { formatCurrency } from '@/utils';
 
 export default function PersonalAnalytics({ deals, vehicles }) {
   const completedDeals = deals.filter(d => ['deal_won', 'deal_lost'].includes(d.status));
@@ -102,7 +103,7 @@ export default function PersonalAnalytics({ deals, vehicles }) {
               <DollarSign className="w-8 h-8 text-green-600" />
               <Badge className="bg-green-100 text-green-800">{wonDeals.length} deals</Badge>
             </div>
-            <p className="text-2xl font-bold text-green-900">${totalSavings.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-green-900">{formatCurrency(totalSavings)}</p>
             <p className="text-xs text-green-700 mt-1">Total Savings</p>
           </CardContent>
         </Card>
@@ -156,12 +157,12 @@ export default function PersonalAnalytics({ deals, vehicles }) {
                   {bestDealVehicle ? `${bestDealVehicle.year} ${bestDealVehicle.make} ${bestDealVehicle.model}` : 'Vehicle'}
                 </p>
                 <p className="text-sm text-slate-600 mt-1">
-                  Saved <span className="font-bold text-green-600">${bestDealSavings.toLocaleString()}</span> off asking price
+                  Saved <span className="font-bold text-green-600">{formatCurrency(bestDealSavings)}</span> off asking price
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-sm text-slate-500">Final Price</p>
-                <p className="text-2xl font-bold text-slate-900">${bestDeal.final_price?.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-slate-900">{formatCurrency(bestDeal.final_price)}</p>
               </div>
             </div>
           </CardContent>
@@ -182,7 +183,7 @@ export default function PersonalAnalytics({ deals, vehicles }) {
                   <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#64748b" />
                   <YAxis tick={{ fontSize: 12 }} stroke="#64748b" />
                   <Tooltip
-                    formatter={(value) => `$${value.toLocaleString()}`}
+                    formatter={(value) => formatCurrency(value)}
                     contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }}
                   />
                   <Line

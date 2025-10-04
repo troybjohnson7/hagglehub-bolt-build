@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Deal, Vehicle, Dealer, User } from '@/api/entities';
+import { formatCurrency } from '@/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -164,7 +165,7 @@ export default function DealHistoryPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold text-lime-900">${totalSavings.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-lime-900">{formatCurrency(totalSavings)}</p>
                   <p className="text-sm text-lime-700">Total Savings</p>
                 </div>
                 <BarChart3 className="w-8 h-8 text-lime-600" />
