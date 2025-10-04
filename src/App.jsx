@@ -13,6 +13,7 @@ import DealDetailsPage from '@/pages/DealDetails'
 import EditDealPage from '@/pages/EditDeal'
 import EditDealerPage from '@/pages/EditDealer'
 import OnboardingPage from '@/pages/onboarding'
+import NotFound from '@/pages/NotFound'
 import { Toaster } from "@/components/ui/toaster"
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
         <Route path="/edit-dealer" element={<Layout currentPageName="EditDealer"><EditDealerPage /></Layout>} />
         <Route path="/edit-dealer/:dealerId" element={<Layout currentPageName="EditDealer"><EditDealerPage /></Layout>} />
         <Route path="/onboarding" element={<Layout currentPageName="Onboarding"><OnboardingPage /></Layout>} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
     </Router>

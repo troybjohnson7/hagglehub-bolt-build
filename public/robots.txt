@@ -1,0 +1,13 @@
+# HaggleHub - robots.txt
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /account
+Disallow: /messages
+Disallow: /add-vehicle
+Disallow: /deal-details
+Disallow: /edit-deal
+Disallow: /edit-dealer
+Disallow: /onboarding
+
+Sitemap: https://hagglehub.app/sitemap.xml
