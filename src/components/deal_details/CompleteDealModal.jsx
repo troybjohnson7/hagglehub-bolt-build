@@ -20,18 +20,54 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CheckCircle2, XCircle, TrendingUp, Users, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function CompleteDealModal({ 
-  isOpen, 
-  onClose, 
-  deal, 
-  vehicle, 
-  onDealCompleted 
+export default function CompleteDealModal({
+  isOpen,
+  onClose,
+  deal,
+  vehicle,
+  onDealCompleted
 }) {
   const [outcome, setOutcome] = useState(''); // 'deal_won' or 'deal_lost'
   const [finalPrice, setFinalPrice] = useState(deal?.current_offer?.toString() || '');
+  const [displayPrice, setDisplayPrice] = useState(
+    deal?.current_offer ? formatCurrency(deal.current_offer) : ''
+  );
   const [notes, setNotes] = useState('');
   const [shareData, setShareData] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handlePriceChange = (e) => {
+    const value = e.target.value;
+    // Remove all non-numeric characters except decimal point
+    const numericValue = value.replace(/[^0-9.]/g, '');
+
+    // Prevent multiple decimal points
+    const parts = numericValue.split('.');
+    const sanitized = parts.length > 2
+      ? parts[0] + '.' + parts.slice(1).join('')
+      : numericValue;
+
+    setFinalPrice(sanitized);
+
+    // Format for display
+    if (sanitized && !isNaN(parseFloat(sanitized))) {
+      setDisplayPrice(formatCurrency(parseFloat(sanitized)));
+    } else {
+      setDisplayPrice('');
+    }
+  };
+
+  const handlePriceFocus = () => {
+    // Show raw number when focused for easier editing
+    setDisplayPrice(finalPrice);
+  };
+
+  const handlePriceBlur = () => {
+    // Format when user leaves the field
+    if (finalPrice && !isNaN(parseFloat(finalPrice))) {
+      setDisplayPrice(formatCurrency(parseFloat(finalPrice)));
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -158,18 +194,14 @@ export default function CompleteDealModal({
               <Label htmlFor="final_price">Final Price *</Label>
               <Input
                 id="final_price"
-                type="number"
-                step="0.01"
+                type="text"
                 placeholder="Enter final agreed price"
-                value={finalPrice}
-                onChange={(e) => setFinalPrice(e.target.value)}
+                value={displayPrice}
+                onChange={handlePriceChange}
+                onFocus={handlePriceFocus}
+                onBlur={handlePriceBlur}
                 required
               />
-              {finalPrice && parseFloat(finalPrice) > 0 && (
-                <p className="text-sm text-slate-600">
-                  Final price: <span className="font-semibold text-slate-900">{formatCurrency(parseFloat(finalPrice))}</span>
-                </p>
-              )}
               {potentialSavings > 0 && (
                 <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
                   <TrendingUp className="w-4 h-4" />
