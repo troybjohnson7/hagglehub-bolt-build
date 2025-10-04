@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Bot, Loader2, Sparkles, TrendingUp, TrendingDown, Hourglass, AlertCircle, Clock } from 'lucide-react';
+import { Bot, Loader2, Sparkles, TrendingUp, TrendingDown, Hourglass, AlertCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/api/entities';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const InsightIcon = ({ type }) => {
   switch (type) {
@@ -22,6 +23,7 @@ export default function SmartInsights({ deals, vehicles }) {
   const [analysis, setAnalysis] = useState(null);
   const [cacheInfo, setCacheInfo] = useState(null);
   const [urgentDealsCount, setUrgentDealsCount] = useState(0);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   const activeDeals = useMemo(() => {
     return deals.filter(deal => ['quote_requested', 'negotiating', 'final_offer'].includes(deal.status));
@@ -156,17 +158,53 @@ export default function SmartInsights({ deals, vehicles }) {
   return (
     <Card className="shadow-sm md:shadow-lg border-brand-lime border-opacity-30 bg-lime-50/30">
       <CardHeader className="p-2 md:p-6">
-        <div className="flex items-center gap-2 md:gap-3">
-          <div className="p-1 md:p-2 bg-brand-lime rounded-lg">
-            <Bot className="w-3 h-3 md:w-5 md:h-5 text-brand-teal" />
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 md:gap-3 flex-1">
+            <div className="p-1 md:p-2 bg-brand-lime rounded-lg">
+              <Bot className="w-3 h-3 md:w-5 md:h-5 text-brand-teal" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-sm md:text-lg font-bold text-slate-900">Smart Insights</CardTitle>
+                {!isExpanded && urgentDealsCount > 0 && (
+                  <Badge className="bg-orange-500 text-white text-xs px-2 py-0.5">
+                    {urgentDealsCount}
+                  </Badge>
+                )}
+                {!isExpanded && analysis && (
+                  <Badge variant="outline" className="text-xs px-2 py-0.5">
+                    {analysis.insights.length} insights
+                  </Badge>
+                )}
+              </div>
+              <CardDescription className="text-xs md:text-sm hidden md:block">AI-powered analysis with real market data from GPT-4o.</CardDescription>
+            </div>
           </div>
-          <div>
-            <CardTitle className="text-sm md:text-lg font-bold text-slate-900">Smart Insights</CardTitle>
-            <CardDescription className="text-xs md:text-sm hidden md:block">AI-powered analysis with real market data from GPT-4o.</CardDescription>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="h-7 w-7 p-0 hover:bg-brand-lime/20"
+            aria-label={isExpanded ? "Collapse insights" : "Expand insights"}
+          >
+            {isExpanded ? (
+              <ChevronUp className="w-4 h-4 text-brand-teal" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-brand-teal" />
+            )}
+          </Button>
         </div>
       </CardHeader>
-      <CardContent className="p-2 pt-0 md:p-6">
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            style={{ overflow: "hidden" }}
+          >
+            <CardContent className="p-2 pt-0 md:p-6">
         {urgentDealsCount > 0 && (
           <div className="mb-2 md:mb-4 p-2 md:p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-orange-600 flex-shrink-0" />
@@ -239,7 +277,10 @@ export default function SmartInsights({ deals, vehicles }) {
             </Accordion>
           </div>
         )}
-      </CardContent>
+            </CardContent>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Card>
   );
 }
