@@ -259,3 +259,142 @@ export function formatTaxRate(rate) {
   if (rate === null || rate === undefined) return '-';
   return `${(rate * 100).toFixed(2)}%`;
 }
+
+/**
+ * Convert sales price to OTD price using deal's fees
+ */
+export function convertSalesPriceToOTD(salesPrice, deal) {
+  if (!salesPrice) return 0;
+
+  const salesTax = deal.estimated_sales_tax || 0;
+  const regFee = deal.estimated_registration_fee || 0;
+  const docFee = deal.estimated_doc_fee || 0;
+  const titleFee = deal.estimated_title_fee || 0;
+
+  return Math.round((parseFloat(salesPrice) + salesTax + regFee + docFee + titleFee) * 100) / 100;
+}
+
+/**
+ * Convert OTD price to sales price using deal's fees
+ */
+export function convertOTDToSalesPrice(otdPrice, deal) {
+  if (!otdPrice) return 0;
+
+  const salesTax = deal.estimated_sales_tax || 0;
+  const regFee = deal.estimated_registration_fee || 0;
+  const docFee = deal.estimated_doc_fee || 0;
+  const titleFee = deal.estimated_title_fee || 0;
+
+  return Math.round((parseFloat(otdPrice) - salesTax - regFee - docFee - titleFee) * 100) / 100;
+}
+
+/**
+ * Get the total fees for a deal
+ */
+export function getTotalFees(deal) {
+  const salesTax = deal.estimated_sales_tax || 0;
+  const regFee = deal.estimated_registration_fee || 0;
+  const docFee = deal.estimated_doc_fee || 0;
+  const titleFee = deal.estimated_title_fee || 0;
+
+  return Math.round((salesTax + regFee + docFee + titleFee) * 100) / 100;
+}
+
+/**
+ * Sync OTD prices when deal prices change
+ * Updates otd_* fields based on sales price fields
+ */
+export async function syncOTDPricesFromSalesPrice(dealId, deal) {
+  try {
+    const updateData = {};
+
+    if (deal.asking_price) {
+      updateData.otd_asking_price = convertSalesPriceToOTD(deal.asking_price, deal);
+    }
+
+    if (deal.current_offer) {
+      updateData.otd_current_offer = convertSalesPriceToOTD(deal.current_offer, deal);
+    }
+
+    if (deal.target_price) {
+      updateData.otd_target_price = convertSalesPriceToOTD(deal.target_price, deal);
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      const { data, error } = await supabase
+        .from('deals')
+        .update(updateData)
+        .eq('id', dealId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    }
+
+    return deal;
+  } catch (error) {
+    console.error('Error syncing OTD prices:', error);
+    throw error;
+  }
+}
+
+/**
+ * Sync sales prices when OTD prices change
+ * Updates sales price fields based on otd_* fields
+ */
+export async function syncSalesPricesFromOTD(dealId, deal) {
+  try {
+    const updateData = {};
+
+    if (deal.otd_asking_price) {
+      updateData.asking_price = convertOTDToSalesPrice(deal.otd_asking_price, deal);
+    }
+
+    if (deal.otd_current_offer) {
+      updateData.current_offer = convertOTDToSalesPrice(deal.otd_current_offer, deal);
+    }
+
+    if (deal.otd_target_price) {
+      updateData.target_price = convertOTDToSalesPrice(deal.otd_target_price, deal);
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      const { data, error } = await supabase
+        .from('deals')
+        .update(updateData)
+        .eq('id', dealId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    }
+
+    return deal;
+  } catch (error) {
+    console.error('Error syncing sales prices:', error);
+    throw error;
+  }
+}
+
+/**
+ * Toggle negotiation mode and sync prices
+ */
+export async function toggleNegotiationMode(dealId, newMode, deal) {
+  try {
+    const { data, error } = await supabase
+      .from('deals')
+      .update({ negotiation_mode: newMode })
+      .eq('id', dealId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return data;
+  } catch (error) {
+    console.error('Error toggling negotiation mode:', error);
+    throw error;
+  }
+}

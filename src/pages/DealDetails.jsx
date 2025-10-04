@@ -503,19 +503,38 @@ export default function DealDetailsPage() {
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Pricing</h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-bold text-slate-900">Pricing</h3>
+              {deal.negotiation_mode === 'otd' && (
+                <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300 text-xs">
+                  OTD Mode
+                </Badge>
+              )}
+            </div>
             <div className="grid grid-cols-3 gap-3 text-sm">
               <div className="text-center">
-                <p className="text-slate-500">Asking</p>
-                <p className="font-semibold">{deal.asking_price ? `$${deal.asking_price.toLocaleString()}` : 'N/A'}</p>
+                <p className="text-slate-500">{deal.negotiation_mode === 'otd' ? 'Asking OTD' : 'Asking'}</p>
+                <p className="font-semibold">
+                  {deal.negotiation_mode === 'otd'
+                    ? (deal.otd_asking_price ? `$${deal.otd_asking_price.toLocaleString()}` : 'N/A')
+                    : (deal.asking_price ? `$${deal.asking_price.toLocaleString()}` : 'N/A')}
+                </p>
               </div>
               <div className="text-center">
-                <p className="text-slate-500">Offer</p>
-                <p className="font-semibold text-blue-600">{deal.current_offer ? `$${deal.current_offer.toLocaleString()}` : 'N/A'}</p>
+                <p className="text-slate-500">{deal.negotiation_mode === 'otd' ? 'OTD Offer' : 'Offer'}</p>
+                <p className="font-semibold text-blue-600">
+                  {deal.negotiation_mode === 'otd'
+                    ? (deal.otd_current_offer ? `$${deal.otd_current_offer.toLocaleString()}` : 'N/A')
+                    : (deal.current_offer ? `$${deal.current_offer.toLocaleString()}` : 'N/A')}
+                </p>
               </div>
               <div className="text-center">
-                <p className="text-slate-500">Target</p>
-                <p className="font-semibold text-green-600">{deal.target_price ? `$${deal.target_price.toLocaleString()}` : 'N/A'}</p>
+                <p className="text-slate-500">{deal.negotiation_mode === 'otd' ? 'OTD Target' : 'Target'}</p>
+                <p className="font-semibold text-green-600">
+                  {deal.negotiation_mode === 'otd'
+                    ? (deal.otd_target_price ? `$${deal.otd_target_price.toLocaleString()}` : 'N/A')
+                    : (deal.target_price ? `$${deal.target_price.toLocaleString()}` : 'N/A')}
+                </p>
               </div>
             </div>
           </div>

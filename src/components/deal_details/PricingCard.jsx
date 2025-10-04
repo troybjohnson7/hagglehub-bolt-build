@@ -3,7 +3,8 @@ import { Deal } from '@/api/entities';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { DollarSign, FileText, Calculator, ChevronDown, Save, HandCoins, Banknote, Landmark, Edit3, Check, X, MapPin, Info, Lock, Unlock } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { DollarSign, FileText, Calculator, ChevronDown, Save, HandCoins, Banknote, Landmark, Edit3, Check, X, MapPin, Info, Lock, Unlock, ArrowLeftRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +14,13 @@ import {
   saveDealFees,
   isValidZipCode,
   formatCurrency,
-  formatTaxRate
+  formatTaxRate,
+  convertSalesPriceToOTD,
+  convertOTDToSalesPrice,
+  getTotalFees,
+  syncOTDPricesFromSalesPrice,
+  syncSalesPricesFromOTD,
+  toggleNegotiationMode
 } from '@/utils/taxCalculations';
 
 const statusColors = {
@@ -417,17 +424,37 @@ const TaxesAndFeesSection = ({ deal, onDealUpdate, onFeesChange }) => {
 export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
   const [showTaxesFees, setShowTaxesFees] = useState(false);
   const [currentFees, setCurrentFees] = useState(deal.estimated_total_fees || 0);
+  const [isOTDMode, setIsOTDMode] = useState(deal.negotiation_mode === 'otd');
+  const [isTogglingMode, setIsTogglingMode] = useState(false);
 
   const handleUpdateDealField = async (field, value) => {
     try {
-      const updatedDeal = await Deal.update(deal.id, { [field]: value });
-      onDealUpdate(updatedDeal);
+      const updateData = { [field]: value };
 
-      if (field === 'asking_price' && deal.buyer_zip_code && !deal.manual_fees_override) {
+      if (isOTDMode) {
+        if (field === 'asking_price') updateData.otd_asking_price = value;
+        if (field === 'current_offer') updateData.otd_current_offer = value;
+        if (field === 'target_price') updateData.otd_target_price = value;
+      }
+
+      const updatedDeal = await Deal.update(deal.id, updateData);
+
+      if (isOTDMode && deal.estimated_sales_tax) {
+        await syncSalesPricesFromOTD(deal.id, updatedDeal);
+      }
+
+      if (!isOTDMode && deal.estimated_sales_tax) {
+        await syncOTDPricesFromSalesPrice(deal.id, updatedDeal);
+      }
+
+      const refreshedDeal = await Deal.getById(deal.id);
+      onDealUpdate(refreshedDeal);
+
+      if (field === 'asking_price' && deal.buyer_zip_code && !deal.manual_fees_override && !isOTDMode) {
         const fees = await calculateTaxesAndFees(value, deal.buyer_zip_code);
         await saveDealFees(deal.id, fees, false);
-        const refreshedDeal = await Deal.getById(deal.id);
-        onDealUpdate(refreshedDeal);
+        const finalDeal = await Deal.getById(deal.id);
+        onDealUpdate(finalDeal);
         setCurrentFees(fees.totalFees);
         toast.success('Asking price and fees updated!');
       }
@@ -437,11 +464,52 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
     }
   };
 
+  const handleToggleOTDMode = async () => {
+    if (!deal.estimated_sales_tax) {
+      toast.error('Please calculate taxes and fees first before switching to OTD mode');
+      setShowTaxesFees(true);
+      return;
+    }
+
+    setIsTogglingMode(true);
+    try {
+      const newMode = isOTDMode ? 'sales_price' : 'otd';
+
+      if (newMode === 'otd') {
+        await syncOTDPricesFromSalesPrice(deal.id, deal);
+      } else {
+        await syncSalesPricesFromOTD(deal.id, deal);
+      }
+
+      const updatedDeal = await toggleNegotiationMode(deal.id, newMode, deal);
+      const refreshedDeal = await Deal.getById(deal.id);
+
+      setIsOTDMode(newMode === 'otd');
+      onDealUpdate(refreshedDeal);
+
+      toast.success(`Switched to ${newMode === 'otd' ? 'Out-The-Door' : 'Sales Price'} mode`);
+    } catch (error) {
+      console.error('Failed to toggle mode:', error);
+      toast.error('Failed to switch mode');
+    } finally {
+      setIsTogglingMode(false);
+    }
+  };
+
   const PurchaseIcon = purchaseTypeInfo[deal.purchase_type]?.icon || Banknote;
   const purchaseLabel = purchaseTypeInfo[deal.purchase_type]?.label || 'Purchase Type N/A';
 
-  const savings = deal.asking_price && deal.current_offer
-    ? deal.asking_price - deal.current_offer
+  const getDisplayPrice = (salesPrice, otdPrice) => {
+    if (isOTDMode && otdPrice) return otdPrice;
+    return salesPrice || 0;
+  };
+
+  const displayAskingPrice = getDisplayPrice(deal.asking_price, deal.otd_asking_price);
+  const displayCurrentOffer = getDisplayPrice(deal.current_offer, deal.otd_current_offer);
+  const displayTargetPrice = getDisplayPrice(deal.target_price, deal.otd_target_price);
+
+  const savings = displayAskingPrice && displayCurrentOffer
+    ? displayAskingPrice - displayCurrentOffer
     : 0;
 
   return (
@@ -458,58 +526,98 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-2 text-sm text-slate-500 pt-1">
-          <PurchaseIcon className="w-4 h-4" />
-          <span>{purchaseLabel}</span>
+        <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <PurchaseIcon className="w-4 h-4" />
+            <span>{purchaseLabel}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-600">
+              {isOTDMode ? 'Out-The-Door' : 'Sales Price'}
+            </span>
+            <Switch
+              checked={isOTDMode}
+              onCheckedChange={handleToggleOTDMode}
+              disabled={isTogglingMode}
+              className="data-[state=checked]:bg-orange-500"
+            />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="space-y-2">
-          <p className="text-xs text-slate-600 bg-blue-50 p-2 rounded flex items-start gap-2">
-            <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
-            All prices below are SALES PRICES (before taxes and fees). The system will automatically calculate your Out-The-Door total.
-          </p>
-        </div>
+        <AnimatePresence mode="wait">
+          {isOTDMode ? (
+            <motion.div
+              key="otd-banner"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-2"
+            >
+              <div className="text-xs text-orange-800 bg-orange-50 p-2 rounded flex items-start gap-2 border border-orange-200">
+                <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                <div>
+                  <strong>Out-The-Door Mode Active:</strong> All prices shown include taxes and fees totaling {formatCurrency(getTotalFees(deal))}.
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="sales-banner"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-2"
+            >
+              <p className="text-xs text-slate-600 bg-blue-50 p-2 rounded flex items-start gap-2">
+                <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                All prices below are SALES PRICES (before taxes and fees). Toggle to OTD mode to negotiate the final total.
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="group">
           <EditablePriceItem
-            label="Dealer's Asking Sales Price"
-            value={deal.asking_price}
+            label={isOTDMode ? "Dealer's Asking OTD Price" : "Dealer's Asking Sales Price"}
+            value={displayAskingPrice}
             icon={FileText}
-            placeholder="Enter asking price"
+            placeholder={isOTDMode ? "Enter asking OTD price" : "Enter asking price"}
             onSave={(value) => handleUpdateDealField('asking_price', value)}
           />
         </div>
 
         <div className="group">
           <EditablePriceItem
-            label="Your Current Offer"
-            value={deal.current_offer}
+            label={isOTDMode ? "Your Current OTD Offer" : "Your Current Offer"}
+            value={displayCurrentOffer}
             colorClass="text-blue-600"
             icon={DollarSign}
-            placeholder="Enter current offer"
+            placeholder={isOTDMode ? "Enter current OTD offer" : "Enter current offer"}
             onSave={(value) => handleUpdateDealField('current_offer', value)}
           />
         </div>
 
         <div className="group">
           <EditablePriceItem
-            label="Your Target Sales Price"
-            value={deal.target_price}
+            label={isOTDMode ? "Your Target OTD Price" : "Your Target Sales Price"}
+            value={displayTargetPrice}
             colorClass="text-green-600"
             icon={DollarSign}
-            placeholder="Enter target price"
+            placeholder={isOTDMode ? "Enter target OTD price" : "Enter target price"}
             onSave={(value) => handleUpdateDealField('target_price', value)}
           />
         </div>
 
         {savings > 0 && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+          <div className={`${isOTDMode ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'} border rounded-lg p-3`}>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-green-800">Your Savings</span>
-              <span className="text-xl font-bold text-green-700">{formatCurrency(savings)}</span>
+              <span className={`text-sm font-medium ${isOTDMode ? 'text-orange-800' : 'text-green-800'}`}>Your Savings</span>
+              <span className={`text-xl font-bold ${isOTDMode ? 'text-orange-700' : 'text-green-700'}`}>{formatCurrency(savings)}</span>
             </div>
-            <p className="text-xs text-green-700 mt-1">Below asking price</p>
+            <p className={`text-xs ${isOTDMode ? 'text-orange-700' : 'text-green-700'} mt-1`}>
+              Below asking {isOTDMode ? 'OTD' : 'price'}
+            </p>
           </div>
         )}
 

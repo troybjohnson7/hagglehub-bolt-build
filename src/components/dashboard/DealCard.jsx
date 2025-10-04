@@ -34,8 +34,18 @@ const statusLabels = {
 };
 
 export default function DealCard({ deal, vehicle, dealer }) {
-  const savings = deal.asking_price && deal.current_offer 
-    ? deal.asking_price - deal.current_offer 
+  const isOTDMode = deal.negotiation_mode === 'otd';
+
+  const getDisplayPrice = (salesPrice, otdPrice) => {
+    if (isOTDMode && otdPrice) return otdPrice;
+    return salesPrice || 0;
+  };
+
+  const displayAskingPrice = getDisplayPrice(deal.asking_price, deal.otd_asking_price);
+  const displayCurrentOffer = getDisplayPrice(deal.current_offer, deal.otd_current_offer);
+
+  const savings = displayAskingPrice && displayCurrentOffer
+    ? displayAskingPrice - displayCurrentOffer
     : 0;
 
   return (
@@ -62,9 +72,16 @@ export default function DealCard({ deal, vehicle, dealer }) {
                   {dealer ? dealer.name : 'Dealer Info Missing'}
                 </p>
               </div>
-              <Badge className={`${statusColors[deal.status]} border font-medium text-xs ml-2 shrink-0 px-2 py-0.5`}>
-                {statusLabels[deal.status]}
-              </Badge>
+              <div className="flex items-center gap-1 ml-2 shrink-0">
+                {isOTDMode && (
+                  <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300 text-xs px-1.5 py-0.5 font-medium">
+                    OTD
+                  </Badge>
+                )}
+                <Badge className={`${statusColors[deal.status]} border font-medium text-xs px-2 py-0.5`}>
+                  {statusLabels[deal.status]}
+                </Badge>
+              </div>
             </div>
           </CardHeader>
           
@@ -72,9 +89,11 @@ export default function DealCard({ deal, vehicle, dealer }) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div>
-                  <p className="text-xs text-slate-500">Current Offer</p>
+                  <p className="text-xs text-slate-500">
+                    {isOTDMode ? 'Current OTD Offer' : 'Current Offer'}
+                  </p>
                   <p className="text-sm md:text-base font-bold text-slate-900">
-                    {deal.current_offer ? `$${Number(deal.current_offer).toLocaleString()}` : 'Pending'}
+                    {displayCurrentOffer ? `$${Number(displayCurrentOffer).toLocaleString()}` : 'Pending'}
                   </p>
                 </div>
                 {savings > 0 && (

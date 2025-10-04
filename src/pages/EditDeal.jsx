@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import {
   AlertDialog,
@@ -43,7 +45,8 @@ export default function EditDealPage() {
     otd_price: '',
     status: '',
     priority: '',
-    quote_expires: ''
+    quote_expires: '',
+    negotiation_mode: 'sales_price'
   });
 
   useEffect(() => {
@@ -79,7 +82,8 @@ export default function EditDealPage() {
           otd_price: currentDeal.otd_price || '',
           status: currentDeal.status || 'quote_requested',
           priority: currentDeal.priority || 'medium',
-          quote_expires: currentDeal.quote_expires ? currentDeal.quote_expires.split('T')[0] : ''
+          quote_expires: currentDeal.quote_expires ? currentDeal.quote_expires.split('T')[0] : '',
+          negotiation_mode: currentDeal.negotiation_mode || 'sales_price'
         });
       } catch (error) {
         console.error('Failed to load deal:', error);
@@ -179,36 +183,49 @@ export default function EditDealPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold text-slate-700 mb-3">Pricing Information</h3>
+
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg mb-4">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium">Negotiation Mode</Label>
+                    <p className="text-xs text-slate-600">
+                      {dealData.negotiation_mode === 'otd'
+                        ? 'Out-The-Door: Prices include taxes and fees'
+                        : 'Sales Price: Prices before taxes and fees'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={dealData.negotiation_mode === 'otd'}
+                    onCheckedChange={(checked) =>
+                      handleInputChange('negotiation_mode', checked ? 'otd' : 'sales_price')
+                    }
+                    className="data-[state=checked]:bg-orange-500"
+                  />
+                </div>
+
                 <div className="space-y-3">
                   <Input
-                    placeholder="Asking Sales Price"
+                    placeholder={dealData.negotiation_mode === 'otd' ? "Asking OTD Price" : "Asking Sales Price"}
                     type="number"
                     value={dealData.asking_price}
                     onChange={(e) => handleInputChange('asking_price', e.target.value)}
                   />
                   <Input
-                    placeholder="Current Sales Price Offer"
+                    placeholder={dealData.negotiation_mode === 'otd' ? "Current OTD Offer" : "Current Sales Price Offer"}
                     type="number"
                     value={dealData.current_offer}
                     onChange={(e) => handleInputChange('current_offer', e.target.value)}
                   />
                   <Input
-                    placeholder="Your Target Sales Price *"
+                    placeholder={dealData.negotiation_mode === 'otd' ? "Your Target OTD Price" : "Your Target Sales Price"}
                     type="number"
                     value={dealData.target_price}
                     onChange={(e) => handleInputChange('target_price', e.target.value)}
                   />
-                  <Input
-                    placeholder="Out-the-Door Price"
-                    type="number"
-                    value={dealData.otd_price}
-                    onChange={(e) => handleInputChange('otd_price', e.target.value)}
-                  />
                 </div>
                 <p className="text-xs text-slate-500 mt-2">
-                  💡 <strong>Sales Price:</strong> Vehicle price before taxes/fees<br/>
-                  <strong>Out-the-Door:</strong> Total including taxes, fees, add-ons<br/>
-                  <strong>Target Price:</strong> Your ideal sales price goal
+                  💡 {dealData.negotiation_mode === 'otd'
+                    ? 'Out-The-Door prices include all taxes, fees, and add-ons in the total.'
+                    : 'Sales prices are the vehicle cost before taxes and fees are added.'}
                 </p>
               </div>
 
