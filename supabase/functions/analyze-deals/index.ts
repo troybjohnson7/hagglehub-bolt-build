@@ -39,6 +39,12 @@ interface Deal {
   current_offer: number | null;
   otd_price: number | null;
   target_price: number | null;
+  estimated_sales_tax: number | null;
+  estimated_registration_fee: number | null;
+  estimated_doc_fee: number | null;
+  estimated_title_fee: number | null;
+  estimated_total_fees: number | null;
+  manual_fees_override: boolean | null;
   last_contact_date: string | null;
   quote_expires: string | null;
   priority: string;
@@ -203,13 +209,24 @@ Deno.serve(async (req: Request) => {
         purchase_type: deal.purchase_type,
         asking_price: deal.asking_price,
         current_offer: deal.current_offer,
-        otd_price: deal.otd_price,
         target_price: deal.target_price,
+        otd_price: deal.otd_price,
+        estimated_taxes_and_fees: {
+          sales_tax: deal.estimated_sales_tax || null,
+          registration_fee: deal.estimated_registration_fee || null,
+          doc_fee: deal.estimated_doc_fee || null,
+          title_fee: deal.estimated_title_fee || null,
+          total_fees: deal.estimated_total_fees || null,
+          manual_override: deal.manual_fees_override || false
+        },
         days_since_last_contact: daysSinceLastContact,
         days_until_quote_expires: daysUntilExpiry,
         is_stale: daysSinceLastContact !== null && daysSinceLastContact >= 7,
         is_expiring_soon: daysUntilExpiry !== null && daysUntilExpiry <= 3 && daysUntilExpiry >= 0,
-        has_expired: daysUntilExpiry !== null && daysUntilExpiry < 0
+        has_expired: daysUntilExpiry !== null && daysUntilExpiry < 0,
+        pricing_note: deal.otd_price && deal.asking_price ?
+          `OTD ($${deal.otd_price}) = Sales Price ($${deal.asking_price}) + Taxes/Fees (~$${deal.otd_price - deal.asking_price})` :
+          null
       };
     });
 
@@ -227,14 +244,24 @@ You have access to real market data from ${relevantMarketData.length} completed 
 ${urgentDeals.length > 0 ? `\n⚠️ URGENT: ${urgentDeals.length} deal(s) need immediate attention!\n` : ''}
 ${trigger_events && trigger_events.length > 0 ? `Triggered by: ${trigger_events.join(', ')}\n` : ''}
 
-**IMPORTANT PRICING DEFINITIONS:**
-- **asking_price**: The dealer's listed sales price (before taxes/fees)
-- **current_offer**: The buyer's current offer for the SALES PRICE (before taxes/fees)
-- **otd_price**: Out-The-Door price - total amount including taxes, fees, registration (if provided)
-- **target_price**: The buyer's goal SALES PRICE (before taxes/fees)
+**CRITICAL PRICING DEFINITIONS:**
 
-ALWAYS analyze based on sales prices (asking_price, current_offer, target_price) when comparing to market data.
-OTD price includes ~$3,000-$4,000 in taxes/fees on top of the sales price.
+HaggleHub tracks SALES PRICES (the price of the vehicle before taxes and fees):
+- **asking_price**: The dealer's listed SALES price (before taxes/fees)
+- **current_offer**: The buyer's current offer for the SALES PRICE (before taxes/fees)
+- **target_price**: The buyer's goal SALES PRICE (before taxes/fees)
+- **otd_price**: Out-The-Door price - the TOTAL amount including sales price + taxes + fees
+
+**HOW TO ANALYZE CORRECTLY:**
+1. When comparing prices to market data, ALWAYS use SALES PRICES (asking_price, current_offer, target_price)
+2. Market data "final_price" field represents the negotiated SALES PRICE, not OTD
+3. NEVER compare a sales price to an OTD price - they are different things
+4. Taxes and fees vary by location (typically $2,000-$5,000) but are NOT part of the negotiation
+5. Focus your advice on negotiating the sales price down from asking_price toward target_price
+6. The buyer negotiates the sales price; taxes/fees are calculated automatically
+
+**WHY THIS MATTERS:**
+If you compare a $50,000 sales price to a $53,000 OTD price, you'll give wrong advice. The $53,000 includes ~$3,000 in taxes/fees, so the actual sales price is $50,000 - they're equal, not different!
 
 **USER'S ACTIVE DEALS:**
 ${JSON.stringify(dealsForAnalysis, null, 2)}

@@ -3,12 +3,19 @@ import { Deal } from '@/api/entities';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { DollarSign, FileText, Calculator, ChevronDown, Save, HandCoins, Banknote, Landmark, Edit3, Check, X } from 'lucide-react';
+import { DollarSign, FileText, Calculator, ChevronDown, Save, HandCoins, Banknote, Landmark, Edit3, Check, X, MapPin, Info, Lock, Unlock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import {
+  calculateTaxesAndFees,
+  calculateOTDFromComponents,
+  saveDealFees,
+  isValidZipCode,
+  formatCurrency,
+  formatTaxRate
+} from '@/utils/taxCalculations';
 
-// Define status colors and labels, assuming common deal statuses
 const statusColors = {
   quote_requested: 'bg-yellow-100 text-yellow-800',
   negotiating: 'bg-blue-100 text-blue-800',
@@ -33,20 +40,13 @@ const purchaseTypeInfo = {
   lease: { icon: HandCoins, label: 'Lease' },
 };
 
-const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, onSave, isOTDMode, totalFees }) => {
+const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, onSave }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const handleEdit = () => {
-    // When editing, show the appropriate value based on mode
-    if (isOTDMode && (label.includes('Asking') || label.includes('Target'))) {
-      // For OTD mode, show the sales price + fees
-      setEditValue((value || 0) + totalFees);
-    } else {
-      // For sales price mode or current offer, show the raw value
-      setEditValue(value || '');
-    }
+    setEditValue(value || '');
     setIsEditing(true);
   };
 
@@ -55,14 +55,7 @@ const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, 
     try {
       const numericValue = parseFloat(editValue);
       if (!isNaN(numericValue) && numericValue > 0) {
-        let finalValue = numericValue;
-        
-        // If we're in OTD mode and this is asking/target price, subtract fees to get sales price
-        if (isOTDMode && (label.includes('Asking') || label.includes('Target'))) {
-          finalValue = numericValue - totalFees;
-        }
-        
-        await onSave(finalValue);
+        await onSave(numericValue);
         setIsEditing(false);
         toast.success(`${label} updated successfully!`);
       } else {
@@ -79,15 +72,6 @@ const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, 
   const handleCancel = () => {
     setIsEditing(false);
     setEditValue('');
-  };
-
-  // Display value based on mode
-  const displayValue = () => {
-    if (!value) return null;
-    if (isOTDMode && (label.includes('Asking') || label.includes('Target'))) {
-      return value + totalFees;
-    }
-    return value;
   };
 
   if (isEditing) {
@@ -139,7 +123,7 @@ const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, 
       </div>
       <div className="flex items-center gap-2">
         <span className={`text-base font-bold ${colorClass || 'text-slate-900'}`}>
-          {displayValue() ? `$${displayValue().toLocaleString()}` : 'N/A'}
+          {value ? formatCurrency(value) : 'N/A'}
         </span>
         <Button
           size="sm"
@@ -154,311 +138,311 @@ const EditablePriceItem = ({ label, value, colorClass, icon: Icon, placeholder, 
   );
 };
 
-const FeesBreakdown = ({ deal, onDealUpdate }) => {
-  const initialFees = {
-    doc_fee: '',
-    destination_fee: '',
-    tax: '',
-    title_fee: '',
-    registration_fee: '',
-    other_fees: '',
-    ...deal.fees_breakdown
-  };
-  
-  const [fees, setFees] = useState(initialFees);
+const TaxesAndFeesSection = ({ deal, onDealUpdate, onFeesChange }) => {
+  const [zipCode, setZipCode] = useState(deal.buyer_zip_code || '');
+  const [isEditingFees, setIsEditingFees] = useState(false);
+  const [manualFees, setManualFees] = useState({
+    salesTax: deal.estimated_sales_tax || 0,
+    registrationFee: deal.estimated_registration_fee || 0,
+    docFee: deal.estimated_doc_fee || 0,
+    titleFee: deal.estimated_title_fee || 0
+  });
+  const [isCalculating, setIsCalculating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [taxRateInfo, setTaxRateInfo] = useState(null);
 
-  // Update local state when deal.fees_breakdown changes from parent
   useEffect(() => {
-    setFees(prevFees => ({
-      ...prevFees,
-      ...deal.fees_breakdown
-    }));
-  }, [deal.fees_breakdown]);
+    setManualFees({
+      salesTax: deal.estimated_sales_tax || 0,
+      registrationFee: deal.estimated_registration_fee || 0,
+      docFee: deal.estimated_doc_fee || 0,
+      titleFee: deal.estimated_title_fee || 0
+    });
+  }, [deal]);
 
-  const handleFeeChange = (e) => {
-    const { name, value } = e.target;
-    setFees(prev => ({ ...prev, [name]: value }));
+  const handleCalculateFees = async () => {
+    if (!deal.asking_price) {
+      toast.error('Please enter an asking sales price first');
+      return;
+    }
+
+    if (!isValidZipCode(zipCode)) {
+      toast.error('Please enter a valid 5-digit zip code');
+      return;
+    }
+
+    setIsCalculating(true);
+    try {
+      const fees = await calculateTaxesAndFees(deal.asking_price, zipCode);
+
+      setManualFees({
+        salesTax: fees.salesTax,
+        registrationFee: fees.registrationFee,
+        docFee: fees.docFee,
+        titleFee: fees.titleFee
+      });
+
+      setTaxRateInfo(fees.zipCodeData);
+
+      await saveDealFees(deal.id, fees, false);
+
+      const updatedDeal = await Deal.getById(deal.id);
+      onDealUpdate(updatedDeal);
+      onFeesChange(fees.totalFees);
+
+      if (fees.calculationMethod === 'zip_code_lookup') {
+        toast.success(`Fees calculated using ${fees.zipCodeData.city}, ${fees.zipCodeData.state} tax rates`);
+      } else {
+        toast.success('Fees estimated (no specific tax data for this zip code)');
+      }
+    } catch (error) {
+      console.error('Failed to calculate fees:', error);
+      toast.error('Failed to calculate fees');
+    } finally {
+      setIsCalculating(false);
+    }
   };
 
-  const handleSaveFees = async () => {
+  const handleManualFeeChange = (field, value) => {
+    const numericValue = parseFloat(value) || 0;
+    setManualFees(prev => ({ ...prev, [field]: numericValue }));
+  };
+
+  const handleSaveManualFees = async () => {
+    if (!deal.asking_price) {
+      toast.error('Please enter an asking sales price first');
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const numericFees = Object.entries(fees).reduce((acc, [key, value]) => {
-        // Ensure values are numbers before parsing, default to 0 if empty or invalid
-        acc[key] = value !== '' && value !== null ? parseFloat(value) : 0;
-        return acc;
-      }, {});
-      
-      const updatedDeal = await Deal.update(deal.id, { fees_breakdown: numericFees });
+      const totalFees = manualFees.registrationFee + manualFees.docFee + manualFees.titleFee;
+      const estimatedOTD = deal.asking_price + manualFees.salesTax + totalFees;
+
+      const fees = {
+        salesTax: manualFees.salesTax,
+        registrationFee: manualFees.registrationFee,
+        docFee: manualFees.docFee,
+        titleFee: manualFees.titleFee,
+        totalFees: totalFees,
+        estimatedOTD: estimatedOTD,
+        taxRate: deal.asking_price > 0 ? (manualFees.salesTax / deal.asking_price) : 0,
+        zipCodeData: taxRateInfo,
+        calculationMethod: 'manual_override'
+      };
+
+      await saveDealFees(deal.id, fees, true);
+
+      const updatedDeal = await Deal.getById(deal.id);
       onDealUpdate(updatedDeal);
-      toast.success('Fees updated successfully!');
+      onFeesChange(totalFees);
+
+      setIsEditingFees(false);
+      toast.success('Manual fees saved successfully!');
     } catch (error) {
-      console.error('Failed to save fees:', error);
-      toast.error('Failed to save fees.');
+      console.error('Failed to save manual fees:', error);
+      toast.error('Failed to save manual fees');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const feeFields = [
-    { name: 'doc_fee', label: 'Doc Fee' },
-    { name: 'destination_fee', label: 'Destination' },
-    { name: 'tax', label: 'Taxes' },
-    { name: 'title_fee', label: 'Title Fee' },
-    { name: 'registration_fee', label: 'Registration' },
-    { name: 'other_fees', label: 'Other Fees' },
-  ];
+  const totalFees = manualFees.registrationFee + manualFees.docFee + manualFees.titleFee;
+  const estimatedOTD = (deal.asking_price || 0) + manualFees.salesTax + totalFees;
 
   return (
-    <div className="space-y-3 pt-4 border-t border-slate-200">
-      {feeFields.map(field => (
-        <div key={field.name} className="flex items-center gap-2">
-          <label htmlFor={field.name} className="text-sm text-slate-600 w-28 shrink-0">{field.label}</label>
-          <Input
-            id={field.name}
-            type="number"
-            name={field.name}
-            placeholder="0.00"
-            value={fees[field.name] !== undefined && fees[field.name] !== null ? fees[field.name] : ''} // Ensure controlled input with empty string for undefined/null
-            onChange={handleFeeChange}
-            className="text-sm"
-          />
-        </div>
-      ))}
-      <div className="pt-2">
-        <Button onClick={handleSaveFees} disabled={isSaving} className="w-full bg-lime-600 hover:bg-lime-700">
-          {isSaving ? <motion.div animate={{rotate:360}} transition={{duration:1, repeat:Infinity}} className="w-4 h-4 border-2 rounded-full border-t-transparent mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-          Update Fees
+    <div className="space-y-3 pt-3 border-t border-slate-200">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+          <Calculator className="w-4 h-4" />
+          Taxes & Fees
+          {deal.manual_fees_override && (
+            <Badge variant="outline" className="text-xs">
+              Manual
+            </Badge>
+          )}
+        </h4>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setIsEditingFees(!isEditingFees)}
+          className="h-7 text-xs"
+        >
+          {isEditingFees ? <Lock className="w-3 h-3 mr-1" /> : <Unlock className="w-3 h-3 mr-1" />}
+          {isEditingFees ? 'Lock' : 'Edit'}
         </Button>
+      </div>
+
+      {!isEditingFees && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 mb-2">
+            <MapPin className="w-4 h-4 text-slate-500" />
+            <Input
+              type="text"
+              value={zipCode}
+              onChange={(e) => setZipCode(e.target.value)}
+              placeholder="Enter zip code"
+              maxLength={5}
+              className="text-sm h-8 flex-1"
+            />
+            <Button
+              size="sm"
+              onClick={handleCalculateFees}
+              disabled={isCalculating || !deal.asking_price}
+              className="h-8 bg-brand-teal hover:bg-brand-teal/90"
+            >
+              {isCalculating ? 'Calculating...' : 'Calculate'}
+            </Button>
+          </div>
+
+          {taxRateInfo && (
+            <div className="text-xs text-slate-600 bg-blue-50 p-2 rounded flex items-start gap-2">
+              <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
+              <span>
+                Using rates for {taxRateInfo.city}, {taxRateInfo.state} ({formatTaxRate(taxRateInfo.sales_tax_rate)} sales tax)
+              </span>
+            </div>
+          )}
+
+          <div className="space-y-1.5 bg-slate-50 p-3 rounded-lg">
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600">Sales Tax</span>
+              <span className="font-medium">{formatCurrency(manualFees.salesTax)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600">Registration Fee</span>
+              <span className="font-medium">{formatCurrency(manualFees.registrationFee)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600">Doc Fee</span>
+              <span className="font-medium">{formatCurrency(manualFees.docFee)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600">Title Fee</span>
+              <span className="font-medium">{formatCurrency(manualFees.titleFee)}</span>
+            </div>
+            <div className="flex justify-between text-sm pt-2 border-t border-slate-200">
+              <span className="text-slate-800 font-semibold">Total Fees</span>
+              <span className="font-bold text-slate-900">{formatCurrency(totalFees)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEditingFees && (
+        <div className="space-y-3 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+          <p className="text-xs text-yellow-800 flex items-start gap-2">
+            <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
+            Edit fees manually if you have exact numbers from the dealer. This will override automatic calculations.
+          </p>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-slate-700 w-28 shrink-0">Sales Tax</label>
+              <Input
+                type="number"
+                value={manualFees.salesTax}
+                onChange={(e) => handleManualFeeChange('salesTax', e.target.value)}
+                className="text-sm h-8"
+                step="0.01"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-slate-700 w-28 shrink-0">Registration</label>
+              <Input
+                type="number"
+                value={manualFees.registrationFee}
+                onChange={(e) => handleManualFeeChange('registrationFee', e.target.value)}
+                className="text-sm h-8"
+                step="0.01"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-slate-700 w-28 shrink-0">Doc Fee</label>
+              <Input
+                type="number"
+                value={manualFees.docFee}
+                onChange={(e) => handleManualFeeChange('docFee', e.target.value)}
+                className="text-sm h-8"
+                step="0.01"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-slate-700 w-28 shrink-0">Title Fee</label>
+              <Input
+                type="number"
+                value={manualFees.titleFee}
+                onChange={(e) => handleManualFeeChange('titleFee', e.target.value)}
+                className="text-sm h-8"
+                step="0.01"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button
+              onClick={handleSaveManualFees}
+              disabled={isSaving}
+              className="flex-1 bg-brand-lime hover:bg-brand-lime/90 h-8 text-sm"
+            >
+              {isSaving ? (
+                <motion.div animate={{rotate:360}} transition={{duration:1, repeat:Infinity}} className="w-3 h-3 border border-t-transparent rounded-full mr-2" />
+              ) : (
+                <Save className="w-3 h-3 mr-2" />
+              )}
+              Save Manual Fees
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditingFees(false)}
+              className="h-8 text-sm"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-brand-teal/10 border border-brand-teal/30 rounded-lg p-3">
+        <div className="flex justify-between items-center">
+          <span className="text-sm font-semibold text-brand-teal">Estimated Out-The-Door</span>
+          <span className="text-xl font-bold text-brand-teal">{formatCurrency(estimatedOTD)}</span>
+        </div>
+        <p className="text-xs text-slate-600 mt-1">Sales Price + Taxes + Fees</p>
       </div>
     </div>
   );
 };
 
 export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
-  const [showFees, setShowFees] = useState(false);
-  const [isOTDMode, setIsOTDMode] = useState(false);
-  const [analyzedPricing, setAnalyzedPricing] = useState({
-    latestOffer: null,
-    priceHistory: [],
-    negotiationProgress: null
-  });
-  
+  const [showTaxesFees, setShowTaxesFees] = useState(false);
+  const [currentFees, setCurrentFees] = useState(deal.estimated_total_fees || 0);
+
   const handleUpdateDealField = async (field, value) => {
     try {
       const updatedDeal = await Deal.update(deal.id, { [field]: value });
       onDealUpdate(updatedDeal);
+
+      if (field === 'asking_price' && deal.buyer_zip_code && !deal.manual_fees_override) {
+        const fees = await calculateTaxesAndFees(value, deal.buyer_zip_code);
+        await saveDealFees(deal.id, fees, false);
+        const refreshedDeal = await Deal.getById(deal.id);
+        onDealUpdate(refreshedDeal);
+        setCurrentFees(fees.totalFees);
+        toast.success('Asking price and fees updated!');
+      }
     } catch (error) {
       console.error(`Failed to update ${field}:`, error);
       throw error;
     }
   };
 
-  // Analyze messages for pricing information
-  useEffect(() => {
-    if (messages.length === 0) return;
-    
-    console.log('Analyzing messages for pricing information...');
-    
-    // Extract all prices from messages
-    const priceHistory = [];
-    let latestOffer = deal.current_offer;
-    
-    messages.forEach(message => {
-      // Extract prices from message content using enhanced patterns
-      const extractedPrices = extractPricesFromText(message.content);
-      
-      if (extractedPrices.length > 0) {
-        extractedPrices.forEach(price => {
-          priceHistory.push({
-            price: price,
-            date: message.created_date,
-            direction: message.direction,
-            content: message.content
-          });
-        });
-        
-        // Update latest offer if this is more recent inbound message
-        if (message.direction === 'inbound') {
-          const highestPrice = Math.max(...extractedPrices);
-          if (!latestOffer || highestPrice !== latestOffer) {
-            latestOffer = highestPrice;
-          }
-        }
-      }
-      
-      // Also check the existing extracted_price field for backward compatibility
-      if (message.contains_offer && message.extracted_price) {
-        const existingPrice = message.extracted_price;
-        // Only add if we didn't already extract this price
-        const alreadyExtracted = extractedPrices.includes(existingPrice);
-        if (!alreadyExtracted) {
-          priceHistory.push({
-            price: existingPrice,
-            date: message.created_date,
-            direction: message.direction,
-            content: message.content
-          });
-          
-          if (message.direction === 'inbound' && 
-              (!latestOffer || existingPrice !== latestOffer)) {
-            latestOffer = existingPrice;
-          }
-        }
-      }
-    });
-    
-    // Sort price history by date
-    priceHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
-    
-    // Calculate negotiation progress
-    let negotiationProgress = null;
-    if (deal.asking_price && latestOffer) {
-      const totalGap = deal.asking_price - (deal.target_price || latestOffer);
-      const currentGap = deal.asking_price - latestOffer;
-      const progressPercentage = totalGap > 0 ? ((totalGap - currentGap) / totalGap) * 100 : 0;
-      
-      negotiationProgress = {
-        percentage: Math.max(0, Math.min(100, progressPercentage)),
-        savings: deal.asking_price - latestOffer,
-        remaining: latestOffer - (deal.target_price || latestOffer)
-      };
-    }
-    
-    setAnalyzedPricing({
-      latestOffer,
-      priceHistory,
-      negotiationProgress
-    });
-    
-    // Auto-update deal if we found a new offer
-    if (latestOffer && latestOffer !== deal.current_offer) {
-      console.log('Found new offer in messages:', latestOffer);
-      handleAutoUpdateOffer(latestOffer);
-    }
-    
-  }, [messages, deal.asking_price, deal.target_price, deal.current_offer]);
-
-  // Enhanced price extraction function
-  const extractPricesFromText = (text) => {
-    const prices = [];
-    
-    // Pattern 1: $52K, $52k (with dollar sign and K)
-    const dollarKPattern = /\$(\d{1,3}(?:\.\d)?)[kK]/g;
-    let match;
-    while ((match = dollarKPattern.exec(text)) !== null) {
-      const price = parseFloat(match[1]) * 1000;
-      if (price >= 1000 && price <= 500000) {
-        prices.push(price);
-        console.log('Extracted $K format price:', price, 'from:', match[0]);
-      }
-    }
-    
-    // Pattern 2: 52K, 52k (without dollar sign but with K)
-    const kPattern = /\b(\d{1,3}(?:\.\d)?)[kK]\b/g;
-    while ((match = kPattern.exec(text)) !== null) {
-      const price = parseFloat(match[1]) * 1000;
-      if (price >= 1000 && price <= 500000) {
-        prices.push(price);
-        console.log('Extracted K format price:', price, 'from:', match[0]);
-      }
-    }
-    
-    // Pattern 3: $52,000, $52000 (traditional dollar format)
-    const dollarPattern = /\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/g;
-    while ((match = dollarPattern.exec(text)) !== null) {
-      const price = parseFloat(match[1].replace(/,/g, ''));
-      if (price >= 1000 && price <= 500000) {
-        prices.push(price);
-        console.log('Extracted $ format price:', price, 'from:', match[0]);
-      }
-    }
-    
-    // Pattern 4: 52000, 52,000 (numbers without $ in pricing context)
-    // Only extract if the number appears in a pricing context
-    const contextPattern = /(?:price|offer|cost|pay|payment|deal|quote|asking|selling|worth|value|total|otd|out.the.door)\s*[:\-]?\s*(\d{2,3}(?:,\d{3})*)\b/gi;
-    while ((match = contextPattern.exec(text)) !== null) {
-      const price = parseFloat(match[1].replace(/,/g, ''));
-      if (price >= 1000 && price <= 500000) {
-        prices.push(price);
-        console.log('Extracted contextual price:', price, 'from:', match[0]);
-      }
-    }
-    
-    // Pattern 5: Standalone large numbers that look like car prices (5-6 digits)
-    const standalonePattern = /\b(\d{2,3}(?:,\d{3})+)\b/g;
-    while ((match = standalonePattern.exec(text)) !== null) {
-      const price = parseFloat(match[1].replace(/,/g, ''));
-      if (price >= 10000 && price <= 500000) {
-        prices.push(price);
-        console.log('Extracted standalone price:', price, 'from:', match[0]);
-      }
-    }
-    
-    // Remove duplicates and return
-    return [...new Set(prices)];
-  };
-  
-  const handleAutoUpdateOffer = async (newOffer) => {
-    try {
-      const updatedDeal = await Deal.update(deal.id, { 
-        current_offer: newOffer,
-        status: 'negotiating'
-      });
-      onDealUpdate(updatedDeal);
-      console.log('Auto-updated deal with new offer:', newOffer);
-    } catch (error) {
-      console.error('Failed to auto-update deal:', error);
-    }
-  };
-  
-  const totalFees = Object.values(deal.fees_breakdown || {}).reduce((sum, fee) => sum + (fee || 0), 0);
-  const currentPrice = analyzedPricing.latestOffer || deal.current_offer || deal.asking_price || 0;
-  const otdPrice = currentPrice + totalFees;
-
   const PurchaseIcon = purchaseTypeInfo[deal.purchase_type]?.icon || Banknote;
   const purchaseLabel = purchaseTypeInfo[deal.purchase_type]?.label || 'Purchase Type N/A';
-  
-  // Calculate negotiation progress based on current mode
-  const negotiationProgress = (() => {
-    if (!deal.asking_price || !currentPrice) {
-      return { percentage: 0, savings: 0, remaining: 0 };
-    }
 
-    if (isOTDMode) {
-      // OTD Mode: Add fees to all prices
-      const askingOTD = deal.asking_price + totalFees;
-      const currentOfferOTD = currentPrice + totalFees;
-      const targetOTD = deal.target_price ? (deal.target_price + totalFees) : currentOfferOTD;
-      
-      const totalGap = askingOTD - targetOTD;
-      const currentGap = askingOTD - currentOfferOTD;
-      const progressPercentage = totalGap > 0 ? ((totalGap - currentGap) / totalGap) * 100 : 0;
-      
-      return {
-        percentage: Math.max(0, Math.min(100, progressPercentage)),
-        savings: askingOTD - currentOfferOTD,
-        remaining: Math.max(0, currentOfferOTD - targetOTD)
-      };
-    } else {
-      // Sales Price Mode: Use raw sales prices
-      const askingPrice = deal.asking_price;
-      const currentOffer = currentPrice;
-      const targetPrice = deal.target_price || currentOffer;
-      
-      const totalGap = askingPrice - targetPrice;
-      const currentGap = askingPrice - currentOffer;
-      const progressPercentage = totalGap > 0 ? ((totalGap - currentGap) / totalGap) * 100 : 0;
-      
-      return {
-        percentage: Math.max(0, Math.min(100, progressPercentage)),
-        savings: askingPrice - currentOffer,
-        remaining: Math.max(0, currentOffer - targetPrice)
-      };
-    }
-
-  })();
+  const savings = deal.asking_price && deal.current_offer
+    ? deal.asking_price - deal.current_offer
+    : 0;
 
   return (
     <Card className="shadow-lg border-slate-200">
@@ -478,134 +462,88 @@ export default function PricingCard({ deal, onDealUpdate, messages = [] }) {
           <PurchaseIcon className="w-4 h-4" />
           <span>{purchaseLabel}</span>
         </div>
-        
-        {/* OTD Toggle Checkbox */}
-        <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
-          <input
-            type="checkbox"
-            id="otd-mode"
-            checked={isOTDMode}
-            onChange={(e) => setIsOTDMode(e.target.checked)}
-            className="rounded border-slate-300"
-          />
-          <label htmlFor="otd-mode" className="text-sm text-slate-600 font-medium">
-            Show Out-the-Door prices (includes taxes & fees)
-          </label>
-        </div>
       </CardHeader>
       <CardContent className="space-y-3">
+        <div className="space-y-2">
+          <p className="text-xs text-slate-600 bg-blue-50 p-2 rounded flex items-start gap-2">
+            <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
+            All prices below are SALES PRICES (before taxes and fees). The system will automatically calculate your Out-The-Door total.
+          </p>
+        </div>
+
         <div className="group">
-          <EditablePriceItem 
-            label={isOTDMode ? "Asking Out-the-Door" : "Asking Sales Price"} 
-            value={deal.asking_price} 
+          <EditablePriceItem
+            label="Dealer's Asking Sales Price"
+            value={deal.asking_price}
             icon={FileText}
             placeholder="Enter asking price"
             onSave={(value) => handleUpdateDealField('asking_price', value)}
-            isOTDMode={isOTDMode}
-            totalFees={totalFees}
           />
         </div>
+
         <div className="group">
-          <EditablePriceItem 
-            label="Current Offer" 
-            value={analyzedPricing.latestOffer || deal.current_offer} 
-            colorClass="text-blue-600" 
+          <EditablePriceItem
+            label="Your Current Offer"
+            value={deal.current_offer}
+            colorClass="text-blue-600"
             icon={DollarSign}
             placeholder="Enter current offer"
             onSave={(value) => handleUpdateDealField('current_offer', value)}
-            isOTDMode={isOTDMode}
-            totalFees={totalFees}
           />
         </div>
+
         <div className="group">
-          <EditablePriceItem 
-            label={isOTDMode ? "Your Target Out-the-Door" : "Your Target Sales Price"} 
-            value={deal.target_price} 
-            colorClass="text-green-600" 
+          <EditablePriceItem
+            label="Your Target Sales Price"
+            value={deal.target_price}
+            colorClass="text-green-600"
             icon={DollarSign}
             placeholder="Enter target price"
             onSave={(value) => handleUpdateDealField('target_price', value)}
-            isOTDMode={isOTDMode}
-            totalFees={totalFees}
           />
         </div>
-        
-        {/* Negotiation Progress Bar */}
-        {(deal.asking_price && currentPrice) && (
-          <div className="bg-slate-50 border rounded-lg p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-800">Negotiation Progress</span>
+
+        {savings > 0 && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-green-800">Your Savings</span>
+              <span className="text-xl font-bold text-green-700">{formatCurrency(savings)}</span>
             </div>
-            
-            <div>
-              <div className="text-2xl font-bold text-brand-teal mb-1">
-                ${(() => {
-                  const askingPrice = isOTDMode ? (deal.asking_price + totalFees) : deal.asking_price;
-                  const currentOffer = currentPrice; // Current offer is ALWAYS the sales price, never changes with OTD toggle
-                  const savings = askingPrice - currentOffer;
-                  return savings > 0 ? savings.toLocaleString() : '0';
-                })()}
-              </div>
-              <div className="text-sm text-slate-600">
-                Total Savings
-              </div>
-              <div className="text-xs text-slate-500 mt-1">
-                {isOTDMode ? 'Asking OTD vs Current Sales Offer' : 'Based on Sales prices'}
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Price History */}
-        {analyzedPricing.priceHistory.length > 0 && (
-          <div className="bg-slate-50 border rounded-lg p-3">
-            <h4 className="text-sm font-medium text-slate-800 mb-2">Recent Price Activity</h4>
-            <div className="space-y-1 max-h-20 overflow-y-auto">
-              {analyzedPricing.priceHistory.slice(-3).map((entry, index) => (
-                <div key={index} className="flex items-center justify-between text-xs">
-                  <span className={`font-medium ${entry.direction === 'inbound' ? 'text-green-600' : 'text-blue-600'}`}>
-                    {entry.direction === 'inbound' ? 'Dealer' : 'You'}: ${entry.price.toLocaleString()}
-                  </span>
-                  <span className="text-slate-500">
-                    {new Date(entry.date).toLocaleDateString()}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <p className="text-xs text-green-700 mt-1">Below asking price</p>
           </div>
         )}
 
-        <div className="border-t border-slate-200 pt-3 space-y-3">
-          <div 
-            className="flex items-center justify-between cursor-pointer p-2 rounded-lg hover:bg-slate-50"
-            onClick={() => setShowFees(!showFees)}
+        <div className="border-t border-slate-200 pt-3">
+          <div
+            className="flex items-center justify-between cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors"
+            onClick={() => setShowTaxesFees(!showTaxesFees)}
           >
             <div className="flex items-center gap-3">
               <Calculator className="w-5 h-5 text-slate-600" />
-              <span className="text-sm font-medium text-slate-800">Total Fees</span>
+              <span className="text-sm font-medium text-slate-800">Taxes & Fees Breakdown</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-base font-bold text-slate-900">${totalFees.toLocaleString()}</span>
-              <motion.div animate={{ rotate: showFees ? 180 : 0 }}>
-                <ChevronDown className="w-4 h-4 text-slate-500" />
-              </motion.div>
-            </div>
+            <motion.div animate={{ rotate: showTaxesFees ? 180 : 0 }}>
+              <ChevronDown className="w-4 h-4 text-slate-500" />
+            </motion.div>
           </div>
-          
+
           <AnimatePresence>
-            {showFees && (
+            {showTaxesFees && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
-                className="overflow-hidden px-2"
+                className="overflow-hidden"
               >
-                <FeesBreakdown deal={deal} onDealUpdate={onDealUpdate} />
+                <TaxesAndFeesSection
+                  deal={deal}
+                  onDealUpdate={onDealUpdate}
+                  onFeesChange={setCurrentFees}
+                />
               </motion.div>
             )}
           </AnimatePresence>
-
         </div>
       </CardContent>
     </Card>
