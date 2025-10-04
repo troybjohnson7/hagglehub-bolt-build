@@ -76,6 +76,11 @@ export default function CompleteDealModal({
       return;
     }
 
+    if (outcome === 'deal_won' && (!finalPrice || parseFloat(finalPrice) <= 0)) {
+      toast.error('Please enter a valid final price');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // Calculate negotiation duration
@@ -200,7 +205,6 @@ export default function CompleteDealModal({
                 onChange={handlePriceChange}
                 onFocus={handlePriceFocus}
                 onBlur={handlePriceBlur}
-                required
               />
               {potentialSavings > 0 && (
                 <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
