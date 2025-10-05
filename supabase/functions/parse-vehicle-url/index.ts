@@ -146,18 +146,30 @@ function parseVehicleListing(url: string, html: string): VehicleParseResponse {
 }
 
 function parseToyotaOfCedarPark(url: string, html: string, result: VehicleParseResponse): VehicleParseResponse {
-  // Extract from URL path - improved pattern
-  // Example: /inventory/used-2024-toyota-camry-xse-fwd-4d-sedan-4t1c11ak9ru607840/
-  const pathMatch = url.match(/\/inventory\/(?:used|new)-(\d{4})-([^-]+)-([^-]+)-([^-]+)-[^-]+-[^-]+-[^-]+-([A-Z0-9]{17})/i);
-  
-  if (pathMatch) {
-    const [, year, make, model, trim, vin] = pathMatch;
+  // Extract from URL path with flexible pattern
+  // Matches: /inventory/new-2026-toyota-prius-xle-front-wheel-drive-xle-jtdacaauxt3065413/
+  // Or: /inventory/used-2024-toyota-camry-xse-fwd-4d-sedan-4t1c11ak9ru607840/
+
+  // First, try to extract the VIN (always 17 alphanumeric characters at the end)
+  const vinMatch = url.match(/([A-HJ-NPR-Z0-9]{17})\/?$/i);
+  if (vinMatch) {
+    result.vehicle.vin = vinMatch[1].toUpperCase();
+  }
+
+  // Extract year, make, model from the beginning of the path
+  const basicMatch = url.match(/\/inventory\/(used|new)-(\d{4})-([^-]+)-([^-]+)/i);
+  if (basicMatch) {
+    const [, condition, year, make, model] = basicMatch;
     result.vehicle.year = parseInt(year);
     result.vehicle.make = make.charAt(0).toUpperCase() + make.slice(1);
     result.vehicle.model = model.charAt(0).toUpperCase() + model.slice(1);
-    result.vehicle.trim = trim.toUpperCase();
-    result.vehicle.vin = vin.toUpperCase();
-    result.vehicle.condition = 'Used';
+    result.vehicle.condition = condition.charAt(0).toUpperCase() + condition.slice(1);
+
+    // Try to extract trim (first segment after model)
+    const trimMatch = url.match(/\/inventory\/(?:used|new)-\d{4}-[^-]+-[^-]+-([^-]+)/i);
+    if (trimMatch) {
+      result.vehicle.trim = trimMatch[1].toUpperCase();
+    }
   }
 
   // Try to extract JSON-LD data first
@@ -340,16 +352,26 @@ function parseFromUrlOnly(url: string): VehicleParseResponse {
   
   // Toyota of Cedar Park URL parsing
   if (domain.includes('toyotaofcedarpark.com')) {
-    const pathMatch = url.match(/\/inventory\/(?:used|new)-(\d{4})-([^-]+)-([^-]+)-([^-]+)-[^-]+-[^-]+-[^-]+-([A-Z0-9]{17})/i);
+    // Extract VIN (17 characters at end of URL)
+    const vinMatch = url.match(/([A-HJ-NPR-Z0-9]{17})\/?$/i);
+    if (vinMatch) {
+      result.vehicle.vin = vinMatch[1].toUpperCase();
+    }
 
-    if (pathMatch) {
-      const [, year, make, model, trim, vin] = pathMatch;
+    // Extract year, make, model, condition
+    const basicMatch = url.match(/\/inventory\/(used|new)-(\d{4})-([^-]+)-([^-]+)/i);
+    if (basicMatch) {
+      const [, condition, year, make, model] = basicMatch;
       result.vehicle.year = parseInt(year);
       result.vehicle.make = make.charAt(0).toUpperCase() + make.slice(1);
       result.vehicle.model = model.charAt(0).toUpperCase() + model.slice(1);
-      result.vehicle.trim = trim.toUpperCase();
-      result.vehicle.vin = vin.toUpperCase();
-      result.vehicle.condition = 'Used';
+      result.vehicle.condition = condition.charAt(0).toUpperCase() + condition.slice(1);
+
+      // Extract trim (first segment after model)
+      const trimMatch = url.match(/\/inventory\/(?:used|new)-\d{4}-[^-]+-[^-]+-([^-]+)/i);
+      if (trimMatch) {
+        result.vehicle.trim = trimMatch[1].toUpperCase();
+      }
     }
 
     result.dealer = {
