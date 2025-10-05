@@ -146,8 +146,9 @@ function parseVehicleListing(url: string, html: string): VehicleParseResponse {
 }
 
 function parseToyotaOfCedarPark(url: string, html: string, result: VehicleParseResponse): VehicleParseResponse {
-  // Extract from URL path
-  const pathMatch = url.match(/\/inventory\/used-(\d{4})-([^-]+)-([^-]+)(?:-[^-]*)*-([^-]+)-[^-]+-[^-]+-([^\/]+)\//);
+  // Extract from URL path - improved pattern
+  // Example: /inventory/used-2024-toyota-camry-xse-fwd-4d-sedan-4t1c11ak9ru607840/
+  const pathMatch = url.match(/\/inventory\/(?:used|new)-(\d{4})-([^-]+)-([^-]+)-([^-]+)-[^-]+-[^-]+-[^-]+-([A-Z0-9]{17})/i);
   
   if (pathMatch) {
     const [, year, make, model, trim, vin] = pathMatch;
@@ -184,46 +185,51 @@ function parseToyotaOfCedarPark(url: string, html: string, result: VehicleParseR
     }
   }
 
-  // Extract price from HTML
+  // Extract price from HTML with improved logic
   const pricePatterns = [
-    /\$(\d{1,3}(?:,\d{3})*)/g,
-    /"price"[^}]*"value"[^}]*(\d+)/g,
+    /(?:Internet Price|Our Price|Sale Price|Special Price)[^$]*\$([\d,]+)/gi,
+    /class="[^"]*(?:final|internet|sale)[^"]*price[^"]*"[^>]*>[^$]*\$([\d,]+)/gi,
+    /id="[^"]*(?:final|internet|sale)[^"]*price[^"]*"[^>]*>[^$]*\$([\d,]+)/gi,
     /data-price[^>]*>[\s]*\$?([\d,]+)/g,
-    /class="[^"]*price[^"]*"[^>]*>[\s]*\$?([\d,]+)/g,
-    /(?:Price|MSRP|Cost)[^$]*\$(\d{1,3}(?:,\d{3})*)/gi,
-    /(?:Our Price|Sale Price|Special Price)[^$]*\$(\d{1,3}(?:,\d{3})*)/gi
+    /"price"[^}]*"value"[^}]*(\d+)/g
   ];
 
+  const foundPrices = [];
   for (const pattern of pricePatterns) {
-    const matches = html.match(pattern);
-    if (matches) {
-      for (const match of matches) {
-        const priceMatch = match.match(/(\d{1,3}(?:,\d{3})*)/);
-        if (priceMatch) {
-          const price = parseInt(priceMatch[1].replace(/,/g, ''));
-        if (price > 5000 && price < 200000) { // Reasonable car price range
-          result.pricing.asking_price = price;
-          break;
-        }
-        }
+    const matches = html.matchAll(pattern);
+    for (const match of matches) {
+      const priceStr = match[1].replace(/,/g, '');
+      const price = parseInt(priceStr);
+      if (price > 10000 && price < 200000) {
+        foundPrices.push(price);
       }
-      if (result.pricing.asking_price) break;
     }
   }
 
-  // Extract mileage
+  // If we found prices, use the highest one (likely the actual asking price)
+  if (foundPrices.length > 0) {
+    result.pricing.asking_price = Math.max(...foundPrices);
+  }
+
+  // Extract mileage with better pattern matching
   const mileagePatterns = [
     /(\d{1,3}(?:,\d{3})*)\s*(?:miles?|mi)/gi,
     /Mileage[^:]*:\s*(\d{1,3}(?:,\d{3})*)/gi,
-    /"mileage"[^}]*(\d+)/gi
+    /"mileage"[^}]*(\d+)/gi,
+    /odometer[^>]*>(\d{1,3}(?:,\d{3})*)/gi
   ];
-  
+
   for (const pattern of mileagePatterns) {
-    const mileageMatch = html.match(pattern);
-    if (mileageMatch) {
-    result.vehicle.mileage = parseInt(mileageMatch[1].replace(/,/g, ''));
-      break;
+    const matches = html.matchAll(pattern);
+    for (const match of matches) {
+      const mileageStr = match[1].replace(/,/g, '');
+      const mileage = parseInt(mileageStr);
+      if (mileage > 0 && mileage < 500000) {
+        result.vehicle.mileage = mileage;
+        break;
+      }
     }
+    if (result.vehicle.mileage) break;
   }
 
   // Extract stock number
@@ -334,8 +340,8 @@ function parseFromUrlOnly(url: string): VehicleParseResponse {
   
   // Toyota of Cedar Park URL parsing
   if (domain.includes('toyotaofcedarpark.com')) {
-    const pathMatch = url.match(/\/inventory\/used-(\d{4})-([^-]+)-([^-]+)(?:-[^-]*)*-([^-]+)-[^-]+-[^-]+-([^\/]+)\//);
-    
+    const pathMatch = url.match(/\/inventory\/(?:used|new)-(\d{4})-([^-]+)-([^-]+)-([^-]+)-[^-]+-[^-]+-[^-]+-([A-Z0-9]{17})/i);
+
     if (pathMatch) {
       const [, year, make, model, trim, vin] = pathMatch;
       result.vehicle.year = parseInt(year);

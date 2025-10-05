@@ -99,7 +99,12 @@ export default function AddVehiclePage() {
       }
 
       const result = await response.json();
-      console.log('Parsed vehicle data:', result);
+      console.log('Parsed vehicle data from API:', JSON.stringify(result, null, 2));
+
+      if (!result.vehicle || (!result.vehicle.year && !result.vehicle.make)) {
+        toast.error("Unable to extract vehicle details from URL. Please fill in manually.");
+      }
+
       setParsedData(result);
       setStep('parsed');
     } catch (error) {
