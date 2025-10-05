@@ -6,7 +6,6 @@ import { Vehicle } from '@/api/entities';
 import { Dealer } from '@/api/entities';
 import { Deal } from '@/api/entities';
 import { User } from '@/api/entities';
-import { InvokeLLM } from '@/api/integrations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -79,30 +78,28 @@ export default function AddVehiclePage() {
 
   const handleUrlParse = async () => {
     if (!urlInput.trim()) return;
-    
+
     setIsLoading(true);
     try {
-      const result = await InvokeLLM({
-        prompt: `Extract structured vehicle, dealer, and pricing information from this car listing URL: ${urlInput}`,
-        add_context_from_internet: true,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            vehicle: {
-              type: "object",
-              properties: { year: { type: "number" }, make: { type: "string" }, model: { type: "string" }, trim: { type: "string" }, vin: { type: "string" }, stock_number: { type: "string" }, mileage: { type: "number" }, condition: { type: "string" }, exterior_color: { type: "string" }, interior_color: { type: "string" }, image_url: { type: "string" } }
-            },
-            dealer: {
-              type: "object", 
-              properties: { name: { type: "string" }, contact_email: { type: "string" }, phone: { type: "string" }, address: { type: "string" }, website: { type: "string" } }
-            },
-            pricing: {
-              type: "object",
-              properties: { asking_price: { type: "number" } }
-            }
-          }
-        }
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/parse-vehicle-url`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`
+        },
+        body: JSON.stringify({ url: urlInput })
       });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to parse URL');
+      }
+
+      const result = await response.json();
+      console.log('Parsed vehicle data:', result);
       setParsedData(result);
       setStep('parsed');
     } catch (error) {
