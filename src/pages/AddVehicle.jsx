@@ -9,9 +9,8 @@ import { User } from '@/api/entities';
 import { InvokeLLM } from '@/api/integrations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Loader2, Link2, ArrowLeft, ShieldAlert, ClipboardList, Send } from 'lucide-react';
+import { Loader2, Link2, ArrowLeft, ShieldAlert } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
   AlertDialog,
@@ -30,7 +29,7 @@ import { useSearchParams } from 'react-router-dom';
 // Main component orchestrating the flow
 export default function AddVehiclePage() {
   const [searchParams] = useSearchParams();
-  const [step, setStep] = useState('initial'); // 'initial', 'parsed', 'trackingForm', 'leadForm', 'submittingLead', 'leadResult'
+  const [step, setStep] = useState('initial'); // 'initial', 'parsed', 'trackingForm'
   const [urlInput, setUrlInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [parsedData, setParsedData] = useState(null);
@@ -163,8 +162,6 @@ export default function AddVehiclePage() {
         {step === 'initial' && <InitialStep setStep={setStep} urlInput={urlInput} setUrlInput={setUrlInput} handleUrlParse={handleUrlParse} isLoading={isLoading} />}
         {step === 'parsed' && <ParsedStep parsedData={parsedData} setStep={setStep} checkDealLimit={checkDealLimit} />}
         {step === 'trackingForm' && <DealForm parsedData={parsedData} setStep={setStep} currentUser={currentUser} />}
-        {step === 'leadForm' && <LeadForm parsedData={parsedData} setStep={setStep} url={urlInput} />}
-        {step === 'leadResult' && <LeadResultStep resetState={resetState} />}
       </div>
     </div>
   );
@@ -203,9 +200,9 @@ function InitialStep({ setStep, urlInput, setUrlInput, handleUrlParse, isLoading
   );
 }
 
-// Step 2: Show parsed data and ask user what to do next
+// Step 2: Show parsed data and proceed to deal form
 function ParsedStep({ parsedData, setStep, checkDealLimit }) {
-  const handleTrackDeal = async () => {
+  const handleContinue = async () => {
     const user = await User.me();
     const canAdd = await checkDealLimit(user);
     if (canAdd) setStep('trackingForm');
@@ -224,35 +221,38 @@ function ParsedStep({ parsedData, setStep, checkDealLimit }) {
           <p className="text-sm">From: {parsedData.dealer?.name}</p>
         </CardContent>
       </Card>
-      <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-slate-800">What's next?</h2>
-        <p className="text-slate-600">Choose how you want to proceed with this vehicle.</p>
-      </div>
-      <div className="space-y-4">
-        <Card className="cursor-pointer hover:shadow-lg transition-all" onClick={handleTrackDeal}>
-          <CardContent className="p-6 flex items-center gap-4">
-            <ClipboardList className="w-8 h-8 text-brand-teal" />
+      <Card className="shadow-lg">
+        <CardContent className="p-6">
+          <div className="space-y-4">
             <div>
-              <h3 className="font-bold text-slate-900">Track This Deal</h3>
-              <p className="text-sm text-slate-600">Manually track negotiations, offers, and messages in your dashboard.</p>
+              <h3 className="font-semibold text-slate-900 mb-2">Vehicle Details</h3>
+              <div className="text-sm text-slate-600 space-y-1">
+                {parsedData.vehicle?.vin && <p><span className="font-medium">VIN:</span> {parsedData.vehicle.vin}</p>}
+                {parsedData.vehicle?.mileage && <p><span className="font-medium">Mileage:</span> {parsedData.vehicle.mileage.toLocaleString()} miles</p>}
+                {parsedData.pricing?.asking_price && <p><span className="font-medium">Asking Price:</span> ${parsedData.pricing.asking_price.toLocaleString()}</p>}
+              </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:shadow-lg transition-all" onClick={() => setStep('leadForm')}>
-          <CardContent className="p-6 flex items-center gap-4">
-            <Send className="w-8 h-8 text-blue-600" />
-            <div>
-              <h3 className="font-bold text-slate-900">Submit Inquiry</h3>
-              <p className="text-sm text-slate-600">Let HaggleHub's AI contact the dealer on your behalf to start the conversation.</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            {parsedData.dealer?.name && (
+              <div>
+                <h3 className="font-semibold text-slate-900 mb-2">Dealer Information</h3>
+                <div className="text-sm text-slate-600 space-y-1">
+                  <p>{parsedData.dealer.name}</p>
+                  {parsedData.dealer.contact_email && <p>{parsedData.dealer.contact_email}</p>}
+                  {parsedData.dealer.phone && <p>{parsedData.dealer.phone}</p>}
+                </div>
+              </div>
+            )}
+            <Button onClick={handleContinue} className="w-full bg-brand-teal hover:bg-brand-teal-dark py-3">
+              Continue to Deal Setup
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }
 
-// Step 3a: The form for tracking a deal
+// Step 3: The form for tracking a deal
 function DealForm({ parsedData, setStep, currentUser }) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -409,99 +409,3 @@ function DealForm({ parsedData, setStep, currentUser }) {
   );
 }
 
-// Step 3b: The form for submitting a lead
-function LeadForm({ parsedData, setStep, url }) {
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [leadData, setLeadData] = useState({ firstName: '', lastName: '', email: '', phone: '', message: '' });
-  const [leadResult, setLeadResult] = useState(null);
-
-  useEffect(() => {
-    async function fetchUser() {
-      const currentUser = await User.me();
-      setUser(currentUser);
-      const nameParts = currentUser.full_name?.split(' ') || [];
-      const vehicleInfo = `${parsedData.vehicle?.year || ''} ${parsedData.vehicle?.make || ''} ${parsedData.vehicle?.model || ''}`.trim();
-      
-      setLeadData({
-        firstName: nameParts[0] || '',
-        lastName: nameParts.slice(1).join(' ') || '',
-        email: currentUser.email || '',
-        phone: '',
-        message: `Hi, I'm interested in the ${vehicleInfo}. Could you please provide your best price and availability? Thank you.`
-      });
-    }
-    fetchUser();
-  }, [parsedData]);
-  
-  const handleSubmitLead = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    try {
-      const result = await InvokeLLM({
-        prompt: `Submit a lead inquiry for the vehicle at ${url} using this info: Name: ${leadData.firstName} ${leadData.lastName}, Email: ${leadData.email}, Phone: ${leadData.phone}, Message: ${leadData.message}. Find the contact form or email on the page and submit it.`,
-        add_context_from_internet: true,
-        response_json_schema: {
-          type: "object", properties: { status: { type: "string", enum: ["success", "failed"] }, details: { type: "string" }, next_steps: { type: "string" } }
-        }
-      });
-      setLeadResult(result);
-    } catch(err) {
-      console.error(err);
-      toast.error("An error occurred while submitting the lead.");
-      setLeadResult({ status: 'failed', details: 'A technical error occurred.' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (leadResult) {
-    return <LeadResultStep result={leadResult} setStep={setStep} />;
-  }
-
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" onClick={() => setStep('parsed')}><ArrowLeft className="w-5 h-5" /></Button>
-        <h1 className="text-xl font-bold text-slate-900">Submit Inquiry</h1>
-      </div>
-      <Card>
-        <CardContent className="p-6">
-          <form onSubmit={handleSubmitLead} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <Input value={leadData.firstName} onChange={(e) => setLeadData(p => ({...p, firstName: e.target.value}))} placeholder="First Name *" required />
-              <Input value={leadData.lastName} onChange={(e) => setLeadData(p => ({...p, lastName: e.target.value}))} placeholder="Last Name" />
-            </div>
-            <Input value={leadData.email} type="email" placeholder="Email *" required readOnly />
-            <Textarea value={leadData.message} onChange={(e) => setLeadData(p => ({...p, message: e.target.value}))} className="min-h-[100px]" />
-            <Button type="submit" disabled={isLoading} className="w-full bg-blue-600 hover:bg-blue-700 py-3">
-              {isLoading ? <Loader2 className="animate-spin" /> : 'Submit Inquiry to Dealer'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-}
-
-// Step 4: Show the result of the lead submission
-function LeadResultStep({ result, setStep }) {
-  return (
-    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
-       <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" onClick={() => setStep('initial')}><ArrowLeft className="w-5 h-5" /></Button>
-        <h1 className="text-xl font-bold text-slate-900">Inquiry Result</h1>
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-center">Submission {result.status}</CardTitle>
-        </CardHeader>
-        <CardContent className="text-center space-y-4">
-          <p>{result.details}</p>
-          {result.next_steps && <p className="font-semibold">Next Steps: {result.next_steps}</p>}
-          <Button onClick={() => setStep('initial')} className="w-full">Submit Another</Button>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-}
