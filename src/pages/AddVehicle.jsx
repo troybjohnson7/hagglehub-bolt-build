@@ -10,7 +10,7 @@ import { InvokeLLM } from '@/api/integrations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Loader2, Link2, ArrowLeft, ShieldAlert } from 'lucide-react';
+import { Loader2, Link2, ArrowLeft, ShieldAlert, Upload, X, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
   AlertDialog,
@@ -33,6 +33,7 @@ export default function AddVehiclePage() {
   const [urlInput, setUrlInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [parsedData, setParsedData] = useState(null);
+  const [editedData, setEditedData] = useState(null);
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [limitMessage, setLimitMessage] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
@@ -160,8 +161,8 @@ export default function AddVehiclePage() {
 
       <div className="max-w-md mx-auto">
         {step === 'initial' && <InitialStep setStep={setStep} urlInput={urlInput} setUrlInput={setUrlInput} handleUrlParse={handleUrlParse} isLoading={isLoading} />}
-        {step === 'parsed' && <ParsedStep parsedData={parsedData} setStep={setStep} checkDealLimit={checkDealLimit} />}
-        {step === 'trackingForm' && <DealForm parsedData={parsedData} setStep={setStep} currentUser={currentUser} />}
+        {step === 'parsed' && <ParsedStep parsedData={parsedData} setEditedData={setEditedData} setStep={setStep} checkDealLimit={checkDealLimit} />}
+        {step === 'trackingForm' && <DealForm parsedData={editedData || parsedData} setStep={setStep} currentUser={currentUser} />}
       </div>
     </div>
   );
@@ -201,47 +202,212 @@ function InitialStep({ setStep, urlInput, setUrlInput, handleUrlParse, isLoading
 }
 
 // Step 2: Show parsed data and proceed to deal form
-function ParsedStep({ parsedData, setStep, checkDealLimit }) {
+function ParsedStep({ parsedData, setEditedData, setStep, checkDealLimit }) {
+  const [vehicleData, setVehicleData] = useState({
+    year: parsedData?.vehicle?.year || '',
+    make: parsedData?.vehicle?.make || '',
+    model: parsedData?.vehicle?.model || '',
+    vin: parsedData?.vehicle?.vin || '',
+    mileage: parsedData?.vehicle?.mileage || '',
+    trim: parsedData?.vehicle?.trim || ''
+  });
+
+  const [dealerData, setDealerData] = useState({
+    name: parsedData?.dealer?.name || '',
+    contact_email: parsedData?.dealer?.contact_email || '',
+    phone: parsedData?.dealer?.phone || '',
+    address: parsedData?.dealer?.address || ''
+  });
+
+  const [pricingData, setPricingData] = useState({
+    asking_price: parsedData?.pricing?.asking_price || ''
+  });
+
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const fileInputRef = React.useRef(null);
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    setUploadedFiles(prev => [...prev, ...files]);
+  };
+
+  const removeFile = (index) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleContinue = async () => {
     const user = await User.me();
     const canAdd = await checkDealLimit(user);
-    if (canAdd) setStep('trackingForm');
+    if (canAdd) {
+      setEditedData({
+        vehicle: vehicleData,
+        dealer: dealerData,
+        pricing: pricingData,
+        files: uploadedFiles
+      });
+      setStep('trackingForm');
+    }
   };
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
       <div className="flex items-center gap-4 mb-6">
         <Button variant="ghost" size="icon" onClick={() => setStep('initial')}><ArrowLeft className="w-5 h-5" /></Button>
-        <h1 className="text-xl font-bold text-slate-900">Analysis Complete</h1>
+        <h1 className="text-xl font-bold text-slate-900">Review & Edit Details</h1>
       </div>
       <Card className="shadow-sm border-green-200 bg-green-50 mb-6">
         <CardContent className="p-4 text-green-800">
           <p className="text-sm font-semibold">✓ Vehicle found!</p>
-          <p className="text-sm">{parsedData.vehicle?.year} {parsedData.vehicle?.make} {parsedData.vehicle?.model}</p>
-          <p className="text-sm">From: {parsedData.dealer?.name}</p>
+          <p className="text-sm">Review and edit the details below before continuing.</p>
         </CardContent>
       </Card>
       <Card className="shadow-lg">
         <CardContent className="p-6">
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
-              <h3 className="font-semibold text-slate-900 mb-2">Vehicle Details</h3>
-              <div className="text-sm text-slate-600 space-y-1">
-                {parsedData.vehicle?.vin && <p><span className="font-medium">VIN:</span> {parsedData.vehicle.vin}</p>}
-                {parsedData.vehicle?.mileage && <p><span className="font-medium">Mileage:</span> {parsedData.vehicle.mileage.toLocaleString()} miles</p>}
-                {parsedData.pricing?.asking_price && <p><span className="font-medium">Asking Price:</span> ${parsedData.pricing.asking_price.toLocaleString()}</p>}
-              </div>
-            </div>
-            {parsedData.dealer?.name && (
-              <div>
-                <h3 className="font-semibold text-slate-900 mb-2">Dealer Information</h3>
-                <div className="text-sm text-slate-600 space-y-1">
-                  <p>{parsedData.dealer.name}</p>
-                  {parsedData.dealer.contact_email && <p>{parsedData.dealer.contact_email}</p>}
-                  {parsedData.dealer.phone && <p>{parsedData.dealer.phone}</p>}
+              <h3 className="font-semibold text-slate-900 mb-3">Vehicle Details</h3>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-600 mb-1 block">Year</label>
+                    <Input
+                      placeholder="Year"
+                      value={vehicleData.year}
+                      onChange={(e) => setVehicleData(prev => ({...prev, year: e.target.value}))}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-600 mb-1 block">Make</label>
+                    <Input
+                      placeholder="Make"
+                      value={vehicleData.make}
+                      onChange={(e) => setVehicleData(prev => ({...prev, make: e.target.value}))}
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-600 mb-1 block">Model</label>
+                  <Input
+                    placeholder="Model"
+                    value={vehicleData.model}
+                    onChange={(e) => setVehicleData(prev => ({...prev, model: e.target.value}))}
+                    className="text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-600 mb-1 block">VIN</label>
+                  <Input
+                    placeholder="VIN"
+                    value={vehicleData.vin}
+                    onChange={(e) => setVehicleData(prev => ({...prev, vin: e.target.value}))}
+                    className="text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-600 mb-1 block">Mileage</label>
+                  <Input
+                    placeholder="Mileage"
+                    type="number"
+                    value={vehicleData.mileage}
+                    onChange={(e) => setVehicleData(prev => ({...prev, mileage: e.target.value}))}
+                    className="text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-600 mb-1 block">Asking Price</label>
+                  <Input
+                    placeholder="Asking Price"
+                    type="number"
+                    value={pricingData.asking_price}
+                    onChange={(e) => setPricingData(prev => ({...prev, asking_price: e.target.value}))}
+                    className="text-sm"
+                  />
                 </div>
               </div>
-            )}
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-slate-900 mb-3">Dealer Information</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-slate-600 mb-1 block">Dealer Name</label>
+                  <Input
+                    placeholder="Dealer Name"
+                    value={dealerData.name}
+                    onChange={(e) => setDealerData(prev => ({...prev, name: e.target.value}))}
+                    className="text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-600 mb-1 block">Contact Email</label>
+                  <Input
+                    placeholder="Contact Email"
+                    type="email"
+                    value={dealerData.contact_email}
+                    onChange={(e) => setDealerData(prev => ({...prev, contact_email: e.target.value}))}
+                    className="text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-600 mb-1 block">Phone</label>
+                  <Input
+                    placeholder="Phone"
+                    value={dealerData.phone}
+                    onChange={(e) => setDealerData(prev => ({...prev, phone: e.target.value}))}
+                    className="text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-slate-900 mb-3">Attachments (Optional)</h3>
+              <p className="text-xs text-slate-600 mb-3">Upload dealer emails, quotes, or other documents</p>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.eml,.msg"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full mb-3"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Upload Files
+              </Button>
+
+              {uploadedFiles.length > 0 && (
+                <div className="space-y-2">
+                  {uploadedFiles.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-200">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-slate-500" />
+                        <span className="text-sm text-slate-700 truncate">{file.name}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeFile(index)}
+                        className="h-6 w-6"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <Button onClick={handleContinue} className="w-full bg-brand-teal hover:bg-brand-teal-dark py-3">
               Continue to Deal Setup
             </Button>
